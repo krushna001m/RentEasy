@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         backgroundColor: '#eee',
         borderRadius: 10,
-        padding: 10,
+        padding: 5,
         alignItems: 'center',
         justifyContent: 'space-between',
         marginTop: 10,
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     },
     navItem: {
         alignItems: 'center',
-        marginTop:10
+        marginTop:5
     },
 
     navLabel: {

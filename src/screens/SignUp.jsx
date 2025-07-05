@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     resizeMode: "contain",
-    marginBottom: 20,
+    marginBottom: 10,
     borderRadius: 20,
 
     shadowColor: "#000",
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "bold",
     color: "black",
-    marginBottom: 10,
+    marginBottom: 5,
   },
   subtitle: {
     fontSize: 25,
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   roleCheckbox: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 47,
+    marginRight: 26,
     alignContent:'center'
   },
 
