@@ -85,8 +85,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#E6F0FA",
   },
   logo: {
-    width: 120,
-    height: 120,
+    width: 100,
+    height: 100,
     resizeMode: "contain",
     marginBottom: 20,
     borderRadius: 20,
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     borderColor: "#e0e0e0",
   },
   maintitle: {
-    fontSize: 40,
+    fontSize: 35,
     textAlign: "center",
     fontWeight: "bold",
     color: "black",

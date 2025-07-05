@@ -21,7 +21,7 @@ const BrowseItems = ({navigation}) => {
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate("Login")}>
                     <Image source={require('../../assets/logo.png')} style={styles.logo} />
                 </TouchableOpacity>
                 <TouchableOpacity>
@@ -46,7 +46,7 @@ const BrowseItems = ({navigation}) => {
                 {/* Browse Title */}
                 <View>
                     <TouchableOpacity style={{flexDirection:'row'}}>
-                    <MaterialIcons name="explore" size={28} style={{marginTop:10}} />
+                    <MaterialIcons name="explore" size={28} color='#007bff' style={{marginTop:10}} />
                     <Text style={{marginTop:15,marginLeft:5,fontWeight:'500',fontSize:13,color: '#333'}}>Explore</Text>
                     </TouchableOpacity>
                 </View>
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
          borderRadius:16,
     },
     title: {
-        fontSize: 28,
+        fontSize: 25,
         fontWeight: 'bold',
         textAlign: 'center',
         marginTop: 10,
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
         textShadowRadius: 4,
     },
     subtitle: {
-        fontSize: 18,
+        fontSize: 16,
         textAlign: 'center',
         marginBottom: 16,
         color: '#3a3a3a',
