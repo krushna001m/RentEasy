@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: 8,
+    marginVertical: 4,
     marginHorizontal: 40,
     alignContent:'center'
   },
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   roleCheckbox: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 26,
+    marginRight: 25,
     alignContent:'center'
   },
 
