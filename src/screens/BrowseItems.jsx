@@ -99,7 +99,7 @@ const BrowseItems = ({navigation}) => {
                         title="🚗 TOYOTA INNOVA CRYSTA (7-SEATER) FOR RENT"
                         info={{
                             features: [
-                                " 🛣️ Comfortable for Long Drives | ❄️ Dual A/C |              🎵 Music System"
+                                " 🛣️ Comfortable for Long Drives |❄️Dual A/C               🎵 Music System"
                             ],
                             included: [
                                 "     💺 7-Seater | 🧳 Ample Luggage Space | 🛡️ Driver Airbags"
