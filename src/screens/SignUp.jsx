@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   roleCheckbox: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 48,
+    marginRight: 25,
   },
 
   loginButton: {
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 30,
     borderRadius: 8,
-    width: '40%',
+    width: '60%',
   },
   loginText: {
     color: 'white',

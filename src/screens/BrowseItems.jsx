@@ -164,6 +164,7 @@ const styles = StyleSheet.create({
         width: 60,
         height: 70,
         resizeMode: 'contain',
+         borderRadius:16,
     },
     title: {
         fontSize: 28,

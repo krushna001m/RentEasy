@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 30,
         borderRadius: 8,
         marginTop: 20,
-        width: "50%",
+        width: "80%",
     },
     backButtonContent: {
         flexDirection: "row",
