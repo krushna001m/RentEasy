@@ -51,7 +51,7 @@ const BrowseItems = ({navigation}) => {
                     </TouchableOpacity>
                 </View>
                 {/* Product Cards */}
-                <TouchableOpacity>
+                
                     <ProductCard
                         image={require('../../assets/camera.png')}
                         title="📸 NIKON D850 DSLR (BODY ONLY)"
@@ -71,9 +71,8 @@ const BrowseItems = ({navigation}) => {
                             availability: "     ON REQUEST"
                         }}
                     />
-                </TouchableOpacity>
+                
 
-                <TouchableOpacity>
                     <ProductCard
                         image={require('../../assets/house.png')}
                         title="🏠 2BHK HOUSE FOR RENT (INDEPENDENT VILLA STYLE)"
@@ -92,8 +91,6 @@ const BrowseItems = ({navigation}) => {
                             availability: "      IMMEDIATE"
                         }}
                     />
-                </TouchableOpacity>
-                <TouchableOpacity>
                     <ProductCard
                         image={require('../../assets/car.png')}
                         title="🚗 TOYOTA INNOVA CRYSTA (7-SEATER) FOR RENT"
@@ -111,7 +108,6 @@ const BrowseItems = ({navigation}) => {
                             availability: "     ON REQUEST"
                         }}
                     />
-                </TouchableOpacity>
 
             </ScrollView>
             <View style={styles.bottomNav}>
