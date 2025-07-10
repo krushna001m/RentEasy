@@ -7,6 +7,7 @@ import SignUp from "../screens/SignUp";
 import Home from "../screens/Home";
 import BrowseItems from "../screens/BrowseItems";
 import ForgotPassword from "../screens/ForgotPassword";
+import AddItem from "../screens/AddItem";
 
 const Stack = createNativeStackNavigator();
 
@@ -19,6 +20,7 @@ const AppNavigator = () => {
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="BrowseItems" component={BrowseItems}/>
         <Stack.Screen name="ForgotPassword" component={ForgotPassword}/>
+        <Stack.Screen name="AddItem" component={AddItem}/>
       </Stack.Navigator>
     </NavigationContainer>
   );

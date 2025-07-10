@@ -116,12 +116,12 @@ const BrowseItems = ({navigation}) => {
                     <Text style={styles.navLabel}>Home</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem}>
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("BrowseItems")}>
                     <MaterialIcons name="explore" size={28} />
                     <Text style={styles.navLabel}>Explore</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem}>
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("AddItem")}>
                     <Entypo name="plus" size={28} />
                     <Text style={styles.navLabel}>Add</Text>
                 </TouchableOpacity>
