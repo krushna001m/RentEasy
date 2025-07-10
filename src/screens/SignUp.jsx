@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     marginRight: 0,
     ...Platform.select({
       ios:{
-        marginRight:27  
+        marginRight:34  
       },
       android:{
         marginRight:44
