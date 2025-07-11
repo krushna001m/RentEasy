@@ -13,7 +13,7 @@ const Home = ({navigation}) => {
             {/*  Fixed Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.navigate("Login")}><Image source={require('../../assets/logo.png')} style={styles.logo} /></TouchableOpacity>
-                <TouchableOpacity><Entypo name="chat" size={36} /></TouchableOpacity>
+                <TouchableOpacity onPress={()=>navigation.navigate("Chat")}><Entypo name="chat" size={36} /></TouchableOpacity>
             </View>
 
             {/*  Scrollable Content */}
@@ -94,7 +94,7 @@ const Home = ({navigation}) => {
 
             {/*  Fixed Bottom Navigation */}
             <View style={styles.bottomNav}>
-                <TouchableOpacity style={styles.navItem}>
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Home")}>
                     <Ionicons name="home" size={28} />
                     <Text style={styles.navLabel}>Home</Text>
                 </TouchableOpacity>
@@ -109,12 +109,12 @@ const Home = ({navigation}) => {
                     <Text style={styles.navLabel}>Add</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem}>
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("History")}>
                     <Ionicons name="document-text" size={28} />
                     <Text style={styles.navLabel}>History</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem}>
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Profile")}>
                     <Ionicons name="person" size={28} />
                     <Text style={styles.navLabel}>Profile</Text>
                 </TouchableOpacity>

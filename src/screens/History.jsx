@@ -1,22 +1,21 @@
 import React from 'react';
 import {
-    TouchableOpacity,
-    StyleSheet,
     View,
     Text,
-    Image,
+    StyleSheet,
+    TouchableOpacity,
     ScrollView,
-    TextInput
+    TextInput,
+    Image,
+    Platform
 } from 'react-native';
-
-import ProductCard from '../components/ProductCard';
 import Entypo from 'react-native-vector-icons/Entypo';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
-const BrowseItems = ({navigation}) => {
+const History = ({ navigation }) => {
     return (
         <View style={styles.container}>
             {/* Header */}
@@ -29,86 +28,47 @@ const BrowseItems = ({navigation}) => {
                 </TouchableOpacity>
             </View>
 
-            {/* Scrollable Content */}
-            <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <Text style={styles.title}>WELCOME TO RENTEASY</Text>
                 <Text style={styles.subtitle}>RENT IT, USE IT, RETURN IT!</Text>
 
-                {/* Search Bar */}
-                <View style={styles.searchBar}>
-                    <FontAwesome name="search" size={20} style={{ marginHorizontal: 10 }} />
-                    <TextInput placeholder="Search Items" style={styles.input} />
-                    <TouchableOpacity>
-                        <FontAwesome name="filter" size={25} style={{ marginHorizontal: 10 }} />
-                    </TouchableOpacity>
+                <TouchableOpacity style={styles.historyTab}>
+                    <Text style={styles.historyTabText}>HISTORY</Text>
+                    <Ionicons name="document-text" size={20} color="#fff" style={{ marginLeft: 8 }} />
+                </TouchableOpacity>
+
+                <Text style={styles.label}>RENTAL ITEM / SERVICE NAME</Text>
+                <TextInput style={styles.input} placeholder="E.g., Nikon DSLR Camera" />
+
+                <Text style={styles.label}>RENTAL PERIOD</Text>
+                <View style={styles.periodRow}>
+                    <TextInput style={[styles.input, { flex: 1, marginRight: 5 }]} placeholder="From" />
+                    <TextInput style={[styles.input, { flex: 1, marginLeft: 5 }]} placeholder="To" />
                 </View>
 
-                {/* Browse Title */}
-                <View>
-                    <TouchableOpacity style={{flexDirection:'row'}}>
-                    <MaterialIcons name="explore" size={28} color='#007bff' style={{marginTop:10}} />
-                    <Text style={{marginTop:13,marginLeft:6,fontWeight:'600',fontSize:15,color: '#333'}}>Explore</Text>
-                    </TouchableOpacity>
-                </View>
-                {/* Product Cards */}
-                
-                    <ProductCard
-                        image={require('../../assets/camera.png')}
-                        title="📸 NIKON D850 DSLR (BODY ONLY)"
-                        info={{
-                            features: [
-                                "     🔍 45.7MP FULL-FRAME | 🎥 4K UHD VIDEO",
-                                "     📷 PRO-LEVEL PERFORMANCE"
-                            ],
-                            included: [
-                                "     🔋 Battery & Charger | 💾 64GB MEMORY CARD",
-                                "     🎒 Carry Case"
-                            ],
-                            price: "      📅 ₹500/day | ₹1300/3 days | ₹2800/week",
-                            deposit: "      ₹5000 (REFUNDABLE)",
-                            location: "      PUNE, MAHARASHTRA",
-                            rating: "       4.9/5 (100 REVIEWS)",
-                            availability: "     ON REQUEST"
-                        }}
-                    />
-                
+                <Text style={styles.label}>PRICE BREAKDOWN</Text>
+                <Text style={styles.textBreak}>- DAILY RENTAL RATE x NUMBER OF DAYS</Text>
+                <Text style={styles.textBreak}>- DEPOSIT OR SECURITY FEE</Text>
+                <Text style={styles.textBreak}>- ANY APPLICABLE TAXES OR LATE FEES</Text>
 
-                    <ProductCard
-                        image={require('../../assets/house.png')}
-                        title="🏠 2BHK HOUSE FOR RENT (INDEPENDENT VILLA STYLE)"
-                        info={{
-                            features: [
-                                " 🌳 Calm Green Surroundings | 🏗️ Spacious Design"
-                            ],
-                            included: [
-                                "     🛏️ 2 Bedrooms | 🛋️ Hall | 🍳 Kitchen",
-                                "     🚿 2 Bathrooms | 🚗 Parking"
-                            ],
-                            price: "       ₹8,000/month",
-                            deposit: "      ₹25,000 (REFUNDABLE)",
-                            location: "      NASHIK, MAHARASHTRA",
-                            rating: "      4.8/5",
-                            availability: "      IMMEDIATE"
-                        }}
-                    />
-                    <ProductCard
-                        image={require('../../assets/car.png')}
-                        title="🚗 TOYOTA INNOVA CRYSTA (7-SEATER) FOR RENT"
-                        info={{
-                            features: [
-                                " 🛣️ Comfortable for Long Drives |❄️Dual A/C               🎵 Music System"
-                            ],
-                            included: [
-                                "     💺 7-Seater | 🧳 Ample Luggage Space | 🛡️ Driver Airbags"
-                            ],
-                            price: "       ₹500/day | ₹1400/3 days | ₹3000/week",
-                            deposit: "      ₹10,000 (REFUNDABLE)",
-                            location: "      SINNAR, MAHARASHTRA",
-                            rating: "       4.7/5",
-                            availability: "     ON REQUEST"
-                        }}
-                    />
+                <Text style={styles.label}>STATUS</Text>
+                <Text style={styles.status}><FontAwesome name="check-circle" size={18}/> COMPLETED</Text>
+                <Text style={styles.status}><FontAwesome name="check-circle" size={18}/> RETURNED LATE</Text>
+                <Text style={styles.status}><FontAwesome name="check-circle" size={18}/> CANCELLED</Text>
 
+                <Text style={styles.label}>PICK-UP / DROP-OFF LOCATION</Text>
+                <TextInput style={styles.input} placeholder="E.g., Pune, Maharashtra" />
+
+                <Text style={styles.label}>RENTAL ID OR RECEIPT NUMBER</Text>
+                <TextInput style={styles.input} placeholder="#RENT12345678" />
+
+                <Text style={styles.label}>NOTES / FEEDBACK SECTION</Text>
+                <TextInput style={[styles.input, { height: 100 }]} placeholder="Write your feedback..." multiline />
+
+                <TouchableOpacity style={styles.downloadBtn}>
+                    <Text style={styles.downloadText}>DOWNLOAD RECEIPT OR INVOICE</Text>
+                    <Entypo name="download" size={20} color="white" style={{ marginLeft: 6 }} />
+                </TouchableOpacity>
             </ScrollView>
             <View style={styles.bottomNav}>
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Home")}>
@@ -136,15 +96,14 @@ const BrowseItems = ({navigation}) => {
                     <Text style={styles.navLabel}>Profile</Text>
                 </TouchableOpacity>
             </View>
-
         </View>
     );
 };
 
-export default BrowseItems;
+export default History;
 
 const styles = StyleSheet.create({
-    container: {
+       container: {
             flex: 1,
             backgroundColor: '#E6F0FA',
             paddingTop: 30,
@@ -193,28 +152,79 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingBottom: 120,
     },
-    searchBar: {
-        flexDirection: 'row',
-        backgroundColor: '#eee',
-        borderRadius: 10,
-        padding: 5,
-        alignItems: 'center',
-        justifyContent: 'space-between',
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        textAlign: 'center',
         marginTop: 10,
-        borderColor: 'black',
-        borderWidth: 0.5,
+        color: '#000'
+    },
+    subtitle: {
+        fontSize: 14,
+        textAlign: 'center',
+        fontWeight: '500',
+        color: '#333',
+        marginBottom: 20
+    },
+    historyTab: {
+        backgroundColor: '#001F54',
+        alignSelf: 'center',
+        padding: 10,
+        paddingHorizontal: 20,
+        borderRadius: 30,
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20
+    },
+    historyTabText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 17
+    },
+    label: {
+        fontWeight: 'bold',
+        marginTop: 25,
+        fontSize: 17,
+        color: '#222',
+        marginBottom:4
     },
     input: {
-        flex: 1,
-        marginHorizontal: 10,
-        fontSize: 16,
-        height:40
+        borderWidth: 1,
+        borderColor: '#aaa',
+        borderRadius: 10,
+        padding: 10,
+        backgroundColor: '#fff',
+        marginTop: 6
     },
-    browseTitle: {
-        fontSize: 18,
-        fontWeight: '400',
-        marginTop: 15
-
+    periodRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between'
+    },
+    textBreak: {
+        fontSize: 15,
+        color: '#444',
+        marginTop: 4,
+        marginLeft: 10
+    },
+    status: {
+        fontSize: 15,
+        marginTop: 6,
+        color: '#000',
+        marginLeft: 10
+    },
+    downloadBtn: {
+        marginTop: 30,
+        backgroundColor: '#001F54',
+        padding: 12,
+        borderRadius: 30,
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center'
+    },
+    downloadText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize:17
     },
     bottomNav: {
         flexDirection: 'row',

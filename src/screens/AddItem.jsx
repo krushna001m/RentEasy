@@ -6,7 +6,8 @@ import {
     TouchableOpacity,
     StyleSheet,
     ScrollView,
-    Image
+    Image,
+    Platform
 } from 'react-native';
 import * as ImagePicker from 'react-native-image-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -52,9 +53,10 @@ const AddItem = ({ navigation }) => {
             {/* Header */}
             <View style={styles.topBar}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.navigate("Home")}>\n                        <Image source={require('../../assets/logo.png')} style={styles.logo} />
+                    <TouchableOpacity onPress={() => navigation.navigate("Home")}>
+                        <Image source={require('../../assets/logo.png')} style={styles.logo} />
                     </TouchableOpacity>
-                    <TouchableOpacity>
+                    <TouchableOpacity onPress={()=>navigation.navigate("Chat")}>
                         <Entypo name="chat" size={36} />
                     </TouchableOpacity>
                 </View>
@@ -138,44 +140,52 @@ const AddItem = ({ navigation }) => {
                         </TouchableOpacity>
                     </View>
                 </View>
-
-                <Text style={styles.sectionTitle}>👤 OWNER DETAILS</Text>
-                <Text style={styles.fieldLabel}>👤 Owner Name</Text>
-                <TextInput placeholder="Enter Owner's Name" style={styles.input} />
-
-                <Text style={styles.fieldLabel}>🏠 Owner Address</Text>
-                <TextInput placeholder="Enter Full Address" style={styles.input} />
-
-                <Text style={styles.fieldLabel}>📞 Contact Number</Text>
-                <TextInput placeholder="Enter Contact Number" style={styles.input} keyboardType="phone-pad" />
-
-                <Text style={styles.fieldLabel}>📧 Email Address</Text>
-                <TextInput placeholder="Enter Email Address" style={styles.input} keyboardType="email-address" />
-
-                <Text style={styles.sectionTitle}>✅ TERMS AND CONDITIONS</Text>
-
-                <View style={styles.checkboxGroup}>
-                    <TouchableOpacity style={styles.checkboxItem} onPress={() => setTerms(prev => ({ ...prev, idProof: !prev.idProof }))}>
-                        <Ionicons name={terms.idProof ? "checkbox" : "square-outline"} size={22} color="#001F54" />
-                        <Text style={styles.checkboxLabel}>ID Proof Required</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.checkboxItem} onPress={() => setTerms(prev => ({ ...prev, handleWithCare: !prev.handleWithCare }))}>
-                        <Ionicons name={terms.handleWithCare ? "checkbox" : "square-outline"} size={22} color="#001F54" />
-                        <Text style={styles.checkboxLabel}>Strictly Handle with Care</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.checkboxItem} onPress={() => setTerms(prev => ({ ...prev, lateCharges: !prev.lateCharges }))}>
-                        <Ionicons name={terms.lateCharges ? "checkbox" : "square-outline"} size={22} color="#001F54" />
-                        <Text style={styles.checkboxLabel}>Late Return Charges Applicable</Text>
-                    </TouchableOpacity>
+                <View flexDirection="row">
+                    <FontAwesome name="user" size={25} color="#007bff" style={styles.TitleIcon} />
+                    <Text style={styles.sectionTitle}> OWNER DETAILS</Text>
                 </View>
+                <View style={styles.SubContent}>
+                    <Text style={styles.fieldLabel}>👤 Owner Name</Text>
+                    <TextInput placeholder="Enter Owner's Name" style={styles.input} />
 
-                <TextInput
-                    placeholder="Add any custom terms..."
-                    style={[styles.input, { height: 100 }]}
-                    multiline
-                />
+                    <Text style={styles.fieldLabel}>🏠 Owner Address</Text>
+                    <TextInput placeholder="Enter Full Address" style={styles.input} />
+
+                    <Text style={styles.fieldLabel}>📞 Contact Number</Text>
+                    <TextInput placeholder="Enter Contact Number" style={styles.input} keyboardType="phone-pad" />
+
+                    <Text style={styles.fieldLabel}>📧 Email Address</Text>
+                    <TextInput placeholder="Enter Email Address" style={styles.input} keyboardType="email-address" />
+                </View>
+                <View flexDirection="row">
+                    <FontAwesome name="check-square-o" size={25} color="#007bff" style={styles.TitleIcon} />
+                    <Text style={styles.sectionTitle}> TERMS AND CONDITIONS</Text>
+                </View>
+                <View style={styles.SubContent}>
+                    <View style={styles.checkboxGroup}>
+                        <TouchableOpacity style={styles.checkboxItem} onPress={() => setTerms(prev => ({ ...prev, idProof: !prev.idProof }))}>
+                            <Ionicons name={terms.idProof ? "checkbox" : "square-outline"} size={22} color="#001F54" />
+                            <Text style={styles.checkboxLabel}>ID Proof Required</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.checkboxItem} onPress={() => setTerms(prev => ({ ...prev, handleWithCare: !prev.handleWithCare }))}>
+                            <Ionicons name={terms.handleWithCare ? "checkbox" : "square-outline"} size={22} color="#001F54" />
+                            <Text style={styles.checkboxLabel}>Strictly Handle with Care</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.checkboxItem} onPress={() => setTerms(prev => ({ ...prev, lateCharges: !prev.lateCharges }))}>
+                            <Ionicons name={terms.lateCharges ? "checkbox" : "square-outline"} size={22} color="#001F54" />
+                            <Text style={styles.checkboxLabel}>Late Return Charges Applicable</Text>
+                        </TouchableOpacity>
+                    </View>
+
+
+                    <TextInput
+                        placeholder="Add any custom terms..."
+                        style={[styles.input, { height: 100 }]}
+                        multiline
+                    />
+                </View>
 
                 <TouchableOpacity style={styles.submitButton}>
                     <Ionicons name="checkmark-done-circle" size={24} color="#fff" />
@@ -201,7 +211,7 @@ const AddItem = ({ navigation }) => {
             </ScrollView>
             {/*  Fixed Bottom Navigation */}
             <View style={styles.bottomNav}>
-                <TouchableOpacity style={styles.navItem}>
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Home")}>
                     <Ionicons name="home" size={28} />
                     <Text style={styles.navLabel}>Home</Text>
                 </TouchableOpacity>
@@ -216,12 +226,12 @@ const AddItem = ({ navigation }) => {
                     <Text style={styles.navLabel}>Add</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem}>
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("History")}>
                     <Ionicons name="document-text" size={28} />
                     <Text style={styles.navLabel}>History</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem}>
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Profile")}>
                     <Ionicons name="person" size={28} />
                     <Text style={styles.navLabel}>Profile</Text>
                 </TouchableOpacity>
@@ -233,26 +243,29 @@ const AddItem = ({ navigation }) => {
 export default AddItem;
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#E6F0FA',
-    },
-    topBar: {
-        paddingTop: 30,
-        paddingBottom: 10,
-        paddingHorizontal: 16,
-        backgroundColor: '#E6F0FA',
-    },
+container: {
+            flex: 1,
+            backgroundColor: '#E6F0FA',
+            paddingTop: 30,
+            ...Platform.select({
+                ios:{
+                    flex:1,
+                    marginTop:10
+                }
+            })
+        },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingBottom: 1,
     },
     logo: {
         width: 60,
         height: 70,
         resizeMode: 'contain',
-        borderRadius: 16,
+         borderRadius:16,
     },
     title: {
         fontSize: 25,
@@ -261,12 +274,10 @@ const styles = StyleSheet.create({
         marginTop: 10,
         marginBottom: 6,
         color: '#1E1E1E',
-
         textShadowColor: 'rgba(0, 0, 0, 0.25)',
         textShadowOffset: { width: 1, height: 2 },
         textShadowRadius: 4,
     },
-
     subtitle: {
         fontSize: 16,
         textAlign: 'center',
@@ -276,11 +287,10 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         letterSpacing: 0.5,
         opacity: 0.9,
-
     },
     scrollContainer: {
         paddingHorizontal: 16,
-        paddingBottom: 40,
+        paddingBottom: 120,
     },
     input: {
         backgroundColor: '#fff',
@@ -400,6 +410,14 @@ const styles = StyleSheet.create({
         color: '#001F54',
         fontWeight: 'bold',
         fontSize: 13,
+        ...Platform.select({
+            ios: {
+                padding: 2
+            },
+            android: {
+                padding: 5.5
+            }
+        })
     },
     bottomNav: {
         flexDirection: 'row',

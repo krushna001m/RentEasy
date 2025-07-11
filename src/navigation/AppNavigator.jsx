@@ -8,6 +8,9 @@ import Home from "../screens/Home";
 import BrowseItems from "../screens/BrowseItems";
 import ForgotPassword from "../screens/ForgotPassword";
 import AddItem from "../screens/AddItem";
+import History from "../screens/History";
+import Chat from "../screens/Chat";
+import Profile from "../screens/Profile";
 
 const Stack = createNativeStackNavigator();
 
@@ -21,6 +24,9 @@ const AppNavigator = () => {
         <Stack.Screen name="BrowseItems" component={BrowseItems}/>
         <Stack.Screen name="ForgotPassword" component={ForgotPassword}/>
         <Stack.Screen name="AddItem" component={AddItem}/>
+        <Stack.Screen name="History" component={History}/>
+        <Stack.Screen name="Chat" component={Chat}/>
+        <Stack.Screen name="Profile" component={Profile}/>
       </Stack.Navigator>
     </NavigationContainer>
   );
