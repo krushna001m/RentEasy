@@ -47,7 +47,7 @@ const BrowseItems = ({navigation}) => {
                 <View>
                     <TouchableOpacity style={{flexDirection:'row'}}>
                     <MaterialIcons name="explore" size={28} color='#007bff' style={{marginTop:10}} />
-                    <Text style={{marginTop:15,marginLeft:5,fontWeight:'500',fontSize:13,color: '#333'}}>Explore</Text>
+                    <Text style={{marginTop:13,marginLeft:6,fontWeight:'600',fontSize:15,color: '#333'}}>Explore</Text>
                     </TouchableOpacity>
                 </View>
                 {/* Product Cards */}
@@ -145,10 +145,16 @@ export default BrowseItems;
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
-        backgroundColor: '#E6F0FA',
-        paddingTop: 30,
-    },
+            flex: 1,
+            backgroundColor: '#E6F0FA',
+            paddingTop: 30,
+            ...Platform.select({
+                ios:{
+                    flex:1,
+                    marginTop:10
+                }
+            })
+        },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -202,6 +208,7 @@ const styles = StyleSheet.create({
         flex: 1,
         marginHorizontal: 10,
         fontSize: 16,
+        height:40
     },
     browseTitle: {
         fontSize: 18,

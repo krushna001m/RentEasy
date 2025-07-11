@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, Platform } from 'react-native';
 
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Entypo from 'react-native-vector-icons/Entypo';
@@ -31,8 +31,8 @@ const Home = ({navigation}) => {
                 </View>
 
                 <View style={{ marginHorizontal: 10 , flexDirection:'row'}}>
-                    <FontAwesome6 name="arrow-trend-up" size={25} color="#007bff" style={{marginTop:10}} />
-                    <Text style={{ fontSize: 13, color: '#333', marginTop: 2 , fontWeight:'500',marginTop:13,marginLeft:10}}>Trending</Text>
+                    <MaterialIcons name="trending-up" size={25} color="#007bff" style={{marginTop:10}} />
+                    <Text style={{ fontSize: 15, color: '#333', fontWeight:'600',marginTop:10,marginLeft:10}}>Trending</Text>
                 </View>
 
                 {/* Product Card */}
@@ -131,6 +131,12 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#E6F0FA',
         paddingTop: 30,
+        ...Platform.select({
+            ios:{
+                flex:1,
+                marginTop:10
+            }
+        })
     },
     header: {
         flexDirection: 'row',
@@ -192,6 +198,7 @@ const styles = StyleSheet.create({
         flex: 1,
         marginHorizontal: 10,
         fontSize: 16,
+        height:40
     },
 
     productImage: {
