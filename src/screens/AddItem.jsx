@@ -78,13 +78,13 @@ const AddItem = ({ navigation }) => {
                 <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
                     {!imageUri && (
                         <>
-                            <FontAwesome name="image" size={50} color="#999" />
+                            <FontAwesome name="image" size={50} color="#001F54" />
                             <Text style={styles.pickImageText}>UPLOAD ITEM IMAGE</Text>
                         </>
                     )}
                 </TouchableOpacity>
                 <View flexDirection="row">
-                    <Ionicons name="document" size={25} color="#007bff" style={styles.TitleIcon} />
+                    <Ionicons name="document" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> ITEM DETAILS</Text>
                 </View>
                 <View style={styles.SubContent}>
@@ -94,7 +94,7 @@ const AddItem = ({ navigation }) => {
                     <TextInput placeholder="📦 What's Included (Checklist or Multiline)" style={[styles.input, { height: 80 }]} multiline />
                 </View>
                 <View flexDirection="row">
-                    <FontAwesome5 name="rupee-sign" size={25} color="#007bff" style={styles.TitleIcon} />
+                    <FontAwesome5 name="rupee-sign" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> RENTAL PRICE</Text>
                 </View>
                 <View style={styles.SubContent}>
@@ -106,14 +106,14 @@ const AddItem = ({ navigation }) => {
                 </View>
 
                 <View flexDirection="row">
-                    <Entypo name="location" size={25} color="#007bff" style={styles.TitleIcon} />
+                    <Entypo name="location" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> LOCATION</Text>
                 </View>
                 <View style={styles.SubContent}>
                     <TextInput placeholder="Location" style={styles.input} />
                 </View>
                 <View flexDirection="row">
-                    <FontAwesome name="calendar" size={25} color="#007bff" style={styles.TitleIcon} />
+                    <FontAwesome name="calendar" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> AVAILABILITY STATUS</Text>
                 </View>
                 <View style={styles.SubContent}>
@@ -141,7 +141,7 @@ const AddItem = ({ navigation }) => {
                     </View>
                 </View>
                 <View flexDirection="row">
-                    <FontAwesome name="user" size={25} color="#007bff" style={styles.TitleIcon} />
+                    <FontAwesome name="user" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> OWNER DETAILS</Text>
                 </View>
                 <View style={styles.SubContent}>
@@ -158,7 +158,7 @@ const AddItem = ({ navigation }) => {
                     <TextInput placeholder="Enter Email Address" style={styles.input} keyboardType="email-address" />
                 </View>
                 <View flexDirection="row">
-                    <FontAwesome name="check-square-o" size={25} color="#007bff" style={styles.TitleIcon} />
+                    <FontAwesome name="check-square-o" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> TERMS AND CONDITIONS</Text>
                 </View>
                 <View style={styles.SubContent}>

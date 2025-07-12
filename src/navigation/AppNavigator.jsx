@@ -11,6 +11,7 @@ import AddItem from "../screens/AddItem";
 import History from "../screens/History";
 import Chat from "../screens/Chat";
 import Profile from "../screens/Profile";
+import Settings from "../screens/Settings"; 
 
 const Stack = createNativeStackNavigator();
 
@@ -27,6 +28,7 @@ const AppNavigator = () => {
         <Stack.Screen name="History" component={History}/>
         <Stack.Screen name="Chat" component={Chat}/>
         <Stack.Screen name="Profile" component={Profile}/>
+        <Stack.Screen name="Settings" component={Settings}/>
       </Stack.Navigator>
     </NavigationContainer>
   );
