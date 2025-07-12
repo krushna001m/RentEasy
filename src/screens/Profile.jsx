@@ -254,7 +254,7 @@ container: {
         paddingHorizontal: 12,
         borderRadius: 16,
         alignSelf: 'center',
-        marginBottom: 12,
+        marginBottom: 20,
     },
     chatText: {
         color: '#fff',

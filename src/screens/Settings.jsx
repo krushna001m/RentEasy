@@ -49,9 +49,8 @@ const Settings = ({ navigation }) => {
                 <ToggleRow label="Dark Mode" value={darkMode} onValueChange={() => setDarkMode(!darkMode)} icon="moon" />
                 <ToggleRow label="Notification" value={notifications} onValueChange={() => setNotifications(!notifications)} icon="bell" />
                 <TouchableOpacity style={styles.languageRow}>
-                    <Text style={styles.rowIcon}>🌐</Text>
-                    <Section title="Language" />
-                    <Entypo name="chevron-down" size={18} />
+                    <Section title="🌐 Language" />
+                    <Entypo name="chevron-down" size={18} style={{alignSelf:'right',marginTop:27,marginLeft:180}}/>
                 </TouchableOpacity>
 
                 {/* Security */}
@@ -63,6 +62,7 @@ const Settings = ({ navigation }) => {
                 <TouchableOpacity onPress={() => navigation.navigate("ForgotPassword")}>
                     <Text style={styles.rowLabel}>🧠 Forgot Password</Text>
                 </TouchableOpacity>
+
                 {/* Payments */}
                 <Section title="💳 Payment & Payouts" />
                 <Text style={styles.rowLabel}>💳 Saved Cards</Text>
@@ -202,7 +202,8 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         borderRadius: 14,
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 20,
+        marginTop: 10,
     },
     settingsText: {
         color: '#fff',
@@ -219,6 +220,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         borderRadius: 10,
         marginVertical: 10,
+        height: 66,
+        justifyContent: 'center',
     },
     sectionText: {
         fontWeight: 'bold',
@@ -248,7 +251,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#ccc',
         paddingVertical: 0,
-        paddingHorizontal: 16,
+        paddingHorizontal: 0,
         borderRadius: 10,
         marginVertical: 10,
         height: 66

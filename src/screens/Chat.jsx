@@ -42,10 +42,10 @@ const Chat = ({ navigation }) => {
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.navigate("Home")}> 
+                <TouchableOpacity onPress={() => navigation.navigate("Home")}>
                     <Image source={require('../../assets/logo.png')} style={styles.logo} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={()=>navigation.navigate("Chat")}>
+                <TouchableOpacity onPress={() => navigation.navigate("Chat")}>
                     <Entypo name="chat" size={36} />
                 </TouchableOpacity>
             </View>
@@ -59,9 +59,9 @@ const Chat = ({ navigation }) => {
             </TouchableOpacity>
 
             {/* Messages */}
-            <ScrollView 
-                contentContainerStyle={styles.messageContainer} 
-                showsVerticalScrollIndicator={false} 
+            <ScrollView
+                contentContainerStyle={styles.messageContainer}
+                showsVerticalScrollIndicator={false}
                 ref={scrollViewRef}
             >
                 {messages.map((msg, index) => (
@@ -77,6 +77,11 @@ const Chat = ({ navigation }) => {
 
             {/* Input Area */}
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+                <View>
+                    <TouchableOpacity onPress={() => navigation.navigate("ChatBot")}>
+                        <Image source={require('../../assets/ChatBot.png')} style={styles.ChatBot} />
+                    </TouchableOpacity>
+                </View>
                 <View style={styles.inputBar}>
                     <FontAwesome name="smile-o" size={24} color="#555" />
                     <TextInput
@@ -95,17 +100,17 @@ const Chat = ({ navigation }) => {
 
             {/* Bottom Nav */}
             <View style={styles.bottomNav}>
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Home")}> 
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Home")}>
                     <Ionicons name="home" size={28} />
                     <Text style={styles.navLabel}>Home</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("BrowseItems")}> 
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("BrowseItems")}>
                     <MaterialIcons name="explore" size={28} />
                     <Text style={styles.navLabel}>Explore</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("AddItem")}> 
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("AddItem")}>
                     <Entypo name="plus" size={28} />
                     <Text style={styles.navLabel}>Add</Text>
                 </TouchableOpacity>
@@ -115,7 +120,7 @@ const Chat = ({ navigation }) => {
                     <Text style={styles.navLabel}>History</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Profile")}> 
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Profile")}>
                     <Ionicons name="person" size={28} />
                     <Text style={styles.navLabel}>Profile</Text>
                 </TouchableOpacity>
@@ -127,17 +132,17 @@ const Chat = ({ navigation }) => {
 export default Chat;
 
 const styles = StyleSheet.create({
-       container: {
-            flex: 1,
-            backgroundColor: '#E6F0FA',
-            paddingTop: 30,
-            ...Platform.select({
-                ios:{
-                    flex:1,
-                    marginTop:10
-                }
-            })
-        },
+    container: {
+        flex: 1,
+        backgroundColor: '#E6F0FA',
+        paddingTop: 30,
+        ...Platform.select({
+            ios: {
+                flex: 1,
+                marginTop: 10
+            }
+        })
+    },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -149,7 +154,7 @@ const styles = StyleSheet.create({
         width: 60,
         height: 70,
         resizeMode: 'contain',
-         borderRadius:16,
+        borderRadius: 16,
     },
     title: {
         fontSize: 25,
@@ -209,8 +214,8 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
         borderRadius: 20,
         marginBottom: 10,
-        padding:10,
-        marginTop:15
+        padding: 10,
+        marginTop: 15
     },
     chatText: {
         color: '#fff',
@@ -246,6 +251,15 @@ const styles = StyleSheet.create({
         marginTop: 2,
         color: '#444'
     },
+    ChatBot:{
+        height: 80,
+        width: 80,
+        resizeMode: 'contain',
+        borderRadius: 16,
+        marginLeft:325,
+        position:'static'
+
+    },
     inputBar: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -254,26 +268,26 @@ const styles = StyleSheet.create({
         padding: 10,
         backgroundColor: '#fff',
         ...Platform.select({
-            android:{
-                padding:5,
-                paddingHorizontal:10,
-                marginTop:10,
-                marginBottom:10,
-                borderWidth:0.5,
-                borderColor:'black',
-                backgroundColor:'#eee'
+            android: {
+                padding: 5,
+                paddingHorizontal: 10,
+                marginTop: 10,
+                marginBottom: 10,
+                borderWidth: 0.5,
+                borderColor: 'black',
+                backgroundColor: '#eee'
             },
-            ios:{
-                padding:10,
-                paddingHorizontal:15,
-                marginTop:10,
-                marginBottom:10,
-                borderWidth:0.5,
-                borderColor:'black',
-                backgroundColor:'#eee'
+            ios: {
+                padding: 10,
+                paddingHorizontal: 15,
+                marginTop: 10,
+                marginBottom: 10,
+                borderWidth: 0.5,
+                borderColor: 'black',
+                backgroundColor: '#eee'
             }
         }),
-        marginBottom:75,
+        marginBottom: 75,
         borderRadius: 10,
         marginHorizontal: 16,
         shadowColor: '#000',
@@ -286,8 +300,8 @@ const styles = StyleSheet.create({
         elevation: 5,
         zIndex: 1,
         marginTop: 10,
-        height:50
-        
+        height: 50
+
     },
     input: {
         flex: 1,
