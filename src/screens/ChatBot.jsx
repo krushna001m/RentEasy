@@ -18,7 +18,7 @@ import axios from 'axios';
 import { OPENAI_API_KEY } from '@env';
 
 const ChatBot = ({ navigation }) => {
-    console.log("ChatBot API Key:", OPENAI_API_KEY); 
+    console.log("ChatBot API Key:", OPENAI_API_KEY);
     const [messages, setMessages] = useState([
         { sender: 'bot', text: 'Hi 👋! How can I help you today?' }
     ]);
@@ -43,8 +43,7 @@ const ChatBot = ({ navigation }) => {
                         ...messages.map(m => ({
                             role: m.sender === 'user' ? 'user' : 'assistant',
                             content: m.text
-                        })),
-                        { role: 'user', content: input }
+                        }))
                     ]
                 },
                 {
@@ -58,12 +57,16 @@ const ChatBot = ({ navigation }) => {
             const botReply = response.data.choices[0].message.content;
             setMessages(prev => [...prev, { sender: 'bot', text: botReply }]);
         } catch (err) {
-            console.error("ChatBot Error:", err?.response?.data || err.message);
-            setMessages(prev => [...prev, { sender: 'bot', text: '⚠️ Sorry, I’m having trouble answering that now.' }]);
+            console.error("ChatBot Error:", err.response?.data || err.message);
+            setMessages(prev => [...prev, {
+                sender: 'bot',
+                text: '⚠️ Sorry, I am having trouble answering that now.'
+            }]);
         } finally {
             setLoading(false);
         }
     };
+
 
     return (
         <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -192,7 +195,7 @@ const styles = StyleSheet.create({
         paddingBottom: 120,
     },
     supBtn: {
-       flexDirection: 'row',
+        flexDirection: 'row',
         backgroundColor: '#001F54',
         paddingVertical: 6,
         paddingHorizontal: 14,
@@ -202,7 +205,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         marginTop: 10,
     },
-    supText:{
+    supText: {
         color: '#fff',
         fontWeight: 'bold',
         fontSize: 17,
