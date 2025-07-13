@@ -134,10 +134,12 @@ const styles = StyleSheet.create({
         marginTop: 10,
         marginBottom: 6,
         color: '#1E1E1E',
+
         textShadowColor: 'rgba(0, 0, 0, 0.25)',
         textShadowOffset: { width: 1, height: 2 },
         textShadowRadius: 4,
     },
+
     subtitle: {
         fontSize: 16,
         textAlign: 'center',
@@ -148,24 +150,12 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
         opacity: 0.9,
     },
+
     scrollContainer: {
         paddingHorizontal: 16,
         paddingBottom: 120,
     },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginTop: 10,
-        color: '#000'
-    },
-    subtitle: {
-        fontSize: 14,
-        textAlign: 'center',
-        fontWeight: '500',
-        color: '#333',
-        marginBottom: 20
-    },
+
     historyTab: {
         backgroundColor: '#001F54',
         alignSelf: 'center',

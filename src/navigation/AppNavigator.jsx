@@ -13,6 +13,7 @@ import Chat from "../screens/Chat";
 import Profile from "../screens/Profile";
 import Settings from "../screens/Settings"; 
 import ChatBot from "../screens/ChatBot";
+import Payment from "../screens/Payment"; 
 
 const Stack = createNativeStackNavigator();
 
@@ -31,6 +32,7 @@ const AppNavigator = () => {
         <Stack.Screen name="Profile" component={Profile}/>
         <Stack.Screen name="Settings" component={Settings}/>
         <Stack.Screen name="ChatBot" component={ChatBot}/>
+        <Stack.Screen name="Payment" component={Payment}/>
       </Stack.Navigator>
     </NavigationContainer>
   );

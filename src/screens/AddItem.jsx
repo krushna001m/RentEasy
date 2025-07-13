@@ -10,6 +10,7 @@ import {
     Platform
 } from 'react-native';
 import * as ImagePicker from 'react-native-image-picker';
+import { launchImageLibrary } from 'react-native-image-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
@@ -31,23 +32,23 @@ const AddItem = ({ navigation }) => {
 
     const [imageUri, setImageUri] = useState(null);
 
-    const pickImage = async () => {
-        let permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!permissionResult.granted) {
-            alert('Permission to access camera roll is required!');
-            return;
-        }
-        let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [4, 3],
+    const pickImage = () => {
+        const options = {
+            mediaType: 'photo',
             quality: 1,
-        });
-        if (!result.canceled && result.assets && result.assets.length > 0) {
-            setImageUri(result.assets[0].uri);
-        }
-    };
+        };
 
+        launchImageLibrary(options, (response) => {
+            if (response.didCancel) {
+                console.log('User cancelled image picker');
+            } else if (response.errorCode) {
+                console.error('ImagePicker Error:', response.errorMessage);
+            } else if (response.assets && response.assets.length > 0) {
+                setImageUri(response.assets[0].uri);
+                console.log('Selected image:', response.assets[0].uri);
+            }
+        });
+    };
     return (
         <View style={styles.container}>
             {/* Header */}
@@ -56,7 +57,7 @@ const AddItem = ({ navigation }) => {
                     <TouchableOpacity onPress={() => navigation.navigate("Home")}>
                         <Image source={require('../../assets/logo.png')} style={styles.logo} />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={()=>navigation.navigate("Chat")}>
+                    <TouchableOpacity onPress={() => navigation.navigate("Chat")}>
                         <Entypo name="chat" size={36} />
                     </TouchableOpacity>
                 </View>
@@ -67,22 +68,19 @@ const AddItem = ({ navigation }) => {
                     <Text style={styles.title}>WELCOME TO RENTEASY</Text>
                     <Text style={styles.subtitle}>RENT IT, USE IT, RETURN IT!</Text>
                 </View>
-
-                {/* Image Preview */}
-                {imageUri && (
-                    <View style={styles.previewContainer}>
-                        <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-                    </View>
-                )}
-
                 <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
-                    {!imageUri && (
+                    {imageUri ? (
+                        // If image is selected, show the preview
+                        <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+                    ) : (
+                        // If no image is selected, show upload icon and text
                         <>
                             <FontAwesome name="image" size={50} color="#001F54" />
                             <Text style={styles.pickImageText}>UPLOAD ITEM IMAGE</Text>
                         </>
                     )}
                 </TouchableOpacity>
+
                 <View flexDirection="row">
                     <Ionicons name="document" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> ITEM DETAILS</Text>
@@ -243,17 +241,17 @@ const AddItem = ({ navigation }) => {
 export default AddItem;
 
 const styles = StyleSheet.create({
-container: {
-            flex: 1,
-            backgroundColor: '#E6F0FA',
-            paddingTop: 30,
-            ...Platform.select({
-                ios:{
-                    flex:1,
-                    marginTop:10
-                }
-            })
-        },
+    container: {
+        flex: 1,
+        backgroundColor: '#E6F0FA',
+        paddingTop: 30,
+        ...Platform.select({
+            ios: {
+                flex: 1,
+                marginTop: 10
+            }
+        })
+    },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -265,7 +263,7 @@ container: {
         width: 60,
         height: 70,
         resizeMode: 'contain',
-         borderRadius:16,
+        borderRadius: 16,
     },
     title: {
         fontSize: 25,
@@ -317,17 +315,26 @@ container: {
     },
 
     imagePicker: {
-        marginTop: 20,
         borderWidth: 1,
         borderColor: '#ccc',
+        borderStyle: 'dashed',
         borderRadius: 10,
         padding: 20,
-        justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#fff',
-        height: 250,
-        marginBottom: 20
+        justifyContent: 'center',
+        height: 220,
+        marginVertical: 10,
+        backgroundColor: '#f9f9f9',
     },
+
+    imagePreview: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
+        borderRadius: 10,
+        height: 180,
+    },
+
     pickImageText: {
         marginTop: 10,
         color: '#333',
@@ -338,21 +345,11 @@ container: {
         paddingHorizontal: 16,
         marginTop: 20,
     },
-    imagePreview: {
-        width: '100%',
-        height: 500,
-        borderRadius: 12,
-        resizeMode: 'cover',
-        borderWidth: 1,
-        borderColor: '#ccc',
-    },
     TitleIcon: {
         flexDirection: 'row',
         margin: 2,
         marginTop: 20,
         marginRight: 1,
-
-
     },
     SubContent: {
         marginLeft: 20,

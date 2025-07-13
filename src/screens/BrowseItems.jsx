@@ -64,12 +64,14 @@ const BrowseItems = ({navigation}) => {
                                 "     🔋 Battery & Charger | 💾 64GB MEMORY CARD",
                                 "     🎒 Carry Case"
                             ],
-                            price: "      📅 ₹500/day | ₹1300/3 days | ₹2800/week",
+                            price: "      ₹500/day | ₹1300/3 days | ₹2800/week",
                             deposit: "      ₹5000 (REFUNDABLE)",
+                            owner:"     KRUSHNA MENGAL",
                             location: "      PUNE, MAHARASHTRA",
                             rating: "       4.9/5 (100 REVIEWS)",
                             availability: "     ON REQUEST"
                         }}
+                        navigation={navigation}
                     />
                 
 
@@ -86,10 +88,12 @@ const BrowseItems = ({navigation}) => {
                             ],
                             price: "       ₹8,000/month",
                             deposit: "      ₹25,000 (REFUNDABLE)",
+                            owner:"      KRUSHNA MENGAL",
                             location: "      NASHIK, MAHARASHTRA",
                             rating: "      4.8/5",
                             availability: "      IMMEDIATE"
                         }}
+                        navigation={navigation}
                     />
                     <ProductCard
                         image={require('../../assets/car.png')}
@@ -103,10 +107,12 @@ const BrowseItems = ({navigation}) => {
                             ],
                             price: "       ₹500/day | ₹1400/3 days | ₹3000/week",
                             deposit: "      ₹10,000 (REFUNDABLE)",
+                            owner:"     KRUSHNA MENGAL",
                             location: "      SINNAR, MAHARASHTRA",
                             rating: "       4.7/5",
                             availability: "     ON REQUEST"
                         }}
+                        navigation={navigation}
                     />
 
             </ScrollView>

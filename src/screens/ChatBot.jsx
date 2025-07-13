@@ -13,6 +13,7 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Entypo from 'react-native-vector-icons/Entypo';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import axios from 'axios';
 import { OPENAI_API_KEY } from '@env';
 
@@ -81,6 +82,11 @@ const ChatBot = ({ navigation }) => {
                 <Text style={styles.title}>WELCOME TO RENTEASY</Text>
                 <Text style={styles.subtitle}>RENT IT, USE IT, RETURN IT!</Text>
 
+                <TouchableOpacity style={styles.supBtn} >
+                    <Text style={styles.supText} >Customer Support</Text>
+                    <FontAwesome5 name="robot" size={18} color="#fff" style={{ marginLeft: 6 }} />
+                </TouchableOpacity>
+
                 {messages.map((msg, index) => (
                     <View
                         key={index}
@@ -91,7 +97,7 @@ const ChatBot = ({ navigation }) => {
                 ))}
             </ScrollView>
 
-            <View style={styles.inputArea}>
+            <View style={styles.inputBar}>
                 <TextInput
                     style={styles.input}
                     value={input}
@@ -185,6 +191,22 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingBottom: 120,
     },
+    supBtn: {
+       flexDirection: 'row',
+        backgroundColor: '#001F54',
+        paddingVertical: 6,
+        paddingHorizontal: 14,
+        alignSelf: 'center',
+        borderRadius: 14,
+        alignItems: 'center',
+        marginBottom: 20,
+        marginTop: 10,
+    },
+    supText:{
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 17,
+    },
     message: {
         padding: 12,
         borderRadius: 10,
@@ -204,32 +226,57 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: '#000'
     },
-    inputArea: {
+    inputBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 12,
         borderTopWidth: 1,
-        borderTopColor: '#ccc',
+        borderColor: '#ccc',
+        padding: 10,
         backgroundColor: '#fff',
-        marginBottom: 70,
-        height: 70,
+        ...Platform.select({
+            android: {
+                padding: 5,
+                paddingHorizontal: 10,
+                marginTop: 10,
+                marginBottom: 10,
+                borderWidth: 0.5,
+                borderColor: 'black',
+                backgroundColor: '#eee'
+            },
+            ios: {
+                padding: 10,
+                paddingHorizontal: 15,
+                marginTop: 10,
+                marginBottom: 10,
+                borderWidth: 0.5,
+                borderColor: 'black',
+                backgroundColor: '#eee'
+            }
+        }),
+        marginBottom: 75,
+        borderRadius: 10,
+        marginHorizontal: 16,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+        zIndex: 1,
+        marginTop: 10,
+        height: 50
+
     },
     input: {
         flex: 1,
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 20,
-        paddingVertical: 8,
-        paddingHorizontal: 14,
-        marginRight: 10,
-        fontSize: 17,
-        color: '#000',
-        backgroundColor: '#fff',
-        elevation: 2,
+        fontSize: 16,
+        paddingHorizontal: 10
     },
     bottomNav: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'space-around',
         alignItems: 'center',
         backgroundColor: '#eee',
         paddingVertical: 12,
@@ -239,15 +286,29 @@ const styles = StyleSheet.create({
         bottom: 0,
         width: '100%',
         height: 65,
+        marginBottom: 7,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: -2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+        zIndex: 1,
         paddingHorizontal: 16,
+        justifyContent: 'space-between',
+        alignItems: 'center',
         borderTopWidth: 2,
         borderTopColor: '#ccc',
+        marginTop: 10,
         borderRadius: 10,
     },
     navItem: {
         alignItems: 'center',
         marginTop: 5
     },
+
     navLabel: {
         fontSize: 12,
         color: 'black',

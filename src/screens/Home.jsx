@@ -6,14 +6,15 @@ import Entypo from 'react-native-vector-icons/Entypo';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
+import ProductCard from '../components/ProductCard';
 
-const Home = ({navigation}) => {
+const Home = ({ navigation }) => {
     return (
         <View style={styles.container}>
             {/*  Fixed Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.navigate("Login")}><Image source={require('../../assets/logo.png')} style={styles.logo} /></TouchableOpacity>
-                <TouchableOpacity onPress={()=>navigation.navigate("Chat")}><Entypo name="chat" size={36} /></TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate("Chat")}><Entypo name="chat" size={36} /></TouchableOpacity>
             </View>
 
             {/*  Scrollable Content */}
@@ -30,61 +31,40 @@ const Home = ({navigation}) => {
                     <TouchableOpacity><FontAwesome name="filter" size={25} style={{ marginHorizontal: 10 }} /></TouchableOpacity>
                 </View>
 
-                <View style={{ marginHorizontal: 10 , flexDirection:'row'}}>
-                    <MaterialIcons name="trending-up" size={25} color="#007bff" style={{marginTop:10}} />
-                    <Text style={{ fontSize: 15, color: '#333', fontWeight:'600',marginTop:10,marginLeft:10}}>Trending</Text>
+                <View style={{ marginHorizontal: 10, flexDirection: 'row' }}>
+                    <MaterialIcons name="trending-up" size={25} color="#007bff" style={{ marginTop: 10 }} />
+                    <Text style={{ fontSize: 15, color: '#333', fontWeight: '600', marginTop: 10, marginLeft: 10 }}>Trending</Text>
                 </View>
 
-                {/* Product Card */}
-                <TouchableOpacity>
-                    <View style={styles.productContainer}>
-                        <TouchableOpacity>
-                        <Image source={require('../../assets/camera.png')} style={styles.productImage} />
-                        </TouchableOpacity>
-                        <View style={styles.rating}>
-                            <Entypo name="star" size={30} color="orange" />
-                            <Entypo name="star" size={27} color="orange" />
-                            <Entypo name="star" size={24} color="orange" />
-                            <Entypo name="star" size={21} color="orange" />
-                            <Entypo name="star-outlined" size={18} color="orange" />
-                            <Text style={styles.ratingText}>RATING</Text>
-                        </View>
-                    </View>
-                </TouchableOpacity>
+
 
                 {/* Info Section */}
-                <TouchableOpacity>
-                    <View style={styles.infoBox}>
-                        <Text style={styles.infoTitle}>📸 NIKON D850 DSLR (BODY ONLY)</Text>
-                        <Text style={styles.content}>      🔍 45.7MP FULL-FRAME | 🎥 4K UHD VIDEO |</Text>
-                        <Text style={styles.content}>      📷 PRO-LEVEL PERFORMANCE</Text>
+                <ProductCard
+                    image={require('../../assets/camera.png')}
+                    title="📸 NIKON D850 DSLR (BODY ONLY)"
+                    info={{
+                        features: [
+                            "🔍 45.7MP FULL-FRAME | 🎥 4K UHD VIDEO",
+                            "📷 PRO-LEVEL PERFORMANCE",
+                        ],
+                        included: [
+                            "       🔋 BATTERY & CHARGER | 💾 64GB MEMORY CARD",
+                            "       🎒 CARRY CASE",
+                        ],
+                        price: "        📅 ₹500/DAY | ₹1300/3 DAYS | ₹2800/WEEK",
+                        deposit: "      ₹5000 (REFUNDABLE)",
+                        owner:"     KRUSHNA MENGAL",
+                        location: "     PUNE, MAHARASHTRA",
+                        rating: "       4.9/5 (100 REVIEWS)",
+                        availability: "     ON REQUEST",
+                    }}
+                    navigation={navigation}
+                />
 
-                        <Text style={styles.infoHeader}>📦 WHAT'S INCLUDED:</Text>
-                        <Text style={styles.content}>      🔋 BATTERY & CHARGER | 💾 64GB MEMORY CARD </Text>
-                        <Text style={styles.content}>      🎒 CARRY CASE</Text>
 
-                        <Text style={styles.infoHeader}>💰 RENTAL PRICE:</Text>
-                        <Text style={styles.content}>      📅 ₹500/DAY | ₹1300/3 DAYS | ₹2800/WEEK</Text>
-
-                        <Text style={styles.infoHeader}>🔐 SECURITY DEPOSIT:</Text>
-                        <Text style={styles.content}>      ₹5000 (REFUNDABLE)</Text>
-
-                        <Text style={styles.infoHeader}>📍 LOCATION:</Text>
-                        <Text style={styles.content}>      PUNE, MAHARASHTRA</Text>
-
-                        <Text style={styles.infoHeader}>⭐ RATING:</Text>
-                        <Text style={styles.content}>      4.9/5 (100 REVIEWS)</Text>
-
-                        <Text style={styles.infoHeader}>📅 AVAILABILITY:</Text>
-                        <Text style={styles.content}>      ON REQUEST</Text>
-                    </View>
-                </TouchableOpacity>
 
                 {/* Buttons */}
-                <TouchableOpacity style={styles.bookNow}>
-                    <Ionicons name="call" size={24} color="#fff" />
-                    <Text style={styles.bookNowText}>BOOK NOW</Text>
-                </TouchableOpacity>
+                
 
                 <TouchableOpacity style={styles.browseButton} onPress={() => navigation.navigate("BrowseItems")} >
                     <Text style={styles.browseText}>BROWSE ITEM’S</Text>
@@ -132,9 +112,9 @@ const styles = StyleSheet.create({
         backgroundColor: '#E6F0FA',
         paddingTop: 30,
         ...Platform.select({
-            ios:{
-                flex:1,
-                marginTop:10
+            ios: {
+                flex: 1,
+                marginTop: 10
             }
         })
     },
@@ -151,9 +131,9 @@ const styles = StyleSheet.create({
         width: 60,
         height: 70,
         resizeMode: 'contain',
-        borderRadius:16,
-        
-        
+        borderRadius: 16,
+
+
     },
     title: {
         fontSize: 25,
@@ -191,14 +171,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         marginTop: 10,
-        borderColor:'black',
-        borderWidth:0.5,
+        borderColor: 'black',
+        borderWidth: 0.5,
     },
     input: {
         flex: 1,
         marginHorizontal: 10,
         fontSize: 16,
-        height:40
+        height: 40
     },
 
     productImage: {
@@ -313,7 +293,7 @@ const styles = StyleSheet.create({
     },
     navItem: {
         alignItems: 'center',
-        marginTop:5
+        marginTop: 5
     },
 
     navLabel: {
