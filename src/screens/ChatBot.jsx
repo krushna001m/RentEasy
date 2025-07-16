@@ -15,10 +15,11 @@ import Entypo from 'react-native-vector-icons/Entypo';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import axios from 'axios';
-import { OPENAI_API_KEY } from '@env';
+import { GEMINI_API_KEY } from '@env';
 
 const ChatBot = ({ navigation }) => {
-    console.log("ChatBot API Key:", OPENAI_API_KEY);
+    console.log("ChatBot API Key:", GEMINI_API_KEY);
+
     const [messages, setMessages] = useState([
         { sender: 'bot', text: 'Hi 👋! How can I help you today?' }
     ]);
@@ -35,26 +36,20 @@ const ChatBot = ({ navigation }) => {
 
         try {
             const response = await axios.post(
-                'https://api.openai.com/v1/chat/completions',
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
                 {
-                    model: 'gpt-3.5-turbo',
-                    messages: [
-                        { role: 'system', content: 'You are a helpful customer support bot for a rental platform.' },
+                    contents: [
+                        // Pass conversation history for context
                         ...messages.map(m => ({
-                            role: m.sender === 'user' ? 'user' : 'assistant',
-                            content: m.text
-                        }))
+                            role: m.sender === 'user' ? 'user' : 'model',
+                            parts: [{ text: m.text }]
+                        })),
+                        { role: 'user', parts: [{ text: input }] }
                     ]
-                },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                        'Content-Type': 'application/json'
-                    }
                 }
             );
 
-            const botReply = response.data.choices[0].message.content;
+            const botReply = response.data.candidates[0].content.parts[0].text;
             setMessages(prev => [...prev, { sender: 'bot', text: botReply }]);
         } catch (err) {
             console.error("ChatBot Error:", err.response?.data || err.message);
@@ -66,7 +61,6 @@ const ChatBot = ({ navigation }) => {
             setLoading(false);
         }
     };
-
 
     return (
         <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -166,12 +160,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingBottom: 1,
     },
-    logo: {
-        width: 60,
-        height: 70,
-        resizeMode: 'contain',
-        borderRadius: 16,
-    },
+logo: {
+    width: 70,
+    height: 70,
+    resizeMode: 'contain',
+    borderRadius: 35, // half of width/height
+},
+
     title: {
         fontSize: 25,
         fontWeight: 'bold',

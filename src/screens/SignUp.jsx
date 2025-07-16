@@ -16,32 +16,79 @@ import {
 import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 import AntDesign from "react-native-vector-icons/AntDesign";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
+import axios from "axios";
 
 const { width, height } = Dimensions.get("window");
 
 const SignUp = ({ navigation }) => {
-  const [isOwner, setIsOwner] = useState(false);
-  const [isBorrower, setIsBorrower] = useState(false);
-  const [agreed, setAgreed] = useState(false);
+  const [formData, setFormData] = useState({
+    username: "",
+    password: "",
+    confirmPassword: "",
+    isOwner: false,
+    isBorrower: false,
+    agreed: false,
+  });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
-  const handleSignUp = () => {
-    console.log("SignUp : ");
-    console.log("Username:", username);
-    console.log("Password:", password);
-    console.log("Confirm Password:", confirmPassword);
-    console.log("Owner:", isOwner);
-    console.log("Borrower:", isBorrower);
-    console.log("Agreed:", agreed);
+  const handleSignUp = async () => {
+    const { username, password, confirmPassword, isOwner, isBorrower, agreed } = formData;
 
-    // You can add validation here before navigating
-    navigation.navigate("Home");
+    if (!username || !password || !confirmPassword) {
+      Alert.alert("Error", "All fields are required!");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match!");
+      return;
+    }
+
+    if (!agreed) {
+      Alert.alert("Error", "You must agree to the terms!");
+      return;
+    }
+
+    const roles = [];
+    if (formData.isOwner) roles.push("Owner");
+    if (formData.isBorrower) roles.push("Borrower");
+
+    try {
+      // ✅ Check if username already exists
+      const existingUsers = await axios.get(`${URL}/SignUp.json`);
+      const usersData = existingUsers.data || {};
+
+      const userExists = Object.values(usersData).some(
+        (user) => user.username === username
+      );
+
+      if (userExists) {
+        Alert.alert("Error", "Username already exists.");
+        return;
+      }
+
+      // ✅ Save new user
+      const response = await axios.post(`${URL}/SignUp.json`, {
+        username,
+        password,
+        roles,
+        agreed,
+      });
+
+      if (response.status === 200) {
+        // Alert.alert("Success", "Account created successfully!");
+        navigation.navigate("Home");
+      } else {
+        Alert.alert("Error", "Something went wrong. Try again.");
+      }
+    } catch (error) {
+      console.error("SignUp Error:", error.message);
+      Alert.alert("Error", "Network issue or invalid data.");
+    }
   };
 
   return (
@@ -62,8 +109,10 @@ const SignUp = ({ navigation }) => {
               style={styles.input}
               placeholder="Username or Email"
               placeholderTextColor="#666"
-              value={username}
-              onChangeText={setUsername}
+              value={formData.username}
+              onChangeText={(text) =>
+                setFormData({ ...formData, username: text })
+              }
             />
           </View>
 
@@ -75,11 +124,17 @@ const SignUp = ({ navigation }) => {
               placeholder="Password"
               placeholderTextColor="#666"
               secureTextEntry={!showPassword}
-              value={password}
-              onChangeText={setPassword}
+              value={formData.password}
+              onChangeText={(text) =>
+                setFormData({ ...formData, password: text })
+              }
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <FontAwesome5 name={showPassword ? "eye" : "eye-slash"} size={20} color="#333" />
+              <FontAwesome5
+                name={showPassword ? "eye" : "eye-slash"}
+                size={20}
+                color="#333"
+              />
             </TouchableOpacity>
           </View>
 
@@ -91,10 +146,14 @@ const SignUp = ({ navigation }) => {
               placeholder="Confirm Password"
               placeholderTextColor="#666"
               secureTextEntry={!showConfirmPassword}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
+              value={formData.confirmPassword}
+              onChangeText={(text) =>
+                setFormData({ ...formData, confirmPassword: text })
+              }
             />
-            <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+            <TouchableOpacity
+              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+            >
               <FontAwesome5
                 name={showConfirmPassword ? "eye" : "eye-slash"}
                 size={20}
@@ -105,20 +164,30 @@ const SignUp = ({ navigation }) => {
 
           {/* Roles */}
           <View style={styles.roleContainer}>
-            <TouchableOpacity style={styles.roleCheckbox} onPress={() => setIsOwner(!isOwner)}>
+            <TouchableOpacity
+              style={styles.roleCheckbox}
+              onPress={() =>
+                setFormData({ ...formData, isOwner: !formData.isOwner })
+              }
+            >
               <FontAwesome
-                name={isOwner ? "check-square" : "square-o"}
+                name={formData.isOwner ? "check-square" : "square-o"}
                 size={24}
-                color={isOwner ? "#4CAF50" : "#777"}
+                color={formData.isOwner ? "#4CAF50" : "#777"}
               />
               <Text style={styles.label}>Owner (Lender)</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.roleCheckbox} onPress={() => setIsBorrower(!isBorrower)}>
+            <TouchableOpacity
+              style={styles.roleCheckbox}
+              onPress={() =>
+                setFormData({ ...formData, isBorrower: !formData.isBorrower })
+              }
+            >
               <FontAwesome
-                name={isBorrower ? "check-square" : "square-o"}
+                name={formData.isBorrower ? "check-square" : "square-o"}
                 size={24}
-                color={isBorrower ? "#4CAF50" : "#777"}
+                color={formData.isBorrower ? "#4CAF50" : "#777"}
               />
               <Text style={styles.label}>Borrower</Text>
             </TouchableOpacity>
@@ -127,12 +196,14 @@ const SignUp = ({ navigation }) => {
           {/* Terms Agreement */}
           <TouchableOpacity
             style={styles.checkboxContainer}
-            onPress={() => setAgreed(!agreed)}
+            onPress={() =>
+              setFormData({ ...formData, agreed: !formData.agreed })
+            }
           >
             <FontAwesome
-              name={agreed ? "check-square" : "square-o"}
+              name={formData.agreed ? "check-square" : "square-o"}
               size={24}
-              color={agreed ? "#4CAF50" : "#777"}
+              color={formData.agreed ? "#4CAF50" : "#777"}
             />
             <Text style={styles.label}>I agree to the Terms and Conditions</Text>
           </TouchableOpacity>
@@ -140,7 +211,12 @@ const SignUp = ({ navigation }) => {
           {/* Sign Up Button */}
           <TouchableOpacity style={styles.loginButton} onPress={handleSignUp}>
             <View style={styles.loginButtonContent}>
-              <AntDesign name="login" size={20} color="white" style={styles.loginIcon} />
+              <AntDesign
+                name="login"
+                size={20}
+                color="white"
+                style={styles.loginIcon}
+              />
               <Text style={styles.loginText}>SIGN UP</Text>
             </View>
           </TouchableOpacity>
@@ -148,7 +224,12 @@ const SignUp = ({ navigation }) => {
           {/* Google Button */}
           <TouchableOpacity style={styles.googleButton}>
             <View style={styles.googleButtonContent}>
-              <FontAwesome5 name="google" size={20} color="white" style={styles.googleIcon} />
+              <FontAwesome5
+                name="google"
+                size={20}
+                color="white"
+                style={styles.googleIcon}
+              />
               <Text style={styles.googleText}>SIGN UP WITH GOOGLE</Text>
             </View>
           </TouchableOpacity>
@@ -168,18 +249,19 @@ const SignUp = ({ navigation }) => {
 
 export default SignUp;
 
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#E6F0FA",
   },
-  container: Platform.select ({
-    ios:{
-      flex:1
+  container: Platform.select({
+    ios: {
+      flex: 1
     },
-    android:{
-      flex:1,
-      marginTop:60
+    android: {
+      flex: 1,
+      marginTop: 60
     },
   }),
   scrollContent: {
@@ -191,7 +273,7 @@ const styles = StyleSheet.create({
     height: width * 0.25,
     resizeMode: "contain",
     marginBottom: 20,
-    borderRadius: 20,
+    borderRadius: 50,
     backgroundColor: "#fff",
     borderWidth: 2,
     borderColor: "#e0e0e0",
@@ -259,11 +341,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 0,
     ...Platform.select({
-      ios:{
-        marginRight:34  
+      ios: {
+        marginRight: 34
       },
-      android:{
-        marginRight:44
+      android: {
+        marginRight: 44
       }
     })
   },

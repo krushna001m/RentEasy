@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -15,18 +15,22 @@ import Entypo from 'react-native-vector-icons/Entypo';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { launchImageLibrary } from 'react-native-image-picker';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
 const Profile = ({ navigation }) => {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
 
     const [profile, setProfile] = useState({
-        name: 'Krushna Mengal',
-        email: 'krushnamengal46@gmail.com',
-        phone: '+91 9699050043',
+        name: "",
+        email: "",
+        phone: "",
         image: null,
-        listings: ['Camera - ₹500/day', 'Tent - ₹300/day'],
-        rentals: ['Bike - ₹200/day']
+        listings: [],
+        rentals: []
     });
 
     const [editMode, setEditMode] = useState(false);
@@ -36,18 +40,96 @@ const Profile = ({ navigation }) => {
         setTempProfile({ ...tempProfile, [key]: value });
     };
 
-    const saveProfile = () => {
-        setProfile({ ...tempProfile });
-        setEditMode(false);
+    const fetchUserProfile = async () => {
+        try {
+            const loggedInUsername = await AsyncStorage.getItem("username");
+            if (!loggedInUsername) return;
+
+            const response = await axios.get(`${URL}/SignUp.json`);
+            const users = response.data || {};
+
+            const currentUser = Object.values(users).find(
+                (user) => user.username === loggedInUsername
+            );
+
+            if (currentUser) {
+                setProfile({
+                    name: currentUser.username,
+                    email: currentUser.email || "",
+                    phone: currentUser.phone || "",
+                    image: currentUser.image || null,
+                    listings: currentUser.roles?.includes("Owner")
+                        ? ["Camera - ₹500/day", "Tent - ₹300/day"]
+                        : [],
+                    rentals: currentUser.roles?.includes("Borrower")
+                        ? ["Bike - ₹200/day"]
+                        : [],
+                });
+                setTempProfile({
+                    name: currentUser.username,
+                    email: currentUser.email || "",
+                    phone: currentUser.phone || "",
+                    image: currentUser.image || null,
+                });
+            }
+        } catch (error) {
+            console.error("Profile Fetch Error:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchUserProfile();
+    }, []);
+
+    const saveProfile = async () => {
+        try {
+            const loggedInUsername = await AsyncStorage.getItem("username");
+            if (!loggedInUsername) return;
+
+            setProfile({ ...tempProfile });
+            setEditMode(false);
+
+            const response = await axios.get(`${URL}/SignUp.json`);
+            const users = response.data || {};
+            const userKey = Object.keys(users).find(
+                (key) => users[key].username === loggedInUsername
+            );
+
+            if (userKey) {
+                await axios.patch(`${URL}/SignUp/${userKey}.json`, {
+                    username: tempProfile.name,
+                    email: tempProfile.email,
+                    phone: tempProfile.phone,
+                    image: tempProfile.image,
+                });
+                console.log("Profile Updated Successfully!");
+            }
+        } catch (error) {
+            console.error("Profile Update Error:", error);
+        }
     };
 
     const pickImage = () => {
         launchImageLibrary(
             { mediaType: 'photo', maxWidth: 300, maxHeight: 300, quality: 1 },
-            response => {
+            async response => {
                 if (!response.didCancel && !response.errorCode) {
                     const uri = response.assets[0].uri;
                     handleChange('image', uri);
+
+                    try {
+                        const loggedInUsername = await AsyncStorage.getItem("username");
+                        const res = await axios.get(`${URL}/SignUp.json`);
+                        const users = res.data || {};
+                        const userKey = Object.keys(users).find(
+                            (key) => users[key].username === loggedInUsername
+                        );
+                        if (userKey) {
+                            await axios.patch(`${URL}/SignUp/${userKey}.json`, { image: uri });
+                        }
+                    } catch (error) {
+                        console.error("Image Update Error:", error);
+                    }
                 }
             }
         );
@@ -71,13 +153,13 @@ const Profile = ({ navigation }) => {
             <Text style={[styles.title, themeStyles.text]}>WELCOME TO RENTEASY</Text>
             <Text style={[styles.subtitle, themeStyles.text]}>RENT IT, USE IT, RETURN IT!</Text>
             <View>
-            <TouchableOpacity style={styles.chatLabel}>
-                <Text style={styles.chatText}>PROFILE</Text>
-                <FontAwesome name="user-circle" size={18} color="#fff" style={{ marginLeft: 4 }} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.settingsButton} onPress={() => navigation.navigate("Settings")}>
-                <Ionicons name="settings" size={33} color="#001F54" style={{ marginLeft: 4 }} />
-            </TouchableOpacity>
+                <TouchableOpacity style={styles.chatLabel}>
+                    <Text style={styles.chatText}>PROFILE</Text>
+                    <FontAwesome name="user-circle" size={18} color="#fff" style={{ marginLeft: 4 }} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.settingsButton} onPress={() => navigation.navigate("Settings")}>
+                    <Ionicons name="settings" size={33} color="#001F54" style={{ marginLeft: 4 }} />
+                </TouchableOpacity>
             </View>
 
             {/* Profile Image */}
@@ -171,6 +253,7 @@ const Profile = ({ navigation }) => {
 
 export default Profile;
 
+
 const lightStyles = StyleSheet.create({
     container: {
         backgroundColor: '#E6F0FA',
@@ -215,11 +298,12 @@ container: {
         paddingBottom: 1,
     },
     logo: {
-        width: 60,
-        height: 70,
-        resizeMode: 'contain',
-         borderRadius:16,
-    },
+    width: 70,
+    height: 70,
+    resizeMode: 'contain',
+    borderRadius: 35, // half of width/height
+},
+
     title: {
         fontSize: 25,
         fontWeight: 'bold',

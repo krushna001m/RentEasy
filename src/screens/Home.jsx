@@ -125,16 +125,17 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingBottom: 1,
         marginTop: 0,
+        backgroundColor: 'transparent',
+        zIndex: 100, 
 
     },
-    logo: {
-        width: 60,
-        height: 70,
-        resizeMode: 'contain',
-        borderRadius: 16,
+logo: {
+    width: 70,
+    height: 70,
+    resizeMode: 'contain',
+    borderRadius: 35, // half of width/height
+},
 
-
-    },
     title: {
         fontSize: 25,
         fontWeight: 'bold',

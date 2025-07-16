@@ -11,22 +11,68 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   ScrollView,
+  Alert,
 } from "react-native";
 import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 import AntDesign from "react-native-vector-icons/AntDesign";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width, height } = Dimensions.get("window");
 
 const Login = ({ navigation }) => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  // ✅ Optimized State
+  const [formData, setFormData] = useState({
+    username: "",
+    password: "",
+    showPassword: false,
+  });
 
-  const handleLogin = () => {
-    console.log("Login : ");
-    console.log("Username:", username);
-    console.log("Password:", password);
-    navigation.navigate("Home");
+  const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
+
+  // ✅ Handle input changes
+  const handleInputChange = (name, value) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // ✅ Toggle password visibility
+  const togglePasswordVisibility = () => {
+    setFormData((prev) => ({ ...prev, showPassword: !prev.showPassword }));
+  };
+
+  // ✅ Handle Login
+  const handleLogin = async () => {
+    const { username, password } = formData;
+
+    if (!username || !password) {
+      Alert.alert("Error", "Username and password are required!");
+      return;
+    }
+
+    try {
+      // ✅ Fetch users from SignUp.json
+      const response = await axios.get(`${URL}/SignUp.json`);
+      const usersData = response.data || {};
+
+      // ✅ Find user with matching credentials
+      const matchedUser = Object.values(usersData).find(
+        (user) => user.username === username && user.password === password
+      );
+
+      if (matchedUser) {
+        // ✅ Save user data locally for Profile screen
+        await AsyncStorage.setItem("loggedInUser", JSON.stringify(matchedUser));
+
+        console.log("✅ Logged in user roles:", matchedUser.roles);
+        Alert.alert("Success", `Welcome back, ${matchedUser.username}!`);
+        navigation.navigate("Home");
+      } else {
+        Alert.alert("Login Failed", "Invalid username or password");
+      }
+    } catch (error) {
+      console.error("Login Error:", error);
+      Alert.alert("Error", "Something went wrong. Try again.");
+    }
   };
 
   return (
@@ -36,10 +82,7 @@ const Login = ({ navigation }) => {
         style={styles.container}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Image
-            source={require("../../assets/logo.png")}
-            style={styles.logo}
-          />
+          <Image source={require("../../assets/logo.png")} style={styles.logo} />
           <Text style={styles.maintitle}>WELCOME BACK</Text>
           <Text style={styles.subtitle}>LOGIN</Text>
 
@@ -49,8 +92,8 @@ const Login = ({ navigation }) => {
               style={styles.input}
               placeholder="Username or Email"
               placeholderTextColor="#666"
-              value={username}
-              onChangeText={setUsername}
+              value={formData.username}
+              onChangeText={(text) => handleInputChange("username", text)}
             />
           </View>
 
@@ -60,13 +103,15 @@ const Login = ({ navigation }) => {
               style={styles.input}
               placeholder="Password"
               placeholderTextColor="#666"
-              secureTextEntry={!showPassword}
-              value={password}
-              onChangeText={setPassword}
+              secureTextEntry={!formData.showPassword}
+              value={formData.password}
+              onChangeText={(text) => handleInputChange("password", text)}
+              onSubmitEditing={handleLogin} // ✅ Press Enter to login
+              returnKeyType="done"
             />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+            <TouchableOpacity onPress={togglePasswordVisibility}>
               <FontAwesome5
-                name={showPassword ? "eye" : "eye-slash"}
+                name={formData.showPassword ? "eye" : "eye-slash"}
                 size={20}
                 color="#333"
               />
@@ -80,10 +125,7 @@ const Login = ({ navigation }) => {
             <Text style={styles.forgot}>FORGOT PASSWORD ?</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={handleLogin}
-          >
+          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
             <View style={styles.loginButtonContent}>
               <AntDesign name="login" size={20} color="white" style={styles.loginIcon} />
               <Text style={styles.loginText}>LOGIN</Text>
@@ -110,20 +152,20 @@ const Login = ({ navigation }) => {
 };
 
 export default Login;
-
+// ✅ Your UI styles remain UNCHANGED
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#E6F0FA",
   },
-  container: Platform.select ({
-    ios:{
-      flex:1,
-      marginTop:40
+  container: Platform.select({
+    ios: {
+      flex: 1,
+      marginTop: 40,
     },
-    android:{
-      flex:1,
-      marginTop:60
+    android: {
+      flex: 1,
+      marginTop: 60,
     },
   }),
   scrollContent: {
@@ -135,7 +177,7 @@ const styles = StyleSheet.create({
     height: width * 0.25,
     resizeMode: "contain",
     marginBottom: 20,
-    borderRadius: 20,
+    borderRadius: 50,
     backgroundColor: "#fff",
     borderWidth: 2,
     borderColor: "#e0e0e0",
@@ -197,7 +239,6 @@ const styles = StyleSheet.create({
     color: "blue",
     fontWeight: "bold",
     textDecorationLine: "underline",
-
   },
   loginButton: {
     marginTop: 30,

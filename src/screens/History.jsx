@@ -62,7 +62,7 @@ const History = ({ navigation }) => {
                 <Text style={styles.label}>RENTAL ID OR RECEIPT NUMBER</Text>
                 <TextInput style={styles.input} placeholder="#RENT12345678" />
 
-                <Text style={styles.label}>NOTES / FEEDBACK SECTION</Text>
+                <Text style={styles.label}>NOTES / FEEDBACK </Text>
                 <TextInput style={[styles.input, { height: 100 }]} placeholder="Write your feedback..." multiline />
 
                 <TouchableOpacity style={styles.downloadBtn}>
@@ -121,12 +121,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingBottom: 1,
     },
-    logo: {
-        width: 60,
-        height: 70,
-        resizeMode: 'contain',
-         borderRadius:16,
-    },
+logo: {
+    width: 70,
+    height: 70,
+    resizeMode: 'contain',
+    borderRadius: 35, // half of width/height
+},
+
     title: {
         fontSize: 25,
         fontWeight: 'bold',

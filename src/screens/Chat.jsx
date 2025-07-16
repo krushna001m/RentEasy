@@ -188,11 +188,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
     },
     logo: {
-        width: 60,
-        height: 70,
-        resizeMode: 'contain',
-        borderRadius: 16,
-    },
+    width: 70,
+    height: 70,
+    resizeMode: 'contain',
+    borderRadius: 35, // half of width/height
+},
+
     title: {
         fontSize: 24,
         fontWeight: 'bold',

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "822340796747",
+    "project_id": "renteasy-bbce5",
+    "storage_bucket": "renteasy-bbce5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:822340796747:android:560109758edbd5ef9fa8ce",
+        "android_client_info": {
+          "package_name": "com.renteasy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAPs_NeoYTDs7ufIRmfKyXKXdTHOt4Lh6I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

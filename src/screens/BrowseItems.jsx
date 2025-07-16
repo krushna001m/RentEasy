@@ -169,11 +169,12 @@ const styles = StyleSheet.create({
         paddingBottom: 1,
     },
     logo: {
-        width: 60,
-        height: 70,
-        resizeMode: 'contain',
-         borderRadius:16,
-    },
+    width: 70,
+    height: 70,
+    resizeMode: 'contain',
+    borderRadius: 35, // half of width/height
+},
+
     title: {
         fontSize: 25,
         fontWeight: 'bold',
