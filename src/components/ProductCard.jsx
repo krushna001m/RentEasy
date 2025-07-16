@@ -74,7 +74,7 @@ const ProductCard = ({ image, title, info, navigation }) => {
           <>
             <Text style={styles.infoHeader}>👤 OWNER:</Text>
             <Text style={styles.content}>{info.owner}</Text>
-            </>
+          </>
         )}
 
         {/* Location */}
@@ -116,16 +116,34 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   ratingRow: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginVertical: 6,
-},
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 6,
+  },
   image: {
     width: 380,
     height: 250,
-    resizeMode: 'contain',
-    marginTop: 20
+    resizeMode: 'cover', // looks better with rounded corners
+    marginTop: 20,
+
+    // ✅ Custom corner radius (different for each corner)
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 300,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 40,
+
+    // ✅ Shadow (iOS)
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+
+    // ✅ Shadow (Android)
+    elevation: 6,
+
+    // ✅ Optional: add background for better shadow visibility
+    backgroundColor: '#fff',
   },
   infoBox: {
     backgroundColor: '#eee',

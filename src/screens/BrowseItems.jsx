@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     TouchableOpacity,
     StyleSheet,
@@ -6,17 +6,45 @@ import {
     Text,
     Image,
     ScrollView,
-    TextInput
+    TextInput,
+    Platform
 } from 'react-native';
-
 import ProductCard from '../components/ProductCard';
 import Entypo from 'react-native-vector-icons/Entypo';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
+import axios from 'axios';
 
-const BrowseItems = ({navigation}) => {
+const BrowseItems = ({ navigation }) => {
+    const [items, setItems] = useState([]);
+
+    const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
+
+    useEffect(() => {
+        const fetchItems = async () => {
+            try {
+                const response = await axios.get(
+                    `${URL}/AddItems.json` // ✅ Replace with your DB URL
+                );
+
+                if (response.data) {
+                    const formatted = Object.keys(response.data).map(key => ({
+                        id: key,
+                        ...response.data[key],
+                    }));
+                    setItems(formatted);
+                } else {
+                    setItems([]);
+                }
+            } catch (error) {
+                console.error("Error fetching items:", error);
+            }
+        };
+
+        fetchItems();
+    }, []);
+
     return (
         <View style={styles.container}>
             {/* Header */}
@@ -24,7 +52,7 @@ const BrowseItems = ({navigation}) => {
                 <TouchableOpacity onPress={() => navigation.navigate("Home")}>
                     <Image source={require('../../assets/logo.png')} style={styles.logo} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={()=>navigation.navigate("Chat")}>
+                <TouchableOpacity onPress={() => navigation.navigate("Chat")}>
                     <Entypo name="chat" size={36} />
                 </TouchableOpacity>
             </View>
@@ -45,77 +73,100 @@ const BrowseItems = ({navigation}) => {
 
                 {/* Browse Title */}
                 <View>
-                    <TouchableOpacity style={{flexDirection:'row'}}>
-                    <MaterialIcons name="explore" size={28} color='#007bff' style={{marginTop:10}} />
-                    <Text style={{marginTop:13,marginLeft:6,fontWeight:'600',fontSize:15,color: '#333'}}>Explore</Text>
+                    <TouchableOpacity style={{ flexDirection: 'row' }}>
+                        <MaterialIcons name="explore" size={28} color='#007bff' style={{ marginTop: 10 }} />
+                        <Text style={{ marginTop: 13, marginLeft: 6, fontWeight: '600', fontSize: 15, color: '#333' }}>Explore</Text>
                     </TouchableOpacity>
                 </View>
-                {/* Product Cards */}
-                
-                    <ProductCard
-                        image={require('../../assets/camera.png')}
-                        title="📸 NIKON D850 DSLR (BODY ONLY)"
-                        info={{
-                            features: [
-                                "     🔍 45.7MP FULL-FRAME | 🎥 4K UHD VIDEO",
-                                "     📷 PRO-LEVEL PERFORMANCE"
-                            ],
-                            included: [
-                                "     🔋 Battery & Charger | 💾 64GB MEMORY CARD",
-                                "     🎒 Carry Case"
-                            ],
-                            price: "      ₹500/day | ₹1300/3 days | ₹2800/week",
-                            deposit: "      ₹5000 (REFUNDABLE)",
-                            owner:"     KRUSHNA MENGAL",
-                            location: "      PUNE, MAHARASHTRA",
-                            rating: "       4.9/5 (100 REVIEWS)",
-                            availability: "     ON REQUEST"
-                        }}
-                        navigation={navigation}
-                    />
-                
 
-                    <ProductCard
-                        image={require('../../assets/house.png')}
-                        title="🏠 2BHK HOUSE FOR RENT (INDEPENDENT VILLA STYLE)"
-                        info={{
-                            features: [
-                                " 🌳 Calm Green Surroundings | 🏗️ Spacious Design"
-                            ],
-                            included: [
-                                "     🛏️ 2 Bedrooms | 🛋️ Hall | 🍳 Kitchen",
-                                "     🚿 2 Bathrooms | 🚗 Parking"
-                            ],
-                            price: "       ₹8,000/month",
-                            deposit: "      ₹25,000 (REFUNDABLE)",
-                            owner:"      KRUSHNA MENGAL",
-                            location: "      NASHIK, MAHARASHTRA",
-                            rating: "      4.8/5",
-                            availability: "      IMMEDIATE"
-                        }}
-                        navigation={navigation}
-                    />
-                    <ProductCard
-                        image={require('../../assets/car.png')}
-                        title="🚗 TOYOTA INNOVA CRYSTA (7-SEATER) FOR RENT"
-                        info={{
-                            features: [
-                                " 🛣️ Comfortable for Long Drives |❄️Dual A/C               🎵 Music System"
-                            ],
-                            included: [
-                                "     💺 7-Seater | 🧳 Ample Luggage Space | 🛡️ Driver Airbags"
-                            ],
-                            price: "       ₹500/day | ₹1400/3 days | ₹3000/week",
-                            deposit: "      ₹10,000 (REFUNDABLE)",
-                            owner:"     KRUSHNA MENGAL",
-                            location: "      SINNAR, MAHARASHTRA",
-                            rating: "       4.7/5",
-                            availability: "     ON REQUEST"
-                        }}
-                        navigation={navigation}
-                    />
+                {/* Static Items */}
+                <ProductCard
+                    image={require('../../assets/camera.png')}
+                    title="📸 NIKON D850 DSLR (BODY ONLY)"
+                    info={{
+                        features: [
+                            "     🔍 45.7MP FULL-FRAME | 🎥 4K UHD VIDEO",
+                            "     📷 PRO-LEVEL PERFORMANCE"
+                        ],
+                        included: [
+                            "     🔋 Battery & Charger | 💾 64GB MEMORY CARD",
+                            "     🎒 Carry Case"
+                        ],
+                        price: "      ₹500/day | ₹1300/3 days | ₹2800/week",
+                        deposit: "      ₹5000 (REFUNDABLE)",
+                        owner: "     KRUSHNA MENGAL",
+                        location: "      PUNE, MAHARASHTRA",
+                        rating: "       4.9/5 (100 REVIEWS)",
+                        availability: "     ON REQUEST"
+                    }}
+                    navigation={navigation}
+                />
 
+                <ProductCard
+                    image={require('../../assets/house.png')}
+                    title="🏠 2BHK HOUSE FOR RENT (INDEPENDENT VILLA STYLE)"
+                    info={{
+                        features: [
+                            " 🌳 Calm Green Surroundings | 🏗️ Spacious Design"
+                        ],
+                        included: [
+                            "     🛏️ 2 Bedrooms | 🛋️ Hall | 🍳 Kitchen",
+                            "     🚿 2 Bathrooms | 🚗 Parking"
+                        ],
+                        price: "       ₹8,000/month",
+                        deposit: "      ₹25,000 (REFUNDABLE)",
+                        owner: "      KRUSHNA MENGAL",
+                        location: "      NASHIK, MAHARASHTRA",
+                        rating: "      4.8/5",
+                        availability: "      IMMEDIATE"
+                    }}
+                    navigation={navigation}
+                />
+                <ProductCard
+                    image={require('../../assets/car.png')}
+                    title="🚗 TOYOTA INNOVA CRYSTA (7-SEATER) FOR RENT"
+                    info={{
+                        features: [
+                            " 🛣️ Comfortable for Long Drives |❄️Dual A/C               🎵 Music System"
+                        ],
+                        included: [
+                            "     💺 7-Seater | 🧳 Ample Luggage Space | 🛡️ Driver Airbags"
+                        ],
+                        price: "       ₹500/day | ₹1400/3 days | ₹3000/week",
+                        deposit: "      ₹10,000 (REFUNDABLE)",
+                        owner: "     KRUSHNA MENGAL",
+                        location: "      SINNAR, MAHARASHTRA",
+                        rating: "       4.7/5",
+                        availability: "     ON REQUEST"
+                    }}
+                    navigation={navigation}
+                />
+
+                {/* ✅ Dynamically Fetched Items */}
+                {items.map(item => (
+                    <ProductCard
+                        key={item.id}
+                        image={item.imageUri ? { uri: item.imageUri } : require('../../assets/camera.png')}
+                        title={` ${item.title}`}
+                        info={{
+                            features: [item.description || "No description provided"],
+                            included: item.included ? [item.included] : [],
+                            price: `₹${item.pricePerDay}/day`,
+                            deposit: `₹${item.securityDeposit || '0'} (REFUNDABLE)`,
+                            location: `📍 ${item.location || "Not specified"}`,
+                            owner: `👤 ${item.ownerName || 'N/A'}`,
+                            availability: item.availability?.request
+                                ? "Available on Request"
+                                : item.availability?.booking
+                                    ? "Available for Booking"
+                                    : "Not Available"
+                        }}
+                        navigation={navigation}
+                    />
+                ))}
             </ScrollView>
+
+            {/* Bottom Nav */}
             <View style={styles.bottomNav}>
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Home")}>
                     <Ionicons name="home" size={28} />
@@ -142,7 +193,6 @@ const BrowseItems = ({navigation}) => {
                     <Text style={styles.navLabel}>Profile</Text>
                 </TouchableOpacity>
             </View>
-
         </View>
     );
 };
@@ -151,16 +201,16 @@ export default BrowseItems;
 
 const styles = StyleSheet.create({
     container: {
-            flex: 1,
-            backgroundColor: '#E6F0FA',
-            paddingTop: 30,
-            ...Platform.select({
-                ios:{
-                    flex:1,
-                    marginTop:10
-                }
-            })
-        },
+        flex: 1,
+        backgroundColor: '#E6F0FA',
+        paddingTop: 30,
+        ...Platform.select({
+            ios: {
+                flex: 1,
+                marginTop: 10
+            }
+        })
+    },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -169,12 +219,11 @@ const styles = StyleSheet.create({
         paddingBottom: 1,
     },
     logo: {
-    width: 70,
-    height: 70,
-    resizeMode: 'contain',
-    borderRadius: 35, // half of width/height
-},
-
+        width: 70,
+        height: 70,
+        resizeMode: 'contain',
+        borderRadius: 35,
+    },
     title: {
         fontSize: 25,
         fontWeight: 'bold',
@@ -215,13 +264,7 @@ const styles = StyleSheet.create({
         flex: 1,
         marginHorizontal: 10,
         fontSize: 16,
-        height:40
-    },
-    browseTitle: {
-        fontSize: 18,
-        fontWeight: '400',
-        marginTop: 15
-
+        height: 40
     },
     bottomNav: {
         flexDirection: 'row',
@@ -246,8 +289,6 @@ const styles = StyleSheet.create({
         elevation: 5,
         zIndex: 1,
         paddingHorizontal: 16,
-        justifyContent: 'space-between',
-        alignItems: 'center',
         borderTopWidth: 2,
         borderTopColor: '#ccc',
         marginTop: 10,
@@ -257,7 +298,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: 5
     },
-
     navLabel: {
         fontSize: 12,
         color: 'black',

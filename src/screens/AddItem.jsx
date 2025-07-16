@@ -7,17 +7,35 @@ import {
     StyleSheet,
     ScrollView,
     Image,
-    Platform
+    Platform,
+    Alert
 } from 'react-native';
-import * as ImagePicker from 'react-native-image-picker';
 import { launchImageLibrary } from 'react-native-image-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Entypo from 'react-native-vector-icons/Entypo';
-import FontAwesome5 from 'react-native-vector-icons/FontAwesome5'
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+import axios from 'axios';
 
 const AddItem = ({ navigation }) => {
+    const [itemData, setItemData] = useState({
+        title: "",
+        description: "",
+        fullDescription: "",
+        included: "",
+        pricePerDay: "",
+        price3Days: "",
+        priceWeek: "",
+        securityDeposit: "",
+        location: "",
+        ownerName: "",
+        ownerAddress: "",
+        contactNumber: "",
+        email: "",
+        customTerms: "",
+    });
+
     const [terms, setTerms] = useState({
         idProof: true,
         handleWithCare: true,
@@ -32,12 +50,12 @@ const AddItem = ({ navigation }) => {
 
     const [imageUri, setImageUri] = useState(null);
 
-    const pickImage = () => {
-        const options = {
-            mediaType: 'photo',
-            quality: 1,
-        };
+    const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
+    // ✅ Replace with your Firebase Realtime Database URL
+
+    const pickImage = () => {
+        const options = { mediaType: 'photo', quality: 1 };
         launchImageLibrary(options, (response) => {
             if (response.didCancel) {
                 console.log('User cancelled image picker');
@@ -49,9 +67,57 @@ const AddItem = ({ navigation }) => {
             }
         });
     };
+
+    const handleReset = () => {
+        setItemData({
+            title: "",
+            description: "",
+            fullDescription: "",
+            included: "",
+            pricePerDay: "",
+            price3Days: "",
+            priceWeek: "",
+            securityDeposit: "",
+            location: "",
+            ownerName: "",
+            ownerAddress: "",
+            contactNumber: "",
+            email: "",
+            customTerms: "",
+        });
+        setImageUri(null);
+        setAvailability({ request: false, booking: false, notAvailable: false });
+        setTerms({ idProof: true, handleWithCare: true, lateCharges: true });
+    };
+
+    const handleSubmit = async () => {
+        if (!itemData.title || !itemData.pricePerDay || !itemData.location) {
+            Alert.alert("Error", "Please fill at least Title, Price, and Location.");
+            return;
+        }
+
+        const finalData = {
+            ...itemData,
+            terms,
+            availability,
+            imageUri: imageUri || "",
+            createdAt: new Date().toISOString(),
+        };
+
+        try {
+            const response = await axios.post(`${URL}/AddItems.json`, finalData);
+            console.log("Data Stored:", response.data);
+            Alert.alert("Success", "Item has been added successfully!");
+            handleReset();
+        } catch (error) {
+            console.error("Error storing data:", error);
+            Alert.alert("Error", "Failed to store data in Realtime Database.");
+        }
+    };
+
     return (
         <View style={styles.container}>
-            {/* Header */}
+            {/* ✅ Header */}
             <View style={styles.topBar}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.navigate("Home")}>
@@ -62,18 +128,18 @@ const AddItem = ({ navigation }) => {
                     </TouchableOpacity>
                 </View>
             </View>
-            <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
 
+            <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
                 <View>
                     <Text style={styles.title}>WELCOME TO RENTEASY</Text>
                     <Text style={styles.subtitle}>RENT IT, USE IT, RETURN IT!</Text>
                 </View>
+
+                {/* ✅ Image Picker */}
                 <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
                     {imageUri ? (
-                        // If image is selected, show the preview
                         <Image source={{ uri: imageUri }} style={styles.imagePreview} />
                     ) : (
-                        // If no image is selected, show upload icon and text
                         <>
                             <FontAwesome name="image" size={50} color="#001F54" />
                             <Text style={styles.pickImageText}>UPLOAD ITEM IMAGE</Text>
@@ -81,133 +147,214 @@ const AddItem = ({ navigation }) => {
                     )}
                 </TouchableOpacity>
 
+                {/* ✅ Item Details */}
                 <View flexDirection="row">
                     <Ionicons name="document" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> ITEM DETAILS</Text>
                 </View>
                 <View style={styles.SubContent}>
-                    <TextInput placeholder="📝 Item Title" style={styles.input} />
-                    <TextInput placeholder="🧾 Short Description / Features" style={styles.input} />
-                    <TextInput placeholder="📋 Full Description" style={[styles.input, { height: 100 }]} multiline />
-                    <TextInput placeholder="📦 What's Included (Checklist or Multiline)" style={[styles.input, { height: 80 }]} multiline />
+                    <TextInput
+                        placeholder="📝 Item Title"
+                        style={styles.input}
+                        value={itemData.title}
+                        onChangeText={(text) => setItemData({ ...itemData, title: text })}
+                    />
+                    <TextInput
+                        placeholder="🧾 Short Description / Features"
+                        style={styles.input}
+                        value={itemData.description}
+                        onChangeText={(text) => setItemData({ ...itemData, description: text })}
+                    />
+                    <TextInput
+                        placeholder="📋 Full Description"
+                        style={[styles.input, { height: 100 }]}
+                        multiline
+                        value={itemData.fullDescription}
+                        onChangeText={(text) => setItemData({ ...itemData, fullDescription: text })}
+                    />
+                    <TextInput
+                        placeholder="📦 What's Included"
+                        style={[styles.input, { height: 80 }]}
+                        multiline
+                        value={itemData.included}
+                        onChangeText={(text) => setItemData({ ...itemData, included: text })}
+                    />
                 </View>
+
+                {/* ✅ Rental Price */}
                 <View flexDirection="row">
                     <FontAwesome5 name="rupee-sign" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> RENTAL PRICE</Text>
                 </View>
                 <View style={styles.SubContent}>
-                    <TextInput placeholder="Price Per Day (₹)" style={styles.input} keyboardType="numeric" />
-                    <TextInput placeholder="Price for 3 Days (₹)" style={styles.input} keyboardType="numeric" />
-                    <TextInput placeholder="Price per Week (₹)" style={styles.input} keyboardType="numeric" />
+                    <TextInput
+                        placeholder="Price Per Day (₹)"
+                        style={styles.input}
+                        keyboardType="numeric"
+                        value={itemData.pricePerDay}
+                        onChangeText={(text) => setItemData({ ...itemData, pricePerDay: text })}
+                    />
+                    <TextInput
+                        placeholder="Price for 3 Days (₹)"
+                        style={styles.input}
+                        keyboardType="numeric"
+                        value={itemData.price3Days}
+                        onChangeText={(text) => setItemData({ ...itemData, price3Days: text })}
+                    />
+                    <TextInput
+                        placeholder="Price per Week (₹)"
+                        style={styles.input}
+                        keyboardType="numeric"
+                        value={itemData.priceWeek}
+                        onChangeText={(text) => setItemData({ ...itemData, priceWeek: text })}
+                    />
                     <Text style={styles.sectionTitle}>🔐 Security Deposit</Text>
-                    <TextInput placeholder="🔐 Security Deposit (₹)" style={styles.input} keyboardType="numeric" />
+                    <TextInput
+                        placeholder="Security Deposit (₹)"
+                        style={styles.input}
+                        keyboardType="numeric"
+                        value={itemData.securityDeposit}
+                        onChangeText={(text) => setItemData({ ...itemData, securityDeposit: text })}
+                    />
                 </View>
 
+                {/* ✅ Location */}
                 <View flexDirection="row">
                     <Entypo name="location" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> LOCATION</Text>
                 </View>
                 <View style={styles.SubContent}>
-                    <TextInput placeholder="Location" style={styles.input} />
+                    <TextInput
+                        placeholder="Location"
+                        style={styles.input}
+                        value={itemData.location}
+                        onChangeText={(text) => setItemData({ ...itemData, location: text })}
+                    />
                 </View>
+
+                {/* ✅ Availability */}
                 <View flexDirection="row">
                     <FontAwesome name="calendar" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> AVAILABILITY STATUS</Text>
                 </View>
                 <View style={styles.SubContent}>
                     <View style={styles.checkboxGroup}>
-                        <TouchableOpacity style={styles.checkboxItem} onPress={() =>
-                            setAvailability(prev => ({ ...prev, request: !prev.request }))
-                        }>
+                        <TouchableOpacity
+                            style={styles.checkboxItem}
+                            onPress={() => setAvailability(prev => ({ ...prev, request: !prev.request }))}
+                        >
                             <Ionicons name={availability.request ? "checkbox" : "square-outline"} size={22} color="#001F54" />
                             <Text style={styles.checkboxLabel}>Available on Request</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.checkboxItem} onPress={() =>
-                            setAvailability(prev => ({ ...prev, booking: !prev.booking }))
-                        }>
+                        <TouchableOpacity
+                            style={styles.checkboxItem}
+                            onPress={() => setAvailability(prev => ({ ...prev, booking: !prev.booking }))}
+                        >
                             <Ionicons name={availability.booking ? "checkbox" : "square-outline"} size={22} color="#001F54" />
                             <Text style={styles.checkboxLabel}>Available for Booking</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.checkboxItem} onPress={() =>
-                            setAvailability(prev => ({ ...prev, notAvailable: !prev.notAvailable }))
-                        }>
+                        <TouchableOpacity
+                            style={styles.checkboxItem}
+                            onPress={() => setAvailability(prev => ({ ...prev, notAvailable: !prev.notAvailable }))}
+                        >
                             <Ionicons name={availability.notAvailable ? "checkbox" : "square-outline"} size={22} color="#001F54" />
                             <Text style={styles.checkboxLabel}>Not Available</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
+
+                {/* ✅ Owner Details */}
                 <View flexDirection="row">
                     <FontAwesome name="user" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> OWNER DETAILS</Text>
                 </View>
                 <View style={styles.SubContent}>
-                    <Text style={styles.fieldLabel}>👤 Owner Name</Text>
-                    <TextInput placeholder="Enter Owner's Name" style={styles.input} />
-
-                    <Text style={styles.fieldLabel}>🏠 Owner Address</Text>
-                    <TextInput placeholder="Enter Full Address" style={styles.input} />
-
-                    <Text style={styles.fieldLabel}>📞 Contact Number</Text>
-                    <TextInput placeholder="Enter Contact Number" style={styles.input} keyboardType="phone-pad" />
-
-                    <Text style={styles.fieldLabel}>📧 Email Address</Text>
-                    <TextInput placeholder="Enter Email Address" style={styles.input} keyboardType="email-address" />
+                    <TextInput
+                        placeholder="👤 Owner Name"
+                        style={styles.input}
+                        value={itemData.ownerName}
+                        onChangeText={(text) => setItemData({ ...itemData, ownerName: text })}
+                    />
+                    <TextInput
+                        placeholder="🏠 Owner Address"
+                        style={styles.input}
+                        value={itemData.ownerAddress}
+                        onChangeText={(text) => setItemData({ ...itemData, ownerAddress: text })}
+                    />
+                    <TextInput
+                        placeholder="📞 Contact Number"
+                        style={styles.input}
+                        keyboardType="phone-pad"
+                        value={itemData.contactNumber}
+                        onChangeText={(text) => setItemData({ ...itemData, contactNumber: text })}
+                    />
+                    <TextInput
+                        placeholder="📧 Email Address"
+                        style={styles.input}
+                        keyboardType="email-address"
+                        value={itemData.email}
+                        onChangeText={(text) => setItemData({ ...itemData, email: text })}
+                    />
                 </View>
+
+                {/* ✅ Terms and Conditions */}
                 <View flexDirection="row">
                     <FontAwesome name="check-square-o" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> TERMS AND CONDITIONS</Text>
                 </View>
                 <View style={styles.SubContent}>
                     <View style={styles.checkboxGroup}>
-                        <TouchableOpacity style={styles.checkboxItem} onPress={() => setTerms(prev => ({ ...prev, idProof: !prev.idProof }))}>
+                        <TouchableOpacity
+                            style={styles.checkboxItem}
+                            onPress={() => setTerms(prev => ({ ...prev, idProof: !prev.idProof }))}
+                        >
                             <Ionicons name={terms.idProof ? "checkbox" : "square-outline"} size={22} color="#001F54" />
                             <Text style={styles.checkboxLabel}>ID Proof Required</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.checkboxItem} onPress={() => setTerms(prev => ({ ...prev, handleWithCare: !prev.handleWithCare }))}>
+                        <TouchableOpacity
+                            style={styles.checkboxItem}
+                            onPress={() => setTerms(prev => ({ ...prev, handleWithCare: !prev.handleWithCare }))}
+                        >
                             <Ionicons name={terms.handleWithCare ? "checkbox" : "square-outline"} size={22} color="#001F54" />
                             <Text style={styles.checkboxLabel}>Strictly Handle with Care</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.checkboxItem} onPress={() => setTerms(prev => ({ ...prev, lateCharges: !prev.lateCharges }))}>
+                        <TouchableOpacity
+                            style={styles.checkboxItem}
+                            onPress={() => setTerms(prev => ({ ...prev, lateCharges: !prev.lateCharges }))}
+                        >
                             <Ionicons name={terms.lateCharges ? "checkbox" : "square-outline"} size={22} color="#001F54" />
                             <Text style={styles.checkboxLabel}>Late Return Charges Applicable</Text>
                         </TouchableOpacity>
                     </View>
 
-
                     <TextInput
                         placeholder="Add any custom terms..."
                         style={[styles.input, { height: 100 }]}
                         multiline
+                        value={itemData.customTerms}
+                        onChangeText={(text) => setItemData({ ...itemData, customTerms: text })}
                     />
                 </View>
 
-                <TouchableOpacity style={styles.submitButton}>
+                {/* ✅ Submit Button */}
+                <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
                     <Ionicons name="checkmark-done-circle" size={24} color="#fff" />
                     <Text style={styles.submitText}>SAVE & POST</Text>
                 </TouchableOpacity>
 
+                {/* ✅ Footer Buttons */}
                 <View style={styles.footerButtons}>
-                    <TouchableOpacity style={styles.secondaryBtn}>
-                        <Entypo name="cycle" size={18} color="#001F54" />
+                    <TouchableOpacity style={styles.secondaryBtn} onPress={handleReset}>
+                        <Entypo name="cycle" size={18} color="#fff" />
                         <Text style={styles.secondaryBtnText}>RESET FORM</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.secondaryBtn}>
-                        <Ionicons name="save" size={18} color="#001F54" />
-                        <Text style={styles.secondaryBtnText}>SAVE AS DRAFT</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.secondaryBtn}>
-                        <Ionicons name="eye" size={18} color="#001F54" />
-                        <Text style={styles.secondaryBtnText}>PREVIEW</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>
-            {/*  Fixed Bottom Navigation */}
+
             <View style={styles.bottomNav}>
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Home")}>
                     <Ionicons name="home" size={28} />
@@ -260,11 +407,11 @@ const styles = StyleSheet.create({
         paddingBottom: 1,
     },
     logo: {
-    width: 70,
-    height: 70,
-    resizeMode: 'contain',
-    borderRadius: 35, // half of width/height
-},
+        width: 70,
+        height: 70,
+        resizeMode: 'contain',
+        borderRadius: 35, // half of width/height
+    },
 
     title: {
         fontSize: 25,
@@ -389,25 +536,24 @@ const styles = StyleSheet.create({
     footerButtons: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: 20,
+        marginTop: 5,
+        alignSelf: 'center',
     },
     secondaryBtn: {
         flexDirection: 'row',
+        backgroundColor: '#001F54',
+        borderRadius: 10,
+        padding: 12,
         alignItems: 'center',
-        backgroundColor: '#fff',
-        padding: 10,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#001F54',
-        flex: 1,
-        marginHorizontal: 4,
-        marginBottom: 40
+        justifyContent: 'center',
+        marginTop: 25,
     },
     secondaryBtnText: {
-        marginLeft: 6,
-        color: '#001F54',
+        color: '#fff',
+        marginLeft: 8,
+        fontSize: 16,
         fontWeight: 'bold',
-        fontSize: 13,
+        textTransform: 'uppercase',
         ...Platform.select({
             ios: {
                 padding: 2
