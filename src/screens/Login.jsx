@@ -51,12 +51,12 @@ const Login = ({ navigation }) => {
 
     try {
       // ✅ Fetch users from SignUp.json
-      const response = await axios.get(`${URL}/SignUp.json`);
+      const response = await axios.get(`${URL}/users.json`);
       const usersData = response.data || {};
 
       // ✅ Find user with matching credentials
       const matchedUser = Object.values(usersData).find(
-        (user) => user.username === username && user.password === password
+        (users) => users.username === username && users.password === password
       );
 
       if (matchedUser) {

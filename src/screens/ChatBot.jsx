@@ -30,6 +30,7 @@ const ChatBot = ({ navigation }) => {
         if (!input.trim()) return;
 
         const userMessage = { sender: 'user', text: input };
+        const userInput = input; // ✅ Store before clearing
         setMessages(prev => [...prev, userMessage]);
         setInput('');
         setLoading(true);
@@ -39,32 +40,39 @@ const ChatBot = ({ navigation }) => {
                 `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
                 {
                     contents: [
-                        // Pass conversation history for context
                         ...messages.map(m => ({
                             role: m.sender === 'user' ? 'user' : 'model',
                             parts: [{ text: m.text }]
                         })),
-                        { role: 'user', parts: [{ text: input }] }
+                        { role: 'user', parts: [{ text: userInput }] }
                     ]
+                },
+                {
+                    headers: { "Content-Type": "application/json" }
                 }
             );
 
-            const botReply = response.data.candidates[0].content.parts[0].text;
+            const botReply =
+                response?.data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+                "🤔 I couldn't find an answer right now.";
             setMessages(prev => [...prev, { sender: 'bot', text: botReply }]);
         } catch (err) {
             console.error("ChatBot Error:", err.response?.data || err.message);
-            setMessages(prev => [...prev, {
-                sender: 'bot',
-                text: '⚠️ Sorry, I am having trouble answering that now.'
-            }]);
+            setMessages(prev => [
+                ...prev,
+                { sender: 'bot', text: '⚠️ Sorry, I am having trouble answering that now.' }
+            ]);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-            {/* Header */}
+        <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+            {/* ✅ UI remains exactly the same */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.navigate("Home")}>
                     <Image source={require('../../assets/logo.png')} style={styles.logo} />
@@ -79,8 +87,8 @@ const ChatBot = ({ navigation }) => {
                 <Text style={styles.title}>WELCOME TO RENTEASY</Text>
                 <Text style={styles.subtitle}>RENT IT, USE IT, RETURN IT!</Text>
 
-                <TouchableOpacity style={styles.supBtn} >
-                    <Text style={styles.supText} >Customer Support</Text>
+                <TouchableOpacity style={styles.supBtn}>
+                    <Text style={styles.supText}>Customer Support</Text>
                     <FontAwesome5 name="robot" size={18} color="#fff" style={{ marginLeft: 6 }} />
                 </TouchableOpacity>
 
@@ -140,6 +148,8 @@ const ChatBot = ({ navigation }) => {
 };
 
 export default ChatBot;
+
+
 
 const styles = StyleSheet.create({
     container: {
