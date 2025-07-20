@@ -8,12 +8,16 @@ import {
     ScrollView,
     Alert,
     Image,
+    Platform,
 } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Entypo from 'react-native-vector-icons/Entypo';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
+const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
 const Payment = ({ navigation, route }) => {
     const { itemInfo, title } = route.params;
@@ -27,7 +31,7 @@ const Payment = ({ navigation, route }) => {
     const [upiId, setUpiId] = useState('');
     const [agreed, setAgreed] = useState(false);
 
-    const handlePayNow = () => {
+    const handlePayNow = async () => {
         if (!agreed) {
             Alert.alert('⚠️ Agreement Required', 'Please agree to the rental policy.');
             return;
@@ -46,7 +50,29 @@ const Payment = ({ navigation, route }) => {
             return;
         }
 
-        Alert.alert('✅ Payment Successful', 'Thanks for renting with RentEasy!');
+        try {
+            const username = await AsyncStorage.getItem("username");
+            if (!username) {
+                Alert.alert("Login Required", "Please login first!");
+                return;
+            }
+
+            const historyItem = {
+                title,
+                ...itemInfo,
+                paymentMethod,
+                date: new Date().toISOString(),
+                status: "Completed",
+            };
+
+            await axios.post(`${URL}/history/${username}.json`, historyItem);
+
+            Alert.alert('✅ Payment Successful', 'Thanks for renting with RentEasy!');
+            navigation.navigate("History");
+        } catch (error) {
+            console.error("Error saving history:", error);
+            Alert.alert("Error", "Could not update history. Try again.");
+        }
     };
 
     return (
@@ -73,7 +99,6 @@ const Payment = ({ navigation, route }) => {
                     <Text style={styles.sectionTitle}>📑 BOOKING SUMMARY</Text>
                     <Text style={styles.summaryText}>📦 ITEM: {title}</Text>
 
-                    {/* Optional fields check */}
                     {itemInfo.owner && (
                         <Text style={styles.summaryText}>👤 OWNER: {itemInfo.owner}</Text>
                     )}
@@ -91,11 +116,9 @@ const Payment = ({ navigation, route }) => {
                     )}
                 </View>
 
-
                 {/* Payment Method Selection */}
                 <Text style={styles.sectionTitle}>💳 SELECT PAYMENT METHOD</Text>
 
-                {/* Card Option */}
                 <TouchableOpacity onPress={() => setPaymentMethod('card')} style={styles.radio}>
                     <Text style={{ fontWeight: paymentMethod === 'card' ? 'bold' : 'normal' }}>
                         🔘 💳 CREDIT / DEBIT CARD
@@ -136,7 +159,6 @@ const Payment = ({ navigation, route }) => {
                     </>
                 )}
 
-                {/* UPI Option */}
                 <TouchableOpacity onPress={() => setPaymentMethod('upi')} style={styles.radio}>
                     <Text style={{ fontWeight: paymentMethod === 'upi' ? 'bold' : 'normal' }}>
                         🔘 💰 PAY VIA GOOGLE PAY / PHONEPE / PAYTM
@@ -152,19 +174,16 @@ const Payment = ({ navigation, route }) => {
                     />
                 )}
 
-                {/* Net Banking Option */}
                 <TouchableOpacity onPress={() => setPaymentMethod('net')} style={styles.radio}>
                     <Text style={{ fontWeight: paymentMethod === 'net' ? 'bold' : 'normal' }}>
                         🔘 🏦 NET BANKING
                     </Text>
                 </TouchableOpacity>
 
-                {/* Security Note */}
                 <Text style={styles.note}>
                     🔐 “All payments are 100% secure and encrypted. Your details are never stored.”
                 </Text>
 
-                {/* Custom Checkbox */}
                 <TouchableOpacity
                     onPress={() => setAgreed(!agreed)}
                     style={styles.customCheckboxContainer}
@@ -179,39 +198,35 @@ const Payment = ({ navigation, route }) => {
                     </Text>
                 </TouchableOpacity>
 
-                {/* Pay Now Button */}
                 <TouchableOpacity style={styles.payButton} onPress={handlePayNow}>
                     <Text style={styles.payText}>PAY NOW</Text>
                 </TouchableOpacity>
             </ScrollView>
-            {/*  Fixed Bottom Navigation */}
+
+            {/* Fixed Bottom Navigation */}
             <View style={styles.bottomNav}>
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Home")}>
                     <Ionicons name="home" size={28} />
                     <Text style={styles.navLabel}>Home</Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("BrowseItems")}>
                     <MaterialIcons name="explore" size={28} />
                     <Text style={styles.navLabel}>Explore</Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("AddItem")}>
                     <Entypo name="plus" size={28} />
                     <Text style={styles.navLabel}>Add</Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("History")}>
                     <Ionicons name="document-text" size={28} />
                     <Text style={styles.navLabel}>History</Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Profile")}>
                     <Ionicons name="person" size={28} />
                     <Text style={styles.navLabel}>Profile</Text>
                 </TouchableOpacity>
             </View>
-        </View >
+        </View>
     );
 };
 

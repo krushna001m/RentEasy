@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, Platform, Modal } from 'react-native';
 
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Entypo from 'react-native-vector-icons/Entypo';
@@ -7,8 +7,26 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import ProductCard from '../components/ProductCard';
+import { categories } from '../constants/categories';
+import SearchWithFilter from '../components/SearchWithFilter';
+
 
 const Home = ({ navigation }) => {
+    const [allItems, setAllItems] = useState([]);
+    const [filteredItems, setFilteredItems] = useState([]);
+
+    useEffect(() => {
+        // ✅ fetch items from Firebase
+        const fetchItems = async () => {
+            const res = await axios.get(`${URL}/items.json`);
+            const itemsArray = Object.values(res.data || {});
+            setAllItems(itemsArray);
+            setFilteredItems(itemsArray);
+        };
+        fetchItems();
+    }, []);
+
+
     return (
         <View style={styles.container}>
             {/*  Fixed Header */}
@@ -25,11 +43,10 @@ const Home = ({ navigation }) => {
 
 
                 {/* Search */}
-                <View style={styles.searchBar}>
-                    <FontAwesome name="search" size={20} style={{ marginHorizontal: 10 }} />
-                    <TextInput placeholder="Search Items" style={styles.input} />
-                    <TouchableOpacity><FontAwesome name="filter" size={25} style={{ marginHorizontal: 10 }} /></TouchableOpacity>
-                </View>
+                <SearchWithFilter
+                    allItems={allItems} // Pass your fetched items array here
+                    setFilteredItems={setFilteredItems} // Pass the state updater for displayed items
+                />
 
                 <View style={{ marginHorizontal: 10, flexDirection: 'row' }}>
                     <MaterialIcons name="trending-up" size={25} color="#007bff" style={{ marginTop: 10 }} />
@@ -47,13 +64,14 @@ const Home = ({ navigation }) => {
                             "🔍 45.7MP FULL-FRAME | 🎥 4K UHD VIDEO",
                             "📷 PRO-LEVEL PERFORMANCE",
                         ],
+                        categories: ["electronics"],
                         included: [
                             "       🔋 BATTERY & CHARGER | 💾 64GB MEMORY CARD",
                             "       🎒 CARRY CASE",
                         ],
                         price: "        📅 ₹500/DAY | ₹1300/3 DAYS | ₹2800/WEEK",
                         deposit: "      ₹5000 (REFUNDABLE)",
-                        owner:"     KRUSHNA MENGAL",
+                        owner: "     KRUSHNA MENGAL",
                         location: "     PUNE, MAHARASHTRA",
                         rating: "       4.9/5 (100 REVIEWS)",
                         availability: "     ON REQUEST",
@@ -64,7 +82,7 @@ const Home = ({ navigation }) => {
 
 
                 {/* Buttons */}
-                
+
 
                 <TouchableOpacity style={styles.browseButton} onPress={() => navigation.navigate("BrowseItems")} >
                     <Text style={styles.browseText}>BROWSE ITEM’S</Text>
@@ -126,15 +144,15 @@ const styles = StyleSheet.create({
         paddingBottom: 1,
         marginTop: 0,
         backgroundColor: 'transparent',
-        zIndex: 100, 
+        zIndex: 100,
 
     },
-logo: {
-    width: 70,
-    height: 70,
-    resizeMode: 'contain',
-    borderRadius: 35, // half of width/height
-},
+    logo: {
+        width: 70,
+        height: 70,
+        resizeMode: 'contain',
+        borderRadius: 35, // half of width/height
+    },
 
     title: {
         fontSize: 25,

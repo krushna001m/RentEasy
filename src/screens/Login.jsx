@@ -21,7 +21,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const { width, height } = Dimensions.get("window");
 
 const Login = ({ navigation }) => {
-  // ✅ Optimized State
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -30,17 +29,14 @@ const Login = ({ navigation }) => {
 
   const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
-  // ✅ Handle input changes
   const handleInputChange = (name, value) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Toggle password visibility
   const togglePasswordVisibility = () => {
     setFormData((prev) => ({ ...prev, showPassword: !prev.showPassword }));
   };
 
-  // ✅ Handle Login
   const handleLogin = async () => {
     const { username, password } = formData;
 
@@ -50,20 +46,19 @@ const Login = ({ navigation }) => {
     }
 
     try {
-      // ✅ Fetch users from SignUp.json
       const response = await axios.get(`${URL}/users.json`);
       const usersData = response.data || {};
 
-      // ✅ Find user with matching credentials
       const matchedUser = Object.values(usersData).find(
         (users) => users.username === username && users.password === password
       );
 
       if (matchedUser) {
-        // ✅ Save user data locally for Profile screen
+        // Store both username and complete user data for dynamic access
+        await AsyncStorage.setItem("username", matchedUser.username);
         await AsyncStorage.setItem("loggedInUser", JSON.stringify(matchedUser));
 
-        console.log("✅ Logged in user roles:", matchedUser.roles);
+        console.log("✅ Logged in user:", matchedUser.username);
         Alert.alert("Success", `Welcome back, ${matchedUser.username}!`);
         navigation.navigate("Home");
       } else {
@@ -106,7 +101,7 @@ const Login = ({ navigation }) => {
               secureTextEntry={!formData.showPassword}
               value={formData.password}
               onChangeText={(text) => handleInputChange("password", text)}
-              onSubmitEditing={handleLogin} // ✅ Press Enter to login
+              onSubmitEditing={handleLogin}
               returnKeyType="done"
             />
             <TouchableOpacity onPress={togglePasswordVisibility}>
@@ -152,7 +147,7 @@ const Login = ({ navigation }) => {
 };
 
 export default Login;
-// ✅ Your UI styles remain UNCHANGED
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,

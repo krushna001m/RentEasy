@@ -15,17 +15,36 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import axios from 'axios';
+import { useIsFocused } from '@react-navigation/native';
+import { categories } from '../constants/categories';
+import SearchWithFilter from '../components/SearchWithFilter';
 
 const BrowseItems = ({ navigation }) => {
+    const [allItems, setAllItems] = useState([]);
+    const [filteredItems, setFilteredItems] = useState([]);
+
+    useEffect(() => {
+        // ✅ fetch items from Firebase
+        const fetchItems = async () => {
+            const res = await axios.get(`${URL}/items.json`);
+            const itemsArray = Object.values(res.data || {});
+            setAllItems(itemsArray);
+            setFilteredItems(itemsArray);
+        };
+        fetchItems();
+    }, []);
+
     const [items, setItems] = useState([]);
+    const isFocused = useIsFocused();
 
     const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
+
 
     useEffect(() => {
         const fetchItems = async () => {
             try {
                 const response = await axios.get(
-                    `${URL}/AddItems.json` // ✅ Replace with your DB URL
+                    `${URL}/items.json` // ✅ Replace with your DB URL
                 );
 
                 if (response.data) {
@@ -45,6 +64,12 @@ const BrowseItems = ({ navigation }) => {
         fetchItems();
     }, []);
 
+    const getCategoryLabel = (categoryId) => {
+        const category = categories.find(cat => cat.id === categoryId);
+        return category ? category.label : "Unknown";
+    };
+
+
     return (
         <View style={styles.container}>
             {/* Header */}
@@ -62,14 +87,11 @@ const BrowseItems = ({ navigation }) => {
                 <Text style={styles.title}>WELCOME TO RENTEASY</Text>
                 <Text style={styles.subtitle}>RENT IT, USE IT, RETURN IT!</Text>
 
-                {/* Search Bar */}
-                <View style={styles.searchBar}>
-                    <FontAwesome name="search" size={20} style={{ marginHorizontal: 10 }} />
-                    <TextInput placeholder="Search Items" style={styles.input} />
-                    <TouchableOpacity>
-                        <FontAwesome name="filter" size={25} style={{ marginHorizontal: 10 }} />
-                    </TouchableOpacity>
-                </View>
+                {/* Search */}
+                <SearchWithFilter
+                    allItems={allItems} // Pass your fetched items array here
+                    setFilteredItems={setFilteredItems} // Pass the state updater for displayed items
+                />
 
                 {/* Browse Title */}
                 <View>
@@ -83,11 +105,13 @@ const BrowseItems = ({ navigation }) => {
                 <ProductCard
                     image={require('../../assets/camera.png')}
                     title="📸 NIKON D850 DSLR (BODY ONLY)"
+
                     info={{
                         features: [
                             "     🔍 45.7MP FULL-FRAME | 🎥 4K UHD VIDEO",
                             "     📷 PRO-LEVEL PERFORMANCE"
                         ],
+                        categories: ["electronics"],
                         included: [
                             "     🔋 Battery & Charger | 💾 64GB MEMORY CARD",
                             "     🎒 Carry Case"
@@ -109,6 +133,7 @@ const BrowseItems = ({ navigation }) => {
                         features: [
                             " 🌳 Calm Green Surroundings | 🏗️ Spacious Design"
                         ],
+                        categories: ["furniture"],
                         included: [
                             "     🛏️ 2 Bedrooms | 🛋️ Hall | 🍳 Kitchen",
                             "     🚿 2 Bathrooms | 🚗 Parking"
@@ -129,6 +154,7 @@ const BrowseItems = ({ navigation }) => {
                         features: [
                             " 🛣️ Comfortable for Long Drives |❄️Dual A/C               🎵 Music System"
                         ],
+                        categories: ["vehicles"],
                         included: [
                             "     💺 7-Seater | 🧳 Ample Luggage Space | 🛡️ Driver Airbags"
                         ],
@@ -146,10 +172,15 @@ const BrowseItems = ({ navigation }) => {
                 {items.map(item => (
                     <ProductCard
                         key={item.id}
-                        image={item.imageUri ? { uri: item.imageUri } : require('../../assets/camera.png')}
+                        image={item.imageUri ? { uri: item.imageUri } : require('../../assets/item_placeholder.png')}
                         title={` ${item.title}`}
                         info={{
                             features: [item.description || "No description provided"],
+                            categories: Array.isArray(item.categories)
+                                ? item.categories
+                                : item.categories
+                                    ? [item.categories]
+                                    : ["others"], // ✅ fallback always an array
                             included: item.included ? [item.included] : [],
                             price: `₹${item.pricePerDay}/day`,
                             deposit: `₹${item.securityDeposit || '0'} (REFUNDABLE)`,

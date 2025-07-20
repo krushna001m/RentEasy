@@ -8,7 +8,8 @@ import {
     ScrollView,
     Image,
     Platform,
-    Alert
+    Alert,
+    Modal
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -17,13 +18,31 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Entypo from 'react-native-vector-icons/Entypo';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useIsFocused } from '@react-navigation/native';
+import { categories } from '../../constants/categories';
 
 const AddItem = ({ navigation }) => {
+    const isFocused = useIsFocused();
+
+    const categories = [
+        { id: "electronics", label: "Electronics" },
+        { id: "furniture", label: "Furniture" },
+        { id: "books", label: "Books" },
+        { id: "vehicles", label: "Vehicles" },
+        { id: "tools", label: "Tools" },
+        { id: "others", label: "Others" }
+    ];
+
+    const [selectedCategory, setSelectedCategory] = useState("");
+
+
     const [itemData, setItemData] = useState({
         title: "",
         description: "",
         fullDescription: "",
         included: "",
+        category: selectedCategory || "others",
         pricePerDay: "",
         price3Days: "",
         priceWeek: "",
@@ -49,10 +68,9 @@ const AddItem = ({ navigation }) => {
     });
 
     const [imageUri, setImageUri] = useState(null);
+    const [previewVisible, setPreviewVisible] = useState(false); // ✅ NEW
 
     const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
-
-    // ✅ Replace with your Firebase Realtime Database URL
 
     const pickImage = () => {
         const options = { mediaType: 'photo', quality: 1 };
@@ -63,7 +81,6 @@ const AddItem = ({ navigation }) => {
                 console.error('ImagePicker Error:', response.errorMessage);
             } else if (response.assets && response.assets.length > 0) {
                 setImageUri(response.assets[0].uri);
-                console.log('Selected image:', response.assets[0].uri);
             }
         });
     };
@@ -74,6 +91,7 @@ const AddItem = ({ navigation }) => {
             description: "",
             fullDescription: "",
             included: "",
+            category: selectedCategory || "others",
             pricePerDay: "",
             price3Days: "",
             priceWeek: "",
@@ -96,19 +114,60 @@ const AddItem = ({ navigation }) => {
             return;
         }
 
-        const finalData = {
-            ...itemData,
-            terms,
-            availability,
-            imageUri: imageUri || "",
-            createdAt: new Date().toISOString(),
-        };
-
         try {
-            const response = await axios.post(`${URL}/AddItems.json`, finalData);
-            console.log("Data Stored:", response.data);
+            const loggedInUserData = await AsyncStorage.getItem("loggedInUser");
+            if (!loggedInUserData) {
+                Alert.alert("Error", "User not logged in!");
+                return;
+            }
+
+            const currentUser = JSON.parse(loggedInUserData);
+            const defaultImageUri = Image.resolveAssetSource(require('../../assets/item_placeholder.png')).uri;
+
+            const finalData = {
+                ...itemData,
+                terms,
+                availability,
+                categories: selectedCategory || "others",
+                image: imageUri || defaultImageUri,
+                createdAt: new Date().toISOString(),
+                owner: currentUser.username,
+                ownerEmail: currentUser.email,
+                ownerPhone: currentUser.phone,
+            };
+
+            await axios.post(`${URL}/items.json`, finalData);
+
+            const historyData = {
+                title: finalData.title,
+                categories: finalData.categories,
+                owner: finalData.owner,
+                price: finalData.pricePerDay,
+                date: finalData.createdAt,
+                status: "Posted",
+                image: finalData.image,
+            };
+
+            await axios.post(`${URL}/history/${currentUser.username}.json`, historyData);
+
+            const res = await axios.get(`${URL}/users.json`);
+            const users = res.data || {};
+            const userKey = Object.keys(users).find(
+                key => users[key].username === currentUser.username
+            );
+
+            if (userKey) {
+                const updatedRoles = Array.from(
+                    new Set([...(users[userKey].roles || []), "Owner"])
+                );
+                await axios.patch(`${URL}/users/${userKey}.json`, { roles: updatedRoles });
+                const updatedUser = { ...currentUser, roles: updatedRoles };
+                await AsyncStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
+            }
+
             Alert.alert("Success", "Item has been added successfully!");
             handleReset();
+            navigation.navigate("History");
         } catch (error) {
             console.error("Error storing data:", error);
             Alert.alert("Error", "Failed to store data in Realtime Database.");
@@ -180,8 +239,37 @@ const AddItem = ({ navigation }) => {
                         onChangeText={(text) => setItemData({ ...itemData, included: text })}
                     />
                 </View>
+                <View style={styles.categoryContainer}>
+                    <View flexDirection="row">
+                    <FontAwesome5 name="tags" size={25} color="#001F54" style={styles.TitleIcon} />
+                    <Text style={styles.sectionTitle}> Select Category</Text>
+                </View>
 
-                {/* ✅ Rental Price */}
+                <View style={styles.chipsContainer}>
+                    {categories.map((cat) => (
+                        <TouchableOpacity
+                            key={cat.id}
+                            style={[
+                                styles.chip,
+                                selectedCategory === cat.id && styles.chipSelected
+                            ]}
+                            onPress={() => setSelectedCategory(cat.id)}
+                        >
+                            <Text
+                                style={[
+                                    styles.chipText,
+                                    selectedCategory === cat.id && styles.chipTextSelected
+                                ]}
+                            >
+                                {cat.label}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+                </View>
+
+
+                {/* ✅ Rental Price */ }
                 <View flexDirection="row">
                     <FontAwesome5 name="rupee-sign" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> RENTAL PRICE</Text>
@@ -218,7 +306,7 @@ const AddItem = ({ navigation }) => {
                     />
                 </View>
 
-                {/* ✅ Location */}
+    {/* ✅ Location */ }
                 <View flexDirection="row">
                     <Entypo name="location" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> LOCATION</Text>
@@ -232,7 +320,7 @@ const AddItem = ({ navigation }) => {
                     />
                 </View>
 
-                {/* ✅ Availability */}
+    {/* ✅ Availability */ }
                 <View flexDirection="row">
                     <FontAwesome name="calendar" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> AVAILABILITY STATUS</Text>
@@ -265,7 +353,7 @@ const AddItem = ({ navigation }) => {
                     </View>
                 </View>
 
-                {/* ✅ Owner Details */}
+    {/* ✅ Owner Details */ }
                 <View flexDirection="row">
                     <FontAwesome name="user" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> OWNER DETAILS</Text>
@@ -299,7 +387,7 @@ const AddItem = ({ navigation }) => {
                     />
                 </View>
 
-                {/* ✅ Terms and Conditions */}
+    {/* ✅ Terms and Conditions */ }
                 <View flexDirection="row">
                     <FontAwesome name="check-square-o" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> TERMS AND CONDITIONS</Text>
@@ -340,48 +428,112 @@ const AddItem = ({ navigation }) => {
                     />
                 </View>
 
-                {/* ✅ Submit Button */}
-                <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-                    <Ionicons name="checkmark-done-circle" size={24} color="#fff" />
-                    <Text style={styles.submitText}>SAVE & POST</Text>
+    {/* ✅ Preview + Save Buttons */ }
+    <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 25 }}>
+        <TouchableOpacity
+            style={[styles.submitButton, { flex: 0.48, backgroundColor: '#666' }]}
+            onPress={() => setPreviewVisible(true)}
+        >
+            <Ionicons name="eye" size={24} color="#fff" />
+            <Text style={styles.submitText}>PREVIEW</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.submitButton, { flex: 0.48 }]} onPress={handleSubmit}>
+            <Ionicons name="checkmark-done-circle" size={24} color="#fff" />
+            <Text style={styles.submitText}>SAVE & POST</Text>
+        </TouchableOpacity>
+    </View>
+
+    {/* ✅ Footer Buttons */ }
+    <View style={styles.footerButtons}>
+        <TouchableOpacity style={styles.secondaryBtn} onPress={handleReset}>
+            <Entypo name="cycle" size={18} color="#fff" />
+            <Text style={styles.secondaryBtnText}>RESET FORM</Text>
+        </TouchableOpacity>
+    </View>
+            </ScrollView >
+
+    <View style={styles.bottomNav}>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Home")}>
+            <Ionicons name="home" size={28} />
+            <Text style={styles.navLabel}>Home</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("BrowseItems")}>
+            <MaterialIcons name="explore" size={28} />
+            <Text style={styles.navLabel}>Explore</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("AddItem")}>
+            <Entypo name="plus" size={28} />
+            <Text style={styles.navLabel}>Add</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("History")}>
+            <Ionicons name="document-text" size={28} />
+            <Text style={styles.navLabel}>History</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Profile")}>
+            <Ionicons name="person" size={28} />
+            <Text style={styles.navLabel}>Profile</Text>
+        </TouchableOpacity>
+    </View>
+
+{/* ✅ Preview Modal */ }
+<Modal
+    animationType="slide"
+    transparent={true}
+    visible={previewVisible}
+    onRequestClose={() => setPreviewVisible(false)}
+>
+    <View style={{
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center'
+    }}>
+        <View style={{
+            backgroundColor: '#fff',
+            borderRadius: 15,
+            width: '85%',
+            padding: 20,
+            alignItems: 'center',
+        }}>
+            <Image
+                source={{ uri: imageUri || Image.resolveAssetSource(require('../../assets/placeholder.jpg')).uri }}
+                style={{ width: 180, height: 180, borderRadius: 10, marginBottom: 10 }}
+            />
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#001F54' }}>{itemData.title || "No Title"}</Text>
+            <Text style={{ fontSize: 14, color: '#333', marginVertical: 5 }}>{itemData.description || "No Description"}</Text>
+            <Text style={{ fontSize: 16, fontWeight: '600', color: '#001F54', marginVertical: 5 }}>₹ {itemData.pricePerDay || "0"} / day</Text>
+            <Text style={{ fontSize: 14, color: '#666', marginVertical: 2 }}>📍 {itemData.location || "No Location"}</Text>
+            <Text style={{ fontSize: 14, color: '#666', marginVertical: 2 }}>👤 {itemData.ownerName || "No Owner"}</Text>
+
+            <View style={{ flexDirection: 'row', marginTop: 15 }}>
+                <TouchableOpacity
+                    style={[styles.secondaryBtn, { backgroundColor: '#aaa', marginRight: 10 }]}
+                    onPress={() => setPreviewVisible(false)}
+                >
+                    <Entypo name="cross" size={18} color="#fff" />
+                    <Text style={styles.secondaryBtnText}>CLOSE</Text>
                 </TouchableOpacity>
 
-                {/* ✅ Footer Buttons */}
-                <View style={styles.footerButtons}>
-                    <TouchableOpacity style={styles.secondaryBtn} onPress={handleReset}>
-                        <Entypo name="cycle" size={18} color="#fff" />
-                        <Text style={styles.secondaryBtnText}>RESET FORM</Text>
-                    </TouchableOpacity>
-                </View>
-            </ScrollView>
-
-            <View style={styles.bottomNav}>
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Home")}>
-                    <Ionicons name="home" size={28} />
-                    <Text style={styles.navLabel}>Home</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("BrowseItems")}>
-                    <MaterialIcons name="explore" size={28} />
-                    <Text style={styles.navLabel}>Explore</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("AddItem")}>
-                    <Entypo name="plus" size={28} />
-                    <Text style={styles.navLabel}>Add</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("History")}>
-                    <Ionicons name="document-text" size={28} />
-                    <Text style={styles.navLabel}>History</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Profile")}>
-                    <Ionicons name="person" size={28} />
-                    <Text style={styles.navLabel}>Profile</Text>
+                <TouchableOpacity
+                    style={[styles.submitButton, { backgroundColor: '#001F54' }]}
+                    onPress={() => {
+                        setPreviewVisible(false);
+                        handleSubmit();
+                    }}
+                >
+                    <Ionicons name="checkmark-done-circle" size={18} color="#fff" />
+                    <Text style={styles.submitText}>CONFIRM POST</Text>
                 </TouchableOpacity>
             </View>
         </View>
+    </View>
+</Modal>
+        </View >
     );
 };
 
@@ -541,7 +693,7 @@ const styles = StyleSheet.create({
     },
     secondaryBtn: {
         flexDirection: 'row',
-        backgroundColor: '#001F54',
+        backgroundColor: '#ff0000ff',
         borderRadius: 10,
         padding: 12,
         alignItems: 'center',
@@ -563,6 +715,37 @@ const styles = StyleSheet.create({
             }
         })
     },
+    categoryContainer: {
+        marginVertical: 10,
+    },
+    chipsContainer: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        marginTop: 6,
+    },
+    chip: {
+        backgroundColor: "#f0f0f0",
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        marginRight: 8,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: "#ccc",
+    },
+    chipSelected: {
+        backgroundColor: "#001F54",
+        borderColor: "#001F54",
+    },
+    chipText: {
+        fontSize: 14,
+        color: "#333",
+    },
+    chipTextSelected: {
+        color: "#fff",
+        fontWeight: "bold",
+    },
+
     bottomNav: {
         flexDirection: 'row',
         justifyContent: 'space-around',

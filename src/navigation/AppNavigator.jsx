@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ActivityIndicator, View } from "react-native";
 
 import Login from "../screens/Login";
 import SignUp from "../screens/SignUp";
@@ -11,28 +13,56 @@ import AddItem from "../screens/AddItem";
 import History from "../screens/History";
 import Chat from "../screens/Chat";
 import Profile from "../screens/Profile";
-import Settings from "../screens/Settings"; 
+import Settings from "../screens/Settings";
 import ChatBot from "../screens/ChatBot";
-import Payment from "../screens/Payment"; 
+import Payment from "../screens/Payment";
 
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
+  const [initialRoute, setInitialRoute] = useState(null);
+
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      try {
+        const userData = await AsyncStorage.getItem("loggedInUser");
+        if (userData) {
+          setInitialRoute("Home"); // ✅ Already logged in → Go to Home
+        } else {
+          setInitialRoute("Login"); // ✅ No user → Show Login
+        }
+      } catch (error) {
+        console.error("Error checking login:", error);
+        setInitialRoute("Login");
+      }
+    };
+
+    checkLoginStatus();
+  }, []);
+
+  if (!initialRoute) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#001F54" />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="SignUp" component={SignUp} />
         <Stack.Screen name="Home" component={Home} />
-        <Stack.Screen name="BrowseItems" component={BrowseItems}/>
-        <Stack.Screen name="ForgotPassword" component={ForgotPassword}/>
-        <Stack.Screen name="AddItem" component={AddItem}/>
-        <Stack.Screen name="History" component={History}/>
-        <Stack.Screen name="Chat" component={Chat}/>
-        <Stack.Screen name="Profile" component={Profile}/>
-        <Stack.Screen name="Settings" component={Settings}/>
-        <Stack.Screen name="ChatBot" component={ChatBot}/>
-        <Stack.Screen name="Payment" component={Payment}/>
+        <Stack.Screen name="BrowseItems" component={BrowseItems} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+        <Stack.Screen name="AddItem" component={AddItem} />
+        <Stack.Screen name="History" component={History} />
+        <Stack.Screen name="Chat" component={Chat} />
+        <Stack.Screen name="Profile" component={Profile} />
+        <Stack.Screen name="Settings" component={Settings} />
+        <Stack.Screen name="ChatBot" component={ChatBot} />
+        <Stack.Screen name="Payment" component={Payment} />
       </Stack.Navigator>
     </NavigationContainer>
   );

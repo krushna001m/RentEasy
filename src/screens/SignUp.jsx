@@ -25,8 +25,8 @@ const SignUp = ({ navigation }) => {
     username: "",
     password: "",
     confirmPassword: "",
-    isOwner: false,
-    isBorrower: false,
+    isOwner: true,
+    isBorrower: true,
     agreed: false,
   });
 
@@ -59,7 +59,7 @@ const SignUp = ({ navigation }) => {
 
     try {
       // ✅ Check if username already exists
-      const existingUsers = await axios.get(`${URL}/SignUp.json`);
+      const existingUsers = await axios.get(`${URL}/users.json`);
       const usersData = existingUsers.data || {};
 
       const userExists = Object.values(usersData).some(
@@ -72,7 +72,7 @@ const SignUp = ({ navigation }) => {
       }
 
       // ✅ Save new user
-      const response = await axios.post(`${URL}/SignUp.json`, {
+      const response = await axios.post(`${URL}/users.json`, {
         username,
         password,
         roles,

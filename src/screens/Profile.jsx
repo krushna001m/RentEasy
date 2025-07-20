@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-    View,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    StyleSheet,
-    ScrollView,
-    Image,
-    Platform,
-    useColorScheme
+    View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Image,
+    Platform, useColorScheme,
+    Alert
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Entypo from 'react-native-vector-icons/Entypo';
@@ -17,12 +11,14 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { launchImageLibrary } from 'react-native-image-picker';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useIsFocused } from '@react-navigation/native'; // ✅ Auto-refresh when navigating back
 
 const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
 const Profile = ({ navigation }) => {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
+    const isFocused = useIsFocused(); // ✅ Re-fetch when screen focused
 
     const [profile, setProfile] = useState({
         name: "",
@@ -30,7 +26,8 @@ const Profile = ({ navigation }) => {
         phone: "",
         image: null,
         listings: [],
-        rentals: []
+        rentals: [],
+        roles: []
     });
 
     const [editMode, setEditMode] = useState(false);
@@ -40,92 +37,142 @@ const Profile = ({ navigation }) => {
         setTempProfile({ ...tempProfile, [key]: value });
     };
 
+    // ✅ Fetch User Listings (Owner Role)
+    const fetchUserListings = async (username) => {
+        try {
+            const response = await axios.get(`${URL}/items.json`);
+            const items = response.data || {};
+            return Object.entries(items)
+                .filter(([key, item]) => item.owner === username)
+                .map(([key, item]) => ({
+                    id: key,
+                    title: item.title,
+                    price: item.pricePerDay || item.price || "N/A",
+                    status: item.availability?.notAvailable ? "Not Available" : "Available",
+                }));
+        } catch (error) {
+            console.error("Error fetching listings:", error);
+            return [];
+        }
+    };
+
+    // ✅ Fetch User Rentals (Borrower Role)
+    const fetchUserRentals = async (username) => {
+        try {
+            const response = await axios.get(`${URL}/history/${username}.json`);
+            const history = response.data || {};
+            return Object.entries(history).map(([key, rental]) => ({
+                id: key,
+                itemName: rental.title || "Unknown",
+                price: rental.pricePerDay || rental.price || "N/A",
+                status: rental.status || "Completed",
+                date: rental.date ? new Date(rental.date).toLocaleDateString() : "N/A",
+            }));
+        } catch (error) {
+            console.error("Error fetching rentals:", error);
+            return [];
+        }
+    };
+
     const fetchUserProfile = async () => {
         try {
-            const loggedInUsername = await AsyncStorage.getItem("username");
-            if (!loggedInUsername) return;
+            const loggedInUserData = await AsyncStorage.getItem("loggedInUser");
+            if (!loggedInUserData) return;
 
-            const response = await axios.get(`${URL}/SignUp.json`);
-            const users = response.data || {};
+            const currentUser = JSON.parse(loggedInUserData);
 
-            const currentUser = Object.values(users).find(
-                (user) => user.username === loggedInUsername
-            );
+            const userListings = await fetchUserListings(currentUser.username);
+            const userRentals = await fetchUserRentals(currentUser.username);
 
-            if (currentUser) {
-                setProfile({
-                    name: currentUser.username,
-                    email: currentUser.email || "",
-                    phone: currentUser.phone || "",
-                    image: currentUser.image || null,
-                    listings: currentUser.roles?.includes("Owner")
-                        ? ["Camera - ₹500/day", "Tent - ₹300/day"]
-                        : [],
-                    rentals: currentUser.roles?.includes("Borrower")
-                        ? ["Bike - ₹200/day"]
-                        : [],
-                });
-                setTempProfile({
-                    name: currentUser.username,
-                    email: currentUser.email || "",
-                    phone: currentUser.phone || "",
-                    image: currentUser.image || null,
-                });
-            }
+            // ✅ Dynamically determine roles
+            const roles = [];
+            if (userListings.length > 0) roles.push("Owner");
+            if (userRentals.length > 0) roles.push("Borrower");
+
+            const updatedProfile = {
+                name: currentUser.username,
+                email: currentUser.email || "",
+                phone: currentUser.phone || "",
+                image: currentUser.image || null,
+                listings: userListings,
+                rentals: userRentals,
+                roles: roles,
+            };
+
+            setProfile(updatedProfile);
+            setTempProfile(updatedProfile);
         } catch (error) {
             console.error("Profile Fetch Error:", error);
         }
     };
 
     useEffect(() => {
-        fetchUserProfile();
-    }, []);
+        if (isFocused) {
+            fetchUserProfile(); // ✅ Refresh profile when screen is focused
+        }
+    }, [isFocused]);
 
+    // ✅ Save Updated Profile
     const saveProfile = async () => {
         try {
-            const loggedInUsername = await AsyncStorage.getItem("username");
-            if (!loggedInUsername) return;
+            const loggedInUserData = await AsyncStorage.getItem("loggedInUser");
+            if (!loggedInUserData) return;
 
-            setProfile({ ...tempProfile });
+            const currentUser = JSON.parse(loggedInUserData);
+
+            setProfile({ ...profile, ...tempProfile });
             setEditMode(false);
 
-            const response = await axios.get(`${URL}/SignUp.json`);
+            const response = await axios.get(`${URL}/users.json`);
             const users = response.data || {};
             const userKey = Object.keys(users).find(
-                (key) => users[key].username === loggedInUsername
+                (key) => users[key].username === currentUser.username
             );
 
             if (userKey) {
-                await axios.patch(`${URL}/SignUp/${userKey}.json`, {
+                await axios.patch(`${URL}/users/${userKey}.json`, {
                     username: tempProfile.name,
                     email: tempProfile.email,
                     phone: tempProfile.phone,
                     image: tempProfile.image,
                 });
-                console.log("Profile Updated Successfully!");
+
+                const updatedUser = { ...currentUser, ...tempProfile };
+                await AsyncStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
+                Alert.alert("Profile Updated Successfully!");
             }
         } catch (error) {
             console.error("Profile Update Error:", error);
         }
     };
 
+    // ✅ Pick Profile Image & Update Firebase
     const pickImage = () => {
         launchImageLibrary(
             { mediaType: 'photo', maxWidth: 300, maxHeight: 300, quality: 1 },
-            async response => {
+            async (response) => {
                 if (!response.didCancel && !response.errorCode) {
                     const uri = response.assets[0].uri;
-                    handleChange('image', uri);
+                    handleChange("image", uri);
 
                     try {
-                        const loggedInUsername = await AsyncStorage.getItem("username");
-                        const res = await axios.get(`${URL}/SignUp.json`);
+                        const loggedInUserData = await AsyncStorage.getItem("loggedInUser");
+                        const currentUser = JSON.parse(loggedInUserData);
+
+                        const res = await axios.get(`${URL}/users.json`);
                         const users = res.data || {};
                         const userKey = Object.keys(users).find(
-                            (key) => users[key].username === loggedInUsername
+                            (key) => users[key].username === currentUser.username
                         );
                         if (userKey) {
-                            await axios.patch(`${URL}/SignUp/${userKey}.json`, { image: uri });
+                            await axios.patch(`${URL}/users/${userKey}.json`, { image: uri });
+
+                            const updatedUser = { ...currentUser, image: uri };
+                            await AsyncStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
+
+                            // ✅ Instant update after selecting image
+                            setProfile((prev) => ({ ...prev, image: uri }));
+                            setTempProfile((prev) => ({ ...prev, image: uri }));
                         }
                     } catch (error) {
                         console.error("Image Update Error:", error);
@@ -142,46 +189,42 @@ const Profile = ({ navigation }) => {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.navigate("Home")}>
-                    <Image source={require('../../assets/logo.png')} style={styles.logo} />
+                    <Image source={require("../../assets/logo.png")} style={styles.logo} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => navigation.navigate("Chat")}>
-                    <Entypo name="chat" size={36} color={isDark ? '#fff' : '#000'} />
+                    <Entypo name="chat" size={36} color={isDark ? "#fff" : "#000"} />
                 </TouchableOpacity>
             </View>
+            <ScrollView contentContainerStyle={styles.scrollContainer}>
+                {/* Title */}
+                <Text style={[styles.title, themeStyles.text]}>WELCOME TO RENTEASY</Text>
+                <Text style={[styles.subtitle, themeStyles.text]}>RENT IT, USE IT, RETURN IT!</Text>
 
-            {/* Title */}
-            <Text style={[styles.title, themeStyles.text]}>WELCOME TO RENTEASY</Text>
-            <Text style={[styles.subtitle, themeStyles.text]}>RENT IT, USE IT, RETURN IT!</Text>
-            <View>
                 <TouchableOpacity style={styles.chatLabel}>
                     <Text style={styles.chatText}>PROFILE</Text>
                     <FontAwesome name="user-circle" size={18} color="#fff" style={{ marginLeft: 4 }} />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.settingsButton} onPress={() => navigation.navigate("Settings")}>
-                    <Ionicons name="settings" size={33} color="#001F54" style={{ marginLeft: 4 }} />
+
+                {/* Profile Image */}
+                <TouchableOpacity onPress={pickImage}>
+                    <Image
+                        source={tempProfile.image ? { uri: tempProfile.image } : require("../../assets/user-icon.png")}
+                        style={styles.profileImage}
+                    />
                 </TouchableOpacity>
-            </View>
+                <TouchableOpacity style={styles.updateBtn} onPress={pickImage}>
+                    <Text style={styles.updateText}>UPDATE PROFILE PICTURE</Text>
+                </TouchableOpacity>
 
-            {/* Profile Image */}
-            <TouchableOpacity onPress={pickImage}>
-                <Image
-                    source={tempProfile.image ? { uri: tempProfile.image } : require('../../assets/user-icon.png')}
-                    style={styles.profileImage}
-                />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.updateBtn} onPress={pickImage}>
-                <Text style={styles.updateText}>UPDATE PROFILE PICTURE</Text>
-            </TouchableOpacity>
+                {/* Editable Profile Fields */}
 
-            {/* Form */}
-            <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <View style={styles.inputGroup}>
                     <FontAwesome name="user" size={25} color="#001F54" style={styles.icon} />
                     <TextInput
                         style={[styles.inputField, themeStyles.inputField]}
                         editable={editMode}
                         value={tempProfile.name}
-                        onChangeText={text => handleChange('name', text)}
+                        onChangeText={(text) => handleChange("name", text)}
                     />
                 </View>
                 <View style={styles.inputGroup}>
@@ -190,7 +233,7 @@ const Profile = ({ navigation }) => {
                         style={[styles.inputField, themeStyles.inputField]}
                         editable={editMode}
                         value={tempProfile.email}
-                        onChangeText={text => handleChange('email', text)}
+                        onChangeText={(text) => handleChange("email", text)}
                     />
                 </View>
                 <View style={styles.inputGroup}>
@@ -199,32 +242,68 @@ const Profile = ({ navigation }) => {
                         style={[styles.inputField, themeStyles.inputField]}
                         editable={editMode}
                         value={tempProfile.phone}
-                        onChangeText={text => handleChange('phone', text)}
+                        onChangeText={(text) => handleChange("phone", text)}
                     />
                 </View>
 
-                <Text style={[styles.sectionText, themeStyles.text]}>📦 MY LISTINGS (IF OWNER)</Text>
-                {profile.listings.map((item, idx) => (
-                    <Text key={idx} style={[styles.listText, themeStyles.text]}>• {item}</Text>
-                ))}
+                {/* ✅ Dynamic Listings in Card */}
+                {profile.roles.includes("Owner") && (
+                    <View style={styles.card}>
+                        <Text style={[styles.sectionText, themeStyles.text]}>📦 MY LISTINGS</Text>
+                        {profile.listings.length > 0 ? (
+                            profile.listings.map((item, idx) => (
+                                <View key={idx} style={styles.cardItem}>
+                                    <Text style={[styles.listText, themeStyles.text]}>
+                                        • {item.title} - {item.price} ({item.status})
+                                    </Text>
+                                </View>
+                            ))
+                        ) : (
+                            <Text style={[styles.listText, themeStyles.text]}>• No listings yet</Text>
+                        )}
+                    </View>
+                )}
 
-                <Text style={[styles.sectionText, themeStyles.text]}>📑 MY RENTALS (IF BORROWER)</Text>
-                {profile.rentals.map((item, idx) => (
-                    <Text key={idx} style={[styles.listText, themeStyles.text]}>• {item}</Text>
-                ))}
+                {/* ✅ Dynamic Rentals in Card */}
+                {profile.roles.includes("Borrower") && (
+                    <View style={styles.card}>
+                        <Text style={[styles.sectionText, themeStyles.text]}>📑 MY RENTALS</Text>
+                        {profile.rentals.length > 0 ? (
+                            profile.rentals.map((item, idx) => (
+                                <View key={idx} style={styles.cardItem}>
+                                    <Text style={[styles.listText, themeStyles.text]}>
+                                        • {item.itemName} - {item.price} ({item.status})
+                                    </Text>
+                                </View>
+                            ))
+                        ) : (
+                            <Text style={[styles.listText, themeStyles.text]}>• No rentals yet</Text>
+                        )}
+                    </View>
+                )}
+
             </ScrollView>
 
-            {/* Buttons */}
-            <TouchableOpacity style={styles.editButton} onPress={() => setEditMode(!editMode)}>
-                <Text style={styles.btnText}>EDIT PROFILE</Text>
-                <FontAwesome name="edit" size={18} color="#fff" style={{ marginLeft: 6 }} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.saveButton} onPress={saveProfile}>
-                <Text style={styles.btnText}>SAVE CHANGES</Text>
-                <Entypo name="save" size={18} color="#fff" style={{ marginLeft: 6 }} />
-            </TouchableOpacity>
+            {/* Edit / Save Buttons */}
+            <View style={styles.buttonRow}>
+                <TouchableOpacity
+                    style={[styles.editButton, { flex: 1, marginRight: 5 }]}
+                    onPress={() => setEditMode(!editMode)}
+                >
+                    <Text style={styles.btnText}>EDIT PROFILE</Text>
+                    <FontAwesome name="edit" size={18} color="#fff" style={{ marginLeft: 6 }} />
+                </TouchableOpacity>
 
-            {/* Bottom Navigation */}
+                <TouchableOpacity
+                    style={[styles.saveButton, { flex: 1, marginLeft: 5 }]}
+                    onPress={saveProfile}
+                >
+                    <Text style={styles.btnText}>SAVE CHANGES</Text>
+                    <Entypo name="save" size={18} color="#fff" style={{ marginLeft: 6 }} />
+                </TouchableOpacity>
+            </View>
+
+            {/* Bottom Nav (Unchanged) */}
             <View style={styles.bottomNav}>
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Home")}>
                     <Ionicons name="home" size={28} />
@@ -279,17 +358,17 @@ const darkStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-container: {
-            flex: 1,
-            backgroundColor: '#E6F0FA',
-            paddingTop: 30,
-            ...Platform.select({
-                ios:{
-                    flex:1,
-                    marginTop:10
-                }
-            })
-        },
+    container: {
+        flex: 1,
+        backgroundColor: '#E6F0FA',
+        paddingTop: 30,
+        ...Platform.select({
+            ios: {
+                flex: 1,
+                marginTop: 10
+            }
+        })
+    },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -298,12 +377,11 @@ container: {
         paddingBottom: 1,
     },
     logo: {
-    width: 70,
-    height: 70,
-    resizeMode: 'contain',
-    borderRadius: 35, // half of width/height
-},
-
+        width: 70,
+        height: 70,
+        resizeMode: 'contain',
+        borderRadius: 35,
+    },
     title: {
         fontSize: 25,
         fontWeight: 'bold',
@@ -352,7 +430,7 @@ container: {
         padding: 1,
         borderRadius: 20,
         shadowColor: '#000',
-        marginRight:10
+        marginRight: 10
     },
     profileImage: {
         width: 100,
@@ -367,7 +445,7 @@ container: {
         alignSelf: 'center',
         marginBottom: 10,
         backgroundColor: '#001F54',
-        height:40,
+        height: 40,
         justifyContent: 'center',
         paddingHorizontal: 20,
         borderRadius: 20,
@@ -407,14 +485,13 @@ container: {
         flex: 1,
         fontSize: 16,
         ...Platform.select({
-            ios:{
-                height:30,
+            ios: {
+                height: 30,
                 paddingVertical: 0,
             },
-            android:{
+            android: {
                 height: 40,
                 paddingVertical: 0,
-
             }
         })
     },
@@ -429,31 +506,62 @@ container: {
         marginLeft: 10,
         marginBottom: 2,
     },
+ buttonRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginTop: 15,
+        marginBottom:80,
+        margin:15
+    },
     editButton: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#001F54',
-        padding: 12,
-        borderRadius: 25,
-        marginTop: 10,
-        marginHorizontal: 16,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#ff9800",
+        padding: 10,
+        borderRadius: 8,
     },
     saveButton: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#2E8B57',
-        padding: 12,
-        borderRadius: 25,
-        marginTop: 10,
-        marginHorizontal: 16,
-        marginBottom: 80,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#4caf50",
+        padding: 10,
+        borderRadius: 8,
     },
     btnText: {
-        color: '#fff',
-        fontSize: 17,
-        fontWeight: 'bold',
+        color: "#fff",
+        fontWeight: "bold",
+        fontSize: 14,
+    },
+    
+    card: {
+        backgroundColor: "#fff", // or themeStyles.background
+        padding: 15,
+        marginVertical: 10,
+        borderRadius: 12,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 4, // Android shadow
+        borderWidth: 0.5,
+        borderColor: "#ccc",
+    },
+    cardItem: {
+        backgroundColor: "#f8f8f8",
+        padding: 10,
+        borderRadius: 8,
+        marginVertical: 5,
+    },
+    sectionText: {
+        fontSize: 18,
+        fontWeight: "bold",
+        marginBottom: 8,
+    },
+    listText: {
+        fontSize: 14,
+        color: "#555",
     },
     bottomNav: {
         flexDirection: 'row',
@@ -489,7 +597,6 @@ container: {
         alignItems: 'center',
         marginTop: 5
     },
-
     navLabel: {
         fontSize: 12,
         color: 'black',

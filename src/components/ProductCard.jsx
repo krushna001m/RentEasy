@@ -1,24 +1,36 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
-import Entypo from 'react-native-vector-icons/Entypo';
+import React from "react";
+import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
+import Entypo from "react-native-vector-icons/Entypo";
+import { categories } from "../constants/categories";
 
 const ProductCard = ({ image, title, info, navigation }) => {
-
   const renderStars = (ratingString) => {
-    const rating = parseFloat(ratingString); // e.g. "4.5"
+    const rating = parseFloat(ratingString);
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 >= 0.5;
     const stars = [];
 
     for (let i = 0; i < fullStars; i++) {
       stars.push(
-        <Entypo key={`full-${i}`} name="star" size={20 + (i * 2)} color="orange" />
+        <Entypo
+          key={`full-${i}`}
+          name="star"
+          size={20}
+          color="orange"
+          style={{ marginRight: 2 }}
+        />
       );
     }
 
     if (hasHalfStar) {
       stars.push(
-        <Entypo key="half" name="star-outlined" size={20 + (fullStars * 2)} color="orange" />
+        <Entypo
+          key="half"
+          name="star-outlined"
+          size={20}
+          color="orange"
+          style={{ marginRight: 2 }}
+        />
       );
     }
 
@@ -28,27 +40,50 @@ const ProductCard = ({ image, title, info, navigation }) => {
   return (
     <View style={styles.card}>
       <Image source={image} style={styles.image} />
-      {/* ⭐ Dynamic Rating Inside InfoBox */}
+
+      {/* ⭐ Dynamic Rating Row */}
       {info.rating && (
         <View style={styles.ratingRow}>
           {renderStars(info.rating)}
           <Text style={styles.ratingText}>{info.rating}</Text>
         </View>
       )}
+
       <View style={styles.infoBox}>
         <Text style={styles.infoTitle}>{title}</Text>
 
         {/* Features */}
-        {info.features && info.features.map((line, i) => (
-          <Text style={styles.content} key={`feat-${i}`}>{line}</Text>
-        ))}
+        {info.features &&
+          info.features.map((line, i) => (
+            <Text style={styles.content} key={`feat-${i}`}>
+              {line}
+            </Text>
+          ))}
 
-        {/* What's Included */}
-        {info.included && (
+        {/* Categories */}
+        {Array.isArray(info.categories) && info.categories.length > 0 ? (
+          <>
+            <Text style={styles.infoHeader}>📂 CATEGORIES:</Text>
+            <Text style={styles.content}>
+              {info.categories
+                .map((catId) => {
+                  const category = categories.find((c) => c.id === catId);
+                  return category ? category.label : "Unknown";
+                })
+                .join(", ")}
+            </Text>
+          </>
+        ) : null}
+
+
+        {/* Included */}
+        {info.included && info.included.length > 0 && (
           <>
             <Text style={styles.infoHeader}>📦 WHAT'S INCLUDED:</Text>
             {info.included.map((line, i) => (
-              <Text style={styles.content} key={`incl-${i}`}>{line}</Text>
+              <Text style={styles.content} key={`incl-${i}`}>
+                {line}
+              </Text>
             ))}
           </>
         )}
@@ -85,14 +120,6 @@ const ProductCard = ({ image, title, info, navigation }) => {
           </>
         )}
 
-        {/* Rating */}
-        {info.rating && (
-          <>
-            <Text style={styles.infoHeader}>⭐ RATING:</Text>
-            <Text style={styles.content}>{info.rating}</Text>
-          </>
-        )}
-
         {/* Availability */}
         {info.availability && (
           <>
@@ -101,7 +128,12 @@ const ProductCard = ({ image, title, info, navigation }) => {
           </>
         )}
 
-        <TouchableOpacity style={styles.bookBtn} onPress={() => navigation.navigate("Payment", { itemInfo: info, title })}>
+        <TouchableOpacity
+          style={styles.bookBtn}
+          onPress={() =>
+            navigation.navigate("Payment", { itemInfo: info, title })
+          }
+        >
           <Text style={styles.bookText}>📅 BOOK NOW</Text>
         </TouchableOpacity>
       </View>
@@ -116,73 +148,69 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginVertical: 6,
+  },
+  ratingText: {
+    marginLeft: 6,
+    color: "#333",
+    fontWeight: "bold",
   },
   image: {
     width: 380,
     height: 250,
-    resizeMode: 'cover', // looks better with rounded corners
+    resizeMode: "cover",
     marginTop: 20,
-
-    // ✅ Custom corner radius (different for each corner)
     borderTopLeftRadius: 30,
     borderTopRightRadius: 300,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 40,
-
-    // ✅ Shadow (iOS)
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
-
-    // ✅ Shadow (Android)
     elevation: 6,
-
-    // ✅ Optional: add background for better shadow visibility
-    backgroundColor: '#fff',
   },
   infoBox: {
-    backgroundColor: '#eee',
+    backgroundColor: "#eee",
     padding: 16,
     borderRadius: 20,
     marginTop: 10,
-    borderColor: 'black',
-    borderWidth: 0.4
+    borderColor: "black",
+    borderWidth: 0.4,
   },
   infoTitle: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontSize: 18,
     marginBottom: 10,
-    color: '#000',
-    textAlign: 'center',
-    textTransform: 'uppercase',
+    color: "#000",
+    textAlign: "center",
+    textTransform: "uppercase",
   },
   infoHeader: {
     marginTop: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontSize: 14,
-    color: '#333',
+    color: "#333",
   },
   content: {
     fontSize: 14,
-    fontWeight: '400',
+    fontWeight: "400",
     lineHeight: 20,
   },
   bookBtn: {
-    backgroundColor: '#001F54',
+    backgroundColor: "#001F54",
     marginTop: 18,
     borderRadius: 8,
     padding: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   bookText: {
-    color: 'white',
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
+    color: "white",
+    fontWeight: "bold",
+    textTransform: "uppercase",
     fontSize: 14,
   },
 });

@@ -1,29 +1,144 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     TouchableOpacity,
     ScrollView,
-    TextInput,
     Image,
-    Platform
+    Platform,
+    Alert,
+    PermissionsAndroid,
+    Modal
 } from 'react-native';
 import Entypo from 'react-native-vector-icons/Entypo';
-import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import RNHTMLtoPDF from "react-native-html-to-pdf";
+import FileViewer from "react-native-file-viewer";
+import Share from 'react-native-share';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import PDFView from "react-native-view-pdf"; // For PDF preview
+
+const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
 const History = ({ navigation }) => {
+    const [history, setHistory] = useState([]);
+    const [previewVisible, setPreviewVisible] = useState(false);
+    const [pdfPath, setPdfPath] = useState("");
+    console.log("RNHTMLtoPDF:", RNHTMLtoPDF);
+    console.log("FileViewer:", FileViewer);
+
+    useEffect(() => {
+        const fetchHistory = async () => {
+            try {
+                const username = await AsyncStorage.getItem("username");
+                if (!username) return;
+
+                const response = await axios.get(`${URL}/history/${username}.json`);
+                const data = response.data || {};
+                setHistory(Object.values(data).reverse());
+            } catch (error) {
+                console.error("Error fetching history:", error);
+            }
+        };
+
+        fetchHistory();
+    }, []);
+
+    // ✅ Ask storage permission for Android
+    const requestStoragePermission = async () => {
+        if (Platform.OS === "android") {
+            const granted = await PermissionsAndroid.request(
+                PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+                {
+                    title: "Storage Permission Required",
+                    message: "RentEasy needs access to your storage to save receipts.",
+                    buttonNeutral: "Ask Me Later",
+                    buttonNegative: "Cancel",
+                    buttonPositive: "OK",
+                }
+            );
+            return granted === PermissionsAndroid.RESULTS.GRANTED;
+        }
+        return true;
+    };
+
+    // ✅ Generate Receipt (Download / Share)
+    const generateReceipt = async (item, share = false) => {
+        try {
+            const hasPermission = await requestStoragePermission();
+            if (!hasPermission) {
+                Alert.alert("Permission Denied", "Cannot save receipt without storage permission.");
+                return;
+            }
+
+            const htmlContent = `
+        <h1 style="text-align:center; color:#001F54;">RentEasy Receipt</h1>
+        <p><b>Item:</b> ${item.title}</p>
+        <p><b>Owner:</b> ${item.owner || "N/A"}</p>
+        <p><b>Price:</b> ₹${item.price || "N/A"}</p>
+        <p><b>Status:</b> ${item.status}</p>
+        <p><b>Date:</b> ${new Date(item.date).toLocaleDateString()}</p>
+        <hr/>
+        <p style="text-align:center; font-size:12px;">Thank you for using RentEasy!</p>
+      `;
+
+            let options = {
+                html: htmlContent,
+                fileName: `RentEasy_Receipt_${item.title.replace(/\s/g, "_")}`,
+                directory: Platform.OS === "android" ? "Downloads" : "Documents",
+            };
+
+            const file = await RNHTMLtoPDF.convert(options);
+
+            if (share) {
+                await Share.open({
+                    url: `file://${file.filePath}`,
+                    type: "application/pdf",
+                    failOnCancel: false,
+                });
+            } else {
+                Alert.alert("Receipt Generated ✅", `Saved to: ${file.filePath}`);
+            }
+        } catch (error) {
+            console.error("PDF Error:", error);
+            Alert.alert("Error", "Could not generate receipt.");
+        }
+    };
+
+    // ✅ View Receipt using Native PDF Viewer
+    const viewReceipt = async (item) => {
+        try {
+            const htmlContent = `
+            <h1 style="text-align:center; color:#001F54;">Preview Receipt</h1>
+            <p><b>Item:</b> ${item.title}</p>
+            <p><b>Owner:</b> ${item.owner || "N/A"}</p>
+        `;
+
+            const file = await RNHTMLtoPDF.convert({
+                html: htmlContent,
+                fileName: `Preview_Receipt_${item.title.replace(/\s/g, "_")}`,
+                directory: Platform.OS === "android" ? "Downloads" : "Documents",
+            });
+
+            await FileViewer.open(file.filePath, {
+                showOpenWithDialog: true, // Android: lets user pick app (Google Drive, etc.)
+                showAppsSuggestions: true,
+            });
+        } catch (error) {
+            console.error("Preview Error:", error);
+            Alert.alert("Error", "Could not open receipt.");
+        }
+    };
     return (
         <View style={styles.container}>
-            {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.navigate("Home")}>
                     <Image source={require('../../assets/logo.png')} style={styles.logo} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={()=>navigation.navigate("Chat")}>
+                <TouchableOpacity onPress={() => navigation.navigate("Chat")}>
                     <Entypo name="chat" size={36} />
                 </TouchableOpacity>
             </View>
@@ -37,60 +152,69 @@ const History = ({ navigation }) => {
                     <Ionicons name="document-text" size={20} color="#fff" style={{ marginLeft: 8 }} />
                 </TouchableOpacity>
 
-                <Text style={styles.label}>RENTAL ITEM / SERVICE NAME</Text>
-                <TextInput style={styles.input} placeholder="E.g., Nikon DSLR Camera" />
+                <Text style={styles.label}>YOUR RENTAL HISTORY</Text>
 
-                <Text style={styles.label}>RENTAL PERIOD</Text>
-                <View style={styles.periodRow}>
-                    <TextInput style={[styles.input, { flex: 1, marginRight: 5 }]} placeholder="From" />
-                    <TextInput style={[styles.input, { flex: 1, marginLeft: 5 }]} placeholder="To" />
-                </View>
+                {history.length === 0 ? (
+                    <Text style={{ marginTop: 10, color: "#555" }}>No rental history yet.</Text>
+                ) : (
+                    history.map((item, index) => (
+                        <View key={index} style={styles.summaryCard}>
+                            <Text style={styles.summaryText}>📦 ITEM: {item.title}</Text>
+                            {item.owner && <Text style={styles.summaryText}>👤 OWNER: {item.owner}</Text>}
+                            {item.price && <Text style={styles.summaryText}>💸 PRICE: {item.price}</Text>}
+                            {item.date && (
+                                <Text style={styles.summaryText}>📅 DATE: {new Date(item.date).toLocaleDateString()}</Text>
+                            )}
+                            <Text style={styles.summaryText}>✅ STATUS: {item.status}</Text>
 
-                <Text style={styles.label}>PRICE BREAKDOWN</Text>
-                <Text style={styles.textBreak}>- DAILY RENTAL RATE x NUMBER OF DAYS</Text>
-                <Text style={styles.textBreak}>- DEPOSIT OR SECURITY FEE</Text>
-                <Text style={styles.textBreak}>- ANY APPLICABLE TAXES OR LATE FEES</Text>
+                            {/* ✅ Download Receipt */}
+                            <TouchableOpacity
+                                style={styles.downloadBtn}
+                                onPress={() => generateReceipt(item)}
+                            >
+                                <Ionicons name="download" size={18} color="#fff" />
+                                <Text style={styles.downloadBtnText}>Download</Text>
+                            </TouchableOpacity>
 
-                <Text style={styles.label}>STATUS</Text>
-                <Text style={styles.status}><FontAwesome name="check-circle" size={18}/> COMPLETED</Text>
-                <Text style={styles.status}><FontAwesome name="check-circle" size={18}/> RETURNED LATE</Text>
-                <Text style={styles.status}><FontAwesome name="check-circle" size={18}/> CANCELLED</Text>
+                            {/* ✅ Share Receipt */}
+                            <TouchableOpacity
+                                style={[styles.downloadBtn, { backgroundColor: "#4CAF50", marginTop: 5 }]}
+                                onPress={() => generateReceipt(item, true)}
+                            >
+                                <Ionicons name="share-social" size={18} color="#fff" />
+                                <Text style={styles.downloadBtnText}>Share</Text>
+                            </TouchableOpacity>
+                            {/* ✅ PDF Preview */}
+                            <TouchableOpacity
+                                style={[styles.downloadBtn, { backgroundColor: "#FF9800", marginTop: 5 }]}
+                                onPress={() => viewReceipt(item)}
+                            >
+                                <Ionicons name="eye" size={18} color="#fff" />
+                                <Text style={styles.downloadBtnText}>View</Text>
+                            </TouchableOpacity>
 
-                <Text style={styles.label}>PICK-UP / DROP-OFF LOCATION</Text>
-                <TextInput style={styles.input} placeholder="E.g., Pune, Maharashtra" />
-
-                <Text style={styles.label}>RENTAL ID OR RECEIPT NUMBER</Text>
-                <TextInput style={styles.input} placeholder="#RENT12345678" />
-
-                <Text style={styles.label}>NOTES / FEEDBACK </Text>
-                <TextInput style={[styles.input, { height: 100 }]} placeholder="Write your feedback..." multiline />
-
-                <TouchableOpacity style={styles.downloadBtn}>
-                    <Text style={styles.downloadText}>DOWNLOAD RECEIPT OR INVOICE</Text>
-                    <Entypo name="download" size={20} color="white" style={{ marginLeft: 6 }} />
-                </TouchableOpacity>
+                        </View>
+                    ))
+                )}
             </ScrollView>
+
             <View style={styles.bottomNav}>
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Home")}>
                     <Ionicons name="home" size={28} />
                     <Text style={styles.navLabel}>Home</Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("BrowseItems")}>
                     <MaterialIcons name="explore" size={28} />
                     <Text style={styles.navLabel}>Explore</Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("AddItem")}>
                     <Entypo name="plus" size={28} />
                     <Text style={styles.navLabel}>Add</Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("History")}>
                     <Ionicons name="document-text" size={28} />
                     <Text style={styles.navLabel}>History</Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Profile")}>
                     <Ionicons name="person" size={28} />
                     <Text style={styles.navLabel}>Profile</Text>
@@ -103,17 +227,17 @@ const History = ({ navigation }) => {
 export default History;
 
 const styles = StyleSheet.create({
-       container: {
-            flex: 1,
-            backgroundColor: '#E6F0FA',
-            paddingTop: 30,
-            ...Platform.select({
-                ios:{
-                    flex:1,
-                    marginTop:10
-                }
-            })
-        },
+    container: {
+        flex: 1,
+        backgroundColor: '#E6F0FA',
+        paddingTop: 30,
+        ...Platform.select({
+            ios: {
+                flex: 1,
+                marginTop: 10
+            }
+        })
+    },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -121,12 +245,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingBottom: 1,
     },
-logo: {
-    width: 70,
-    height: 70,
-    resizeMode: 'contain',
-    borderRadius: 35, // half of width/height
-},
+    logo: {
+        width: 70,
+        height: 70,
+        resizeMode: 'contain',
+        borderRadius: 35, // half of width/height
+    },
 
     title: {
         fontSize: 25,
@@ -177,7 +301,51 @@ logo: {
         marginTop: 25,
         fontSize: 17,
         color: '#222',
-        marginBottom:4
+        marginBottom: 4
+    },
+    label: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#001F54',
+        textAlign: 'center',
+        marginVertical: 15,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    summaryCard: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 12,
+        marginVertical: 8,
+        marginHorizontal: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 3, // Android shadow
+        borderLeftWidth: 5,
+        borderLeftColor: '#001F54', // Accent bar
+    },
+    summaryText: {
+        fontSize: 14,
+        color: '#333',
+        marginBottom: 4,
+        fontWeight: '500',
+    },
+    downloadBtn: {
+        flexDirection: "row",
+        backgroundColor: "#001F54",
+        padding: 8,
+        borderRadius: 6,
+        marginTop: 8,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    downloadBtnText: {
+        color: "#fff",
+        marginLeft: 6,
+        fontSize: 13,
+        fontWeight: "bold",
     },
     input: {
         borderWidth: 1,
@@ -215,7 +383,7 @@ logo: {
     downloadText: {
         color: '#fff',
         fontWeight: 'bold',
-        fontSize:17
+        fontSize: 17
     },
     bottomNav: {
         flexDirection: 'row',
