@@ -139,10 +139,10 @@ const Profile = ({ navigation }) => {
 
                 const updatedUser = { ...currentUser, ...tempProfile };
                 await AsyncStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
-                Alert.alert("Profile Updated Successfully!");
+                Alert.alert('✅ Profile Updated',"Profile Updated Successfully!");
             }
         } catch (error) {
-            console.error("Profile Update Error:", error);
+            Alert.alert("Profile Update Error:", error);
         }
     };
 
