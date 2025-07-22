@@ -20,6 +20,7 @@ import Share from 'react-native-share';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PDFView from "react-native-view-pdf"; // For PDF preview
+import RNFS from 'react-native-fs';
 
 const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
@@ -65,8 +66,24 @@ const History = ({ navigation }) => {
         return true;
     };
 
+    const getLogoBase64 = async () => {
+        try {
+            if (Platform.OS === 'android') {
+                const base64 = await RNFS.readFileAssets('logo.png', 'base64');
+                return `data:image/png;base64,${base64}`;
+            } else {
+                const base64 = await RNFS.readFile(`${RNFS.MainBundlePath}/logo.png`, 'base64');
+                return `data:image/png;base64,${base64}`;
+            }
+        } catch (error) {
+            console.error('Logo Load Error:', error);
+            return '';
+        }
+    };
+
     // ✅ Generate Receipt (Download / Share)
     const generateReceipt = async (item, share = false) => {
+        const logoBase64 = await getLogoBase64();
         try {
             const hasPermission = await requestStoragePermission();
             if (!hasPermission) {
@@ -75,15 +92,33 @@ const History = ({ navigation }) => {
             }
 
             const htmlContent = `
-        <h1 style="text-align:center; color:#001F54;">RentEasy Receipt</h1>
-        <p><b>Item:</b> ${item.title}</p>
-        <p><b>Owner:</b> ${item.owner || "N/A"}</p>
-        <p><b>Price:</b> ₹${item.price || "N/A"}</p>
-        <p><b>Status:</b> ${item.status}</p>
-        <p><b>Date:</b> ${new Date(item.date).toLocaleDateString()}</p>
-        <hr/>
-        <p style="text-align:center; font-size:12px;">Thank you for using RentEasy!</p>
-      `;
+            <div style="font-family: Arial, sans-serif; max-width: 400px; margin: auto; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #f9f9f9;">
+                
+                <!-- Header with Logo -->
+                 <div style="text-align: center; margin-bottom: 15px;">
+      <img src="${logoBase64}" style="width:80px; height:auto; margin-bottom:5px;" />
+      <h1 style="color:#001F54; font-size:20px; margin:5px 0;">RentEasy Receipt</h1>
+    </div>
+
+                <!-- Receipt Details -->
+                <div style="background: #ffffff; padding: 10px; border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.1);">
+                <p style="margin:5px 0;"><b>Item:</b> ${item.title}</p>
+                <p style="margin:5px 0;"><b>Owner:</b> ${item.owner || "N/A"}</p>
+                <p style="margin:5px 0;"><b>Price:</b> <span style="color:#009688; font-weight:bold;">₹${item.price || "N/A"}</span></p>
+                <p style="margin:5px 0;"><b>Status:</b> ${item.status}</p>
+                <p style="margin:5px 0;"><b>Date:</b> ${new Date(item.date).toLocaleDateString()}</p>
+                </div>
+
+                <hr style="margin:15px 0; border:none; border-top:1px solid #ccc;"/>
+
+                <!-- Footer -->
+                <p style="text-align:center; font-size:12px; color:#555;">
+                ✅ Thank you for using <b>RentEasy</b>!<br/>
+                <span style="color:#001F54;">www.renteasy.com</span>
+                </p>
+            </div>
+`;
+
 
             let options = {
                 html: htmlContent,
@@ -112,10 +147,33 @@ const History = ({ navigation }) => {
     const viewReceipt = async (item) => {
         try {
             const htmlContent = `
-            <h1 style="text-align:center; color:#001F54;">Preview Receipt</h1>
-            <p><b>Item:</b> ${item.title}</p>
-            <p><b>Owner:</b> ${item.owner || "N/A"}</p>
-        `;
+  <div style="font-family: Arial, sans-serif; max-width: 400px; margin: auto; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #f9f9f9;">
+    
+    <!-- Header with Logo -->
+    <div style="text-align: center; margin-bottom: 15px;">
+      <img src="file:///android_asset/logo.png" alt="RentEasy Logo" style="width:80px; height:auto; margin-bottom:5px;" />
+      <h1 style="color:#001F54; font-size:20px; margin:5px 0;">RentEasy Receipt</h1>
+    </div>
+
+    <!-- Receipt Details -->
+    <div style="background: #ffffff; padding: 10px; border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.1);">
+      <p style="margin:5px 0;"><b>Item:</b> ${item.title}</p>
+      <p style="margin:5px 0;"><b>Owner:</b> ${item.owner || "N/A"}</p>
+      <p style="margin:5px 0;"><b>Price:</b> <span style="color:#009688; font-weight:bold;">₹${item.price || "N/A"}</span></p>
+      <p style="margin:5px 0;"><b>Status:</b> ${item.status}</p>
+      <p style="margin:5px 0;"><b>Date:</b> ${new Date(item.date).toLocaleDateString()}</p>
+    </div>
+
+    <hr style="margin:15px 0; border:none; border-top:1px solid #ccc;"/>
+
+    <!-- Footer -->
+    <p style="text-align:center; font-size:12px; color:#555;">
+      ✅ Thank you for using <b>RentEasy</b>!<br/>
+      <span style="color:#001F54;">www.renteasy.com</span>
+    </p>
+  </div>
+`;
+
 
             const file = await RNHTMLtoPDF.convert({
                 html: htmlContent,
@@ -135,7 +193,7 @@ const History = ({ navigation }) => {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.navigate("Home")}>
+                <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Image source={require('../../assets/logo.png')} style={styles.logo} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => navigation.navigate("Chat")}>
@@ -166,32 +224,33 @@ const History = ({ navigation }) => {
                                 <Text style={styles.summaryText}>📅 DATE: {new Date(item.date).toLocaleDateString()}</Text>
                             )}
                             <Text style={styles.summaryText}>✅ STATUS: {item.status}</Text>
+                            <View style={styles.btnRows}>
+                                {/* ✅ Download Receipt */}
+                                <TouchableOpacity
+                                    style={styles.downloadBtn}
+                                    onPress={() => generateReceipt(item)}
+                                >
+                                    <Ionicons name="download" size={18} color="#fff" />
+                                    <Text style={styles.downloadBtnText}>Download</Text>
+                                </TouchableOpacity>
 
-                            {/* ✅ Download Receipt */}
-                            <TouchableOpacity
-                                style={styles.downloadBtn}
-                                onPress={() => generateReceipt(item)}
-                            >
-                                <Ionicons name="download" size={18} color="#fff" />
-                                <Text style={styles.downloadBtnText}>Download</Text>
-                            </TouchableOpacity>
-
-                            {/* ✅ Share Receipt */}
-                            <TouchableOpacity
-                                style={[styles.downloadBtn, { backgroundColor: "#4CAF50", marginTop: 5 }]}
-                                onPress={() => generateReceipt(item, true)}
-                            >
-                                <Ionicons name="share-social" size={18} color="#fff" />
-                                <Text style={styles.downloadBtnText}>Share</Text>
-                            </TouchableOpacity>
-                            {/* ✅ PDF Preview */}
-                            <TouchableOpacity
-                                style={[styles.downloadBtn, { backgroundColor: "#FF9800", marginTop: 5 }]}
-                                onPress={() => viewReceipt(item)}
-                            >
-                                <Ionicons name="eye" size={18} color="#fff" />
-                                <Text style={styles.downloadBtnText}>View</Text>
-                            </TouchableOpacity>
+                                {/* ✅ Share Receipt */}
+                                <TouchableOpacity
+                                    style={[styles.downloadBtn, { backgroundColor: "#4CAF50", marginTop: 5 }]}
+                                    onPress={() => generateReceipt(item, true)}
+                                >
+                                    <Ionicons name="share-social" size={18} color="#fff" />
+                                    <Text style={styles.downloadBtnText}>Share</Text>
+                                </TouchableOpacity>
+                                {/* ✅ PDF Preview */}
+                                <TouchableOpacity
+                                    style={[styles.downloadBtn, { backgroundColor: "#FF9800", marginTop: 5 }]}
+                                    onPress={() => viewReceipt(item)}
+                                >
+                                    <Ionicons name="eye" size={18} color="#fff" />
+                                    <Text style={styles.downloadBtnText}>View</Text>
+                                </TouchableOpacity>
+                            </View>
 
                         </View>
                     ))
@@ -358,6 +417,17 @@ const styles = StyleSheet.create({
     periodRow: {
         flexDirection: 'row',
         justifyContent: 'space-between'
+    },
+    btnRows: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 10,
+        marginBottom: 10,
+        flexWrap: 'wrap',
+        gap: 10,
+        alignItems: 'center',
+        paddingHorizontal: 1,
+        paddingVertical: 5,
     },
     textBreak: {
         fontSize: 15,

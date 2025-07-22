@@ -139,7 +139,7 @@ const Profile = ({ navigation }) => {
 
                 const updatedUser = { ...currentUser, ...tempProfile };
                 await AsyncStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
-                Alert.alert('✅ Profile Updated',"Profile Updated Successfully!");
+                Alert.alert('✅ Profile Updated', "Profile Updated Successfully!");
             }
         } catch (error) {
             Alert.alert("Profile Update Error:", error);
@@ -188,7 +188,7 @@ const Profile = ({ navigation }) => {
         <View style={[styles.container, themeStyles.container]}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.navigate("Home")}>
+                <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Image source={require("../../assets/logo.png")} style={styles.logo} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => navigation.navigate("Chat")}>
@@ -199,11 +199,12 @@ const Profile = ({ navigation }) => {
                 {/* Title */}
                 <Text style={[styles.title, themeStyles.text]}>WELCOME TO RENTEASY</Text>
                 <Text style={[styles.subtitle, themeStyles.text]}>RENT IT, USE IT, RETURN IT!</Text>
+                <View style={{flexDirection: 'row', justifyContent: 'center', marginBottom: 1}}>
+                    <TouchableOpacity style={styles.settingsBtn}onPress={() => navigation.navigate("Settings")}>
+                        <Ionicons name="settings-sharp" size={27} color="#001F54" style={{ marginLeft: 300 }} />
+                    </TouchableOpacity>
+                </View>
 
-                <TouchableOpacity style={styles.chatLabel}>
-                    <Text style={styles.chatText}>PROFILE</Text>
-                    <FontAwesome name="user-circle" size={18} color="#fff" style={{ marginLeft: 4 }} />
-                </TouchableOpacity>
 
                 {/* Profile Image */}
                 <TouchableOpacity onPress={pickImage}>
@@ -441,6 +442,22 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: '#001F54',
     },
+    settingsBtn: {
+        flexDirection: 'row',
+        paddingVertical: 6,
+        paddingHorizontal: 14,
+        alignSelf: 'center',
+        borderRadius: 14,
+        alignItems: 'center',
+        marginBottom: 20,
+        marginTop: 5,
+        marginLeft: 10,
+    },
+    settingsText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 17,
+    },
     updateBtn: {
         alignSelf: 'center',
         marginBottom: 10,
@@ -506,12 +523,12 @@ const styles = StyleSheet.create({
         marginLeft: 10,
         marginBottom: 2,
     },
- buttonRow: {
+    buttonRow: {
         flexDirection: "row",
         justifyContent: "space-between",
         marginTop: 15,
-        marginBottom:80,
-        margin:15
+        marginBottom: 80,
+        margin: 15
     },
     editButton: {
         flexDirection: "row",
@@ -534,7 +551,7 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         fontSize: 14,
     },
-    
+
     card: {
         backgroundColor: "#fff", // or themeStyles.background
         padding: 15,

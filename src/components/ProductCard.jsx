@@ -199,6 +199,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "400",
     lineHeight: 20,
+    marginLeft:15
   },
   bookBtn: {
     backgroundColor: "#001F54",

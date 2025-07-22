@@ -74,7 +74,7 @@ const ChatBot = ({ navigation }) => {
         >
             {/* ✅ UI remains exactly the same */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.navigate("Home")}>
+                <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Image source={require('../../assets/logo.png')} style={styles.logo} />
                 </TouchableOpacity>
 

@@ -74,7 +74,7 @@ const BrowseItems = ({ navigation }) => {
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.navigate("Home")}>
+                <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Image source={require('../../assets/logo.png')} style={styles.logo} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => navigation.navigate("Chat")}>
@@ -108,42 +108,42 @@ const BrowseItems = ({ navigation }) => {
 
                     info={{
                         features: [
-                            "     🔍 45.7MP FULL-FRAME | 🎥 4K UHD VIDEO",
-                            "     📷 PRO-LEVEL PERFORMANCE"
+                            "🔍 45.7MP FULL-FRAME | 🎥 4K UHD VIDEO",
+                            "📷 PRO-LEVEL PERFORMANCE"
                         ],
                         categories: ["electronics"],
                         included: [
-                            "     🔋 Battery & Charger | 💾 64GB MEMORY CARD",
-                            "     🎒 Carry Case"
+                            "🔋 Battery & Charger | 💾 64GB MEMORY CARD",
+                            "🎒 Carry Case"
                         ],
-                        price: "      ₹500/day | ₹1300/3 days | ₹2800/week",
-                        deposit: "      ₹5000 (REFUNDABLE)",
-                        owner: "     KRUSHNA MENGAL",
-                        location: "      PUNE, MAHARASHTRA",
-                        rating: "       4.9/5 (100 REVIEWS)",
-                        availability: "     ON REQUEST"
+                        price: "₹500/day | ₹1300/3 days | ₹2800/week",
+                        deposit: "₹5000 (REFUNDABLE)",
+                        owner: "KRUSHNA MENGAL",
+                        location: "PUNE, MAHARASHTRA",
+                        rating: "4.9/5 (100 REVIEWS)",
+                        availability: "ON REQUEST"
                     }}
                     navigation={navigation}
                 />
 
                 <ProductCard
                     image={require('../../assets/house.png')}
-                    title="🏠 2BHK HOUSE FOR RENT (INDEPENDENT VILLA STYLE)"
+                    title="🏠2BHK HOUSE FOR RENT (INDEPENDENT VILLA STYLE)"
                     info={{
                         features: [
-                            " 🌳 Calm Green Surroundings | 🏗️ Spacious Design"
+                            "🌳 Calm Green Surroundings | 🏗️ Spacious Design"
                         ],
                         categories: ["furniture"],
                         included: [
-                            "     🛏️ 2 Bedrooms | 🛋️ Hall | 🍳 Kitchen",
-                            "     🚿 2 Bathrooms | 🚗 Parking"
+                            "🛏️ 2 Bedrooms | 🛋️ Hall | 🍳 Kitchen",
+                            "🚿 2 Bathrooms | 🚗 Parking"
                         ],
-                        price: "       ₹8,000/month",
-                        deposit: "      ₹25,000 (REFUNDABLE)",
-                        owner: "      KRUSHNA MENGAL",
-                        location: "      NASHIK, MAHARASHTRA",
-                        rating: "      4.8/5",
-                        availability: "      IMMEDIATE"
+                        price: "₹8,000/month",
+                        deposit: "₹25,000 (REFUNDABLE)",
+                        owner: "KRUSHNA MENGAL",
+                        location: "NASHIK, MAHARASHTRA",
+                        rating: "4.8/5",
+                        availability: "IMMEDIATE"
                     }}
                     navigation={navigation}
                 />
@@ -156,14 +156,14 @@ const BrowseItems = ({ navigation }) => {
                         ],
                         categories: ["vehicles"],
                         included: [
-                            "     💺 7-Seater | 🧳 Ample Luggage Space | 🛡️ Driver Airbags"
+                            "💺 7-Seater | 🧳 Ample Luggage Space | 🛡️ Driver Airbags"
                         ],
-                        price: "       ₹500/day | ₹1400/3 days | ₹3000/week",
-                        deposit: "      ₹10,000 (REFUNDABLE)",
-                        owner: "     KRUSHNA MENGAL",
-                        location: "      SINNAR, MAHARASHTRA",
-                        rating: "       4.7/5",
-                        availability: "     ON REQUEST"
+                        price: "₹500/day | ₹1400/3 days | ₹3000/week",
+                        deposit: "₹10,000 (REFUNDABLE)",
+                        owner: "KRUSHNA MENGAL",
+                        location: "SINNAR, MAHARASHTRA",
+                        rating: "4.7/5",
+                        availability: "ON REQUEST"
                     }}
                     navigation={navigation}
                 />

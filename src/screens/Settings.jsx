@@ -22,8 +22,8 @@ const Settings = ({ navigation }) => {
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.navigate("Home")}>
-                <Image source={require('../../assets/logo.png')} style={styles.logo} />
+                <TouchableOpacity onPress={() => navigation.goBack()}>
+                    <Image source={require('../../assets/logo.png')} style={styles.logo} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => navigation.navigate("Chat")}>
                     <Entypo name="chat" size={36} />
@@ -50,7 +50,7 @@ const Settings = ({ navigation }) => {
                 <ToggleRow label="Notification" value={notifications} onValueChange={() => setNotifications(!notifications)} icon="bell" />
                 <TouchableOpacity style={styles.languageRow}>
                     <Section title="🌐 Language" />
-                    <Entypo name="chevron-down" size={18} style={{alignSelf:'right',marginTop:27,marginLeft:180}}/>
+                    <Entypo name="chevron-down" size={18} style={{ alignSelf: 'right', marginTop: 27, marginLeft: 180 }} />
                 </TouchableOpacity>
 
                 {/* Security */}
@@ -163,12 +163,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingBottom: 1,
     },
-logo: {
-    width: 70,
-    height: 70,
-    resizeMode: 'contain',
-    borderRadius: 35, // half of width/height
-},
+    logo: {
+        width: 70,
+        height: 70,
+        resizeMode: 'contain',
+        borderRadius: 35, // half of width/height
+    },
 
     title: {
         fontSize: 25,

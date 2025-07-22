@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import {
     View,
     Text,
@@ -8,29 +8,83 @@ import {
     ScrollView,
     Image,
     Platform,
-    KeyboardAvoidingView
-} from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import Entypo from 'react-native-vector-icons/Entypo';
-import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+    KeyboardAvoidingView,
+    Alert,
+} from "react-native";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import Entypo from "react-native-vector-icons/Entypo";
+import FontAwesome from "react-native-vector-icons/FontAwesome";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 
-const Chat = ({ navigation }) => {
-    const [messages, setMessages] = useState([
-        { text: 'Hey! Your item is ready for pickup.', sender: 'lender' },
-        { text: 'Thanks! I will come at 5 PM.', sender: 'borrower' },
-        { text: 'Sure, see you then.', sender: 'lender' },
-        { text: 'Will you be available tomorrow as well?', sender: 'borrower' },
-        { text: 'Yes, till 3 PM.', sender: 'lender' },
-    ]);
+const Chat = ({ navigation, route }) => {
+    const { ownerUsername } = route.params || {}; // ✅ Passed from Booking Summary screen
 
-    const [input, setInput] = useState('');
+    const [currentUser, setCurrentUser] = useState("");
+    const [messages, setMessages] = useState([]);
+    const [input, setInput] = useState("");
     const scrollViewRef = useRef();
+    const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
-    const handleSend = () => {
-        if (input.trim()) {
-            setMessages(prev => [...prev, { text: input.trim(), sender: 'borrower' }]);
-            setInput('');
+    // ✅ Create Unique Chat Room ID (Sorted usernames)
+    const chatRoomId =
+        currentUser && ownerUsername
+            ? [currentUser, ownerUsername].sort().join("__")
+            : "";
+
+    // ✅ Get logged-in username from AsyncStorage
+    useEffect(() => {
+        const fetchUsername = async () => {
+            const username = await AsyncStorage.getItem("username");
+            if (!username) {
+                Alert.alert("Error", "Please login first!");
+                navigation.navigate("Login");
+                return;
+            }
+            setCurrentUser(username);
+        };
+        fetchUsername();
+    }, []);
+
+    // ✅ Fetch messages every 1 second (Polling)
+    useEffect(() => {
+        let interval;
+        if (chatRoomId) {
+            interval = setInterval(fetchMessages, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [chatRoomId]);
+
+    const fetchMessages = async () => {
+        try {
+            const response = await axios.get(`${URL}/chats/${chatRoomId}.json`);
+            const data = response.data || {};
+            const formattedMessages = Object.values(data).sort(
+                (a, b) => a.timestamp - b.timestamp
+            );
+            setMessages(formattedMessages);
+        } catch (error) {
+            console.error("Fetch Messages Error:", error);
+        }
+    };
+
+    const handleSend = async () => {
+        if (!input.trim()) return;
+
+        const newMessage = {
+            text: input.trim(),
+            sender: currentUser,
+            timestamp: Date.now(),
+        };
+
+        try {
+            await axios.post(`${URL}/chats/${chatRoomId}.json`, newMessage);
+            setInput("");
+            setMessages((prev) => [...prev, newMessage]);
+        } catch (error) {
+            console.error("Send Message Error:", error);
+            Alert.alert("Error", "Could not send message.");
         }
     };
 
@@ -42,10 +96,13 @@ const Chat = ({ navigation }) => {
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.navigate("Home")}>
-                    <Image source={require('../../assets/logo.png')} style={styles.logo} />
+                <TouchableOpacity onPress={() => navigation.goBack()}>
+                    <Image
+                        source={require("../../assets/logo.png")}
+                        style={styles.logo}
+                    />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => navigation.navigate("Chat")}>
+                <TouchableOpacity>
                     <Entypo name="chat" size={36} />
                 </TouchableOpacity>
             </View>
@@ -53,9 +110,17 @@ const Chat = ({ navigation }) => {
             {/* Title */}
             <Text style={styles.title}>WELCOME TO RENTEASY</Text>
             <Text style={styles.subtitle}>RENT IT, USE IT, RETURN IT!</Text>
+            
             <TouchableOpacity style={styles.chatLabel}>
-                <Text style={styles.chatText}>CHAT</Text>
-                <Entypo name="message" size={18} color="#fff" style={{ marginLeft: 4 }} />
+                <Text style={styles.chatText}>
+                    CHAT WITH {ownerUsername ? ownerUsername.toUpperCase() : "OWNER"}
+                </Text>
+                <Entypo
+                    name="message"
+                    size={18}
+                    color="#fff"
+                    style={{ marginLeft: 4 }}
+                />
             </TouchableOpacity>
 
             {/* Messages */}
@@ -67,19 +132,35 @@ const Chat = ({ navigation }) => {
                 {messages.map((msg, index) => (
                     <View
                         key={index}
-                        style={[styles.messageBubble, msg.sender === 'lender' ? styles.left : styles.right]}
+                        style={[
+                            styles.messageBubble,
+                            msg.sender === currentUser
+                                ? styles.right
+                                : styles.left,
+                        ]}
                     >
                         <Text style={styles.messageText}>{msg.text}</Text>
-                        <Text style={styles.senderLabel}>{msg.sender === 'lender' ? '👈 LENDER' : 'BORROWER 👉'}</Text>
+                        <Text style={styles.senderLabel}>
+                            {msg.sender === currentUser
+                                ? `${msg.sender} 👉`
+                                : `👈 ${msg.sender}`}
+                        </Text>
                     </View>
                 ))}
             </ScrollView>
 
             {/* Input Area */}
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : undefined}
+            >
                 <View>
-                    <TouchableOpacity onPress={() => navigation.navigate("ChatBot")}>
-                        <Image source={require('../../assets/ChatBot.png')} style={styles.ChatBot} />
+                    <TouchableOpacity
+                        onPress={() => navigation.navigate("ChatBot")}
+                    >
+                        <Image
+                            source={require("../../assets/ChatBot.png")}
+                            style={styles.ChatBot}
+                        />
                     </TouchableOpacity>
                 </View>
                 <View style={styles.inputBar}>
@@ -100,27 +181,42 @@ const Chat = ({ navigation }) => {
 
             {/* Bottom Nav */}
             <View style={styles.bottomNav}>
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Home")}>
+                <TouchableOpacity
+                    style={styles.navItem}
+                    onPress={() => navigation.navigate("Home")}
+                >
                     <Ionicons name="home" size={28} />
                     <Text style={styles.navLabel}>Home</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("BrowseItems")}>
+                <TouchableOpacity
+                    style={styles.navItem}
+                    onPress={() => navigation.navigate("BrowseItems")}
+                >
                     <MaterialIcons name="explore" size={28} />
                     <Text style={styles.navLabel}>Explore</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("AddItem")}>
+                <TouchableOpacity
+                    style={styles.navItem}
+                    onPress={() => navigation.navigate("AddItem")}
+                >
                     <Entypo name="plus" size={28} />
                     <Text style={styles.navLabel}>Add</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("History")}>
+                <TouchableOpacity
+                    style={styles.navItem}
+                    onPress={() => navigation.navigate("History")}
+                >
                     <Ionicons name="document-text" size={28} />
                     <Text style={styles.navLabel}>History</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Profile")}>
+                <TouchableOpacity
+                    style={styles.navItem}
+                    onPress={() => navigation.navigate("Profile")}
+                >
                     <Ionicons name="person" size={28} />
                     <Text style={styles.navLabel}>Profile</Text>
                 </TouchableOpacity>
@@ -134,196 +230,135 @@ export default Chat;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#E6F0FA',
+        backgroundColor: "#E6F0FA",
         paddingTop: 30,
         ...Platform.select({
-            ios: {
-                flex: 1,
-                marginTop: 10
-            }
-        })
+            ios: { flex: 1, marginTop: 10 },
+        }),
     },
     header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
         paddingHorizontal: 16,
-        paddingBottom: 1,
     },
     logo: {
-        width: 60,
+        width: 70,
         height: 70,
-        resizeMode: 'contain',
-        borderRadius: 16,
+        resizeMode: "contain",
+        borderRadius: 35,
     },
     title: {
         fontSize: 25,
-        fontWeight: 'bold',
-        textAlign: 'center',
+        fontWeight: "bold",
+        textAlign: "center",
         marginTop: 10,
         marginBottom: 6,
-        color: '#1E1E1E',
-        textShadowColor: 'rgba(0, 0, 0, 0.25)',
-        textShadowOffset: { width: 1, height: 2 },
-        textShadowRadius: 4,
+        color: "#1E1E1E",
     },
     subtitle: {
         fontSize: 16,
-        textAlign: 'center',
+        textAlign: "center",
         marginBottom: 16,
-        color: '#3a3a3a',
-        fontStyle: 'italic',
-        fontWeight: '500',
-        letterSpacing: 0.5,
-        opacity: 0.9,
-    },
-    scrollContainer: {
-        paddingHorizontal: 16,
-        paddingBottom: 120,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-    },
-    logo: {
-    width: 70,
-    height: 70,
-    resizeMode: 'contain',
-    borderRadius: 35, // half of width/height
-},
-
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginTop: 10
-    },
-    subtitle: {
-        fontSize: 16,
-        textAlign: 'center',
-        marginBottom: 6,
-        fontStyle: 'italic'
+        color: "#3a3a3a",
+        fontStyle: "italic",
     },
     chatLabel: {
-        alignSelf: 'center',
-        backgroundColor: '#001F54',
-        flexDirection: 'row',
-        alignItems: 'center',
+        alignSelf: "center",
+        backgroundColor: "#001F54",
+        flexDirection: "row",
+        alignItems: "center",
         paddingHorizontal: 14,
         paddingVertical: 6,
         borderRadius: 20,
         marginBottom: 10,
-        padding: 10,
-        marginTop: 15
+        marginTop: 15,
     },
     chatText: {
-        color: '#fff',
+        color: "#fff",
         fontSize: 17,
-        fontWeight: 'bold'
+        fontWeight: "bold",
     },
     messageContainer: {
         paddingHorizontal: 16,
-        paddingBottom: 100
+        paddingBottom: 100,
     },
     messageBubble: {
-        backgroundColor: '#fff',
+        backgroundColor: "#fff",
         padding: 10,
         borderRadius: 12,
         marginVertical: 6,
-        maxWidth: '75%',
-        alignSelf: 'flex-start'
+        maxWidth: "75%",
+        alignSelf: "flex-start",
     },
     left: {
-        alignSelf: 'flex-start',
-        backgroundColor: '#f0f0f0'
+        alignSelf: "flex-start",
+        backgroundColor: "#f0f0f0",
     },
     right: {
-        alignSelf: 'flex-end',
-        backgroundColor: '#d4e9ff'
+        alignSelf: "flex-end",
+        backgroundColor: "#d4e9ff",
     },
     messageText: {
-        fontSize: 15
+        fontSize: 15,
     },
     senderLabel: {
         fontSize: 11,
-        fontWeight: '500',
+        fontWeight: "500",
         marginTop: 2,
-        color: '#444'
+        color: "#444",
     },
-    ChatBot:{
+    ChatBot: {
         height: 80,
         width: 80,
-        resizeMode: 'contain',
+        resizeMode: "contain",
         borderRadius: 16,
-        marginLeft:325,
-        position:'static'
-
+        marginLeft: 325,
     },
     inputBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderTopWidth: 1,
-        borderColor: '#ccc',
+        flexDirection: "row",
+        alignItems: "center",
+        borderTopWidth: 1.5,
+        borderWidth: 1,
+        borderColor: "#ccc",
         padding: 10,
-        backgroundColor: '#fff',
-        ...Platform.select({
-            android: {
-                padding: 5,
-                paddingHorizontal: 10,
-                marginTop: 10,
-                marginBottom: 10,
-                borderWidth: 0.5,
-                borderColor: 'black',
-                backgroundColor: '#eee'
-            },
-            ios: {
-                padding: 10,
-                paddingHorizontal: 15,
-                marginTop: 10,
-                marginBottom: 10,
-                borderWidth: 0.5,
-                borderColor: 'black',
-                backgroundColor: '#eee'
-            }
-        }),
-        marginBottom: 75,
+        backgroundColor: "#eee",
+        marginBottom: 80,
         borderRadius: 10,
         marginHorizontal: 16,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        elevation: 5,
-        zIndex: 1,
-        marginTop: 10,
-        height: 50
-
     },
     input: {
         flex: 1,
         fontSize: 16,
-        paddingHorizontal: 10
+        paddingHorizontal: 10,
     },
     bottomNav: {
         flexDirection: 'row',
         justifyContent: 'space-around',
         alignItems: 'center',
         backgroundColor: '#eee',
-        paddingVertical: 10,
+        paddingVertical: 12,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         position: 'absolute',
         bottom: 0,
         width: '100%',
         height: 65,
+        marginBottom: 7,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: -2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+        zIndex: 1,
+        paddingHorizontal: 16,
         borderTopWidth: 2,
         borderTopColor: '#ccc',
-        paddingHorizontal: 16
+        marginTop: 10,
+        borderRadius: 10,
     },
     navItem: {
         alignItems: 'center',

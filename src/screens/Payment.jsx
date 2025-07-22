@@ -79,7 +79,7 @@ const Payment = ({ navigation, route }) => {
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.navigate("Home")}>
+                <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Image source={require('../../assets/logo.png')} style={styles.logo} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => navigation.navigate("Chat")}>
@@ -103,7 +103,9 @@ const Payment = ({ navigation, route }) => {
                         <Text style={styles.summaryText}>👤 OWNER: {itemInfo.owner}</Text>
                     )}
                     {itemInfo.availability && (
-                        <Text style={styles.summaryText}>📅 RENTAL AVAILABILITY: {itemInfo.availability}</Text>
+                        <Text style={styles.summaryText}>
+                            📅 RENTAL AVAILABILITY: {itemInfo.availability}
+                        </Text>
                     )}
                     {itemInfo.duration && (
                         <Text style={styles.summaryText}>🕒 DURATION: {itemInfo.duration}</Text>
@@ -114,7 +116,23 @@ const Payment = ({ navigation, route }) => {
                     {itemInfo.location && (
                         <Text style={styles.summaryText}>📍 LOCATION: {itemInfo.location}</Text>
                     )}
+
+                    {/* ✅ Chat Button */}
+                    {itemInfo.owner && (
+                        <TouchableOpacity
+                            style={styles.chatButton}
+                            onPress={() =>
+                                navigation.navigate("Chat", {
+                                    ownerUsername: itemInfo.owner, // ✅ Just pass the username
+                                })
+                            }
+                        >
+                            <Entypo name="chat" size={18} color="#fff" style={{ marginRight: 6 }} />
+                            <Text style={styles.chatButtonText}>Chat with {itemInfo.owner}</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
+
 
                 {/* Payment Method Selection */}
                 <Text style={styles.sectionTitle}>💳 SELECT PAYMENT METHOD</Text>
@@ -251,12 +269,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingBottom: 1,
     },
-logo: {
-    width: 70,
-    height: 70,
-    resizeMode: 'contain',
-    borderRadius: 35, // half of width/height
-},
+    logo: {
+        width: 70,
+        height: 70,
+        resizeMode: 'contain',
+        borderRadius: 35, // half of width/height
+    },
 
     title: {
         fontSize: 25,
@@ -300,6 +318,22 @@ logo: {
         fontSize: 14,
         margin: 5
     },
+    chatButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#007bff",
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        borderRadius: 8,
+        marginTop: 12,
+    },
+    chatButtonText: {
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "bold",
+    },
+
     input: {
         borderWidth: 1,
         borderColor: '#bbb',

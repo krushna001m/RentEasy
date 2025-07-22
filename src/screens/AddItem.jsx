@@ -179,7 +179,7 @@ const AddItem = ({ navigation }) => {
             {/* ✅ Header */}
             <View style={styles.topBar}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.navigate("Home")}>
+                    <TouchableOpacity onPress={() => navigation.goBack()}>
                         <Image source={require('../../assets/logo.png')} style={styles.logo} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => navigation.navigate("Chat")}>
