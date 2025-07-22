@@ -184,8 +184,8 @@ const BrowseItems = ({ navigation }) => {
                             included: item.included ? [item.included] : [],
                             price: `₹${item.pricePerDay}/day`,
                             deposit: `₹${item.securityDeposit || '0'} (REFUNDABLE)`,
-                            location: `📍 ${item.location || "Not specified"}`,
-                            owner: `👤 ${item.ownerName || 'N/A'}`,
+                            location: `${item.location || "Not specified"}`,
+                            owner: `${item.ownerName || 'N/A'}`,
                             availability: item.availability?.request
                                 ? "Available on Request"
                                 : item.availability?.booking
