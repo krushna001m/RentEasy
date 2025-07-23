@@ -106,12 +106,30 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
+    configurations {
+    all {
+        exclude group: "com.android.support"
+        exclude module: "support-compat"
+        exclude module: "support-core-utils"
+        exclude module: "support-core-ui"
+        exclude module: "support-v4"
+        exclude module: "appcompat-v7"
+        exclude group: 'com.github.zacharee', module: 'AndroidPdfViewer'
+    exclude group: 'com.github.barteksc', module: 'android-pdf-viewer'
+
+    }
+}
+
+
 }
 
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
-    implementation 'com.github.mhiew:AndroidPdfViewer:3.2.0-beta.1'
+    implementation 'com.google.firebase:firebase-auth:21.1.0'
+    implementation 'com.github.mhiew:android-pdf-viewer:3.2.0-beta.1'
+
+
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {
