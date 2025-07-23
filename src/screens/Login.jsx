@@ -27,23 +27,54 @@ const Login = ({ navigation }) => {
     showPassword: false,
   });
 
+  // ✅ New: State for errors
+  const [errors, setErrors] = useState({ username: "", password: "" });
+
   const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
   const handleInputChange = (name, value) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: "" })); // Clear error while typing
   };
 
   const togglePasswordVisibility = () => {
     setFormData((prev) => ({ ...prev, showPassword: !prev.showPassword }));
   };
 
-  const handleLogin = async () => {
-    const { username, password } = formData;
+  // ✅ Validation Function
+  const validateInputs = () => {
+    let valid = true;
+    let newErrors = { username: "", password: "" };
 
-    if (!username || !password) {
-      Alert.alert("Error", "Username and password are required!");
-      return;
+    if (!formData.username.trim()) {
+      newErrors.username = "Username or Email is required";
+      valid = false;
+    } else if (
+      !/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(formData.username) &&
+      formData.username.length < 3
+    ) {
+      newErrors.username = "Enter valid email or min 3 characters";
+      valid = false;
     }
+
+    if (!formData.password.trim()) {
+      newErrors.password = "Password is required";
+      valid = false;
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+      valid = false;
+    }
+
+    setErrors(newErrors);
+    return valid;
+  };
+
+  const handleLogin = async () => {
+    if (!validateInputs()) {
+      return; // Stop if validation fails
+    }
+
+    const { username, password } = formData;
 
     try {
       const response = await axios.get(`${URL}/users.json`);
@@ -54,7 +85,6 @@ const Login = ({ navigation }) => {
       );
 
       if (matchedUser) {
-        // Store both username and complete user data for dynamic access
         await AsyncStorage.setItem("username", matchedUser.username);
         await AsyncStorage.setItem("loggedInUser", JSON.stringify(matchedUser));
 
@@ -81,6 +111,7 @@ const Login = ({ navigation }) => {
           <Text style={styles.maintitle}>WELCOME BACK</Text>
           <Text style={styles.subtitle}>LOGIN</Text>
 
+          {/* ✅ Username Input */}
           <View style={styles.inputContainer}>
             <FontAwesome5 name="user" size={20} color="#333" style={styles.icon} />
             <TextInput
@@ -91,7 +122,9 @@ const Login = ({ navigation }) => {
               onChangeText={(text) => handleInputChange("username", text)}
             />
           </View>
+          {errors.username ? <Text style={styles.errorText}>{errors.username}</Text> : null}
 
+          {/* ✅ Password Input */}
           <View style={styles.inputContainer}>
             <FontAwesome5 name="lock" size={20} color="#333" style={styles.icon} />
             <TextInput
@@ -112,6 +145,7 @@ const Login = ({ navigation }) => {
               />
             </TouchableOpacity>
           </View>
+          {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
 
           <TouchableOpacity
             style={styles.forgotContainer}
@@ -223,6 +257,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#000",
     paddingRight: 10,
+  },
+  errorText: {
+    width: width * 0.85,
+    color: "red",
+    fontSize: 13,
+    marginTop: 3,
+    marginLeft: 5,
   },
   forgotContainer: {
     width: "85%",

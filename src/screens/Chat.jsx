@@ -326,6 +326,16 @@ const styles = StyleSheet.create({
         marginBottom: 80,
         borderRadius: 10,
         marginHorizontal: 16,
+        ...Platform.select({
+            ios: {
+                marginBottom: 20, // Adjust for iOS keyboard
+            },
+            android: {
+                marginBottom: 80, // Adjust for Android keyboard
+                height: 50,
+                padding:4
+            },
+        }),
     },
     input: {
         flex: 1,

@@ -162,6 +162,7 @@ const styles = StyleSheet.create({
     width: 380,
     height: 250,
     resizeMode: "cover",
+    backgroundColor: '#E6F0FA',
     marginTop: 20,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 300,

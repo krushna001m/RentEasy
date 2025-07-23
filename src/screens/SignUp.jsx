@@ -30,23 +30,56 @@ const SignUp = ({ navigation }) => {
     agreed: false,
   });
 
+  const [errors, setErrors] = useState({
+    username: "",
+    password: "",
+    confirmPassword: "",
+  });
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
+  const validateInputs = () => {
+    let valid = true;
+    let newErrors = { username: "", password: "", confirmPassword: "" };
+
+    if (!formData.username.trim()) {
+      newErrors.username = "Username or Email is required";
+      valid = false;
+    } else if (
+      !/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(formData.username) &&
+      formData.username.length < 3
+    ) {
+      newErrors.username = "Enter valid email or min 3 characters";
+      valid = false;
+    }
+
+    if (!formData.password.trim()) {
+      newErrors.password = "Password is required";
+      valid = false;
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+      valid = false;
+    }
+
+    if (!formData.confirmPassword.trim()) {
+      newErrors.confirmPassword = "Confirm your password";
+      valid = false;
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+      valid = false;
+    }
+
+    setErrors(newErrors);
+    return valid;
+  };
+
   const handleSignUp = async () => {
-    const { username, password, confirmPassword, isOwner, isBorrower, agreed } = formData;
+    if (!validateInputs()) return;
 
-    if (!username || !password || !confirmPassword) {
-      Alert.alert("Error", "All fields are required!");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match!");
-      return;
-    }
+    const { username, password, isOwner, isBorrower, agreed } = formData;
 
     if (!agreed) {
       Alert.alert("Error", "You must agree to the terms!");
@@ -54,11 +87,10 @@ const SignUp = ({ navigation }) => {
     }
 
     const roles = [];
-    if (formData.isOwner) roles.push("Owner");
-    if (formData.isBorrower) roles.push("Borrower");
+    if (isOwner) roles.push("Owner");
+    if (isBorrower) roles.push("Borrower");
 
     try {
-      // ✅ Check if username already exists
       const existingUsers = await axios.get(`${URL}/users.json`);
       const usersData = existingUsers.data || {};
 
@@ -71,7 +103,6 @@ const SignUp = ({ navigation }) => {
         return;
       }
 
-      // ✅ Save new user
       const response = await axios.post(`${URL}/users.json`, {
         username,
         password,
@@ -80,7 +111,7 @@ const SignUp = ({ navigation }) => {
       });
 
       if (response.status === 200) {
-        // Alert.alert("Success", "Account created successfully!");
+        Alert.alert("Success", "Account created successfully!");
         navigation.navigate("Home");
       } else {
         Alert.alert("Error", "Something went wrong. Try again.");
@@ -110,11 +141,15 @@ const SignUp = ({ navigation }) => {
               placeholder="Username or Email"
               placeholderTextColor="#666"
               value={formData.username}
-              onChangeText={(text) =>
-                setFormData({ ...formData, username: text })
-              }
+              onChangeText={(text) => {
+                setFormData({ ...formData, username: text });
+                setErrors((prev) => ({ ...prev, username: "" }));
+              }}
             />
           </View>
+          {errors.username ? (
+            <Text style={styles.errorText}>{errors.username}</Text>
+          ) : null}
 
           {/* Password */}
           <View style={styles.inputContainer}>
@@ -125,9 +160,10 @@ const SignUp = ({ navigation }) => {
               placeholderTextColor="#666"
               secureTextEntry={!showPassword}
               value={formData.password}
-              onChangeText={(text) =>
-                setFormData({ ...formData, password: text })
-              }
+              onChangeText={(text) => {
+                setFormData({ ...formData, password: text });
+                setErrors((prev) => ({ ...prev, password: "" }));
+              }}
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
               <FontAwesome5
@@ -137,6 +173,9 @@ const SignUp = ({ navigation }) => {
               />
             </TouchableOpacity>
           </View>
+          {errors.password ? (
+            <Text style={styles.errorText}>{errors.password}</Text>
+          ) : null}
 
           {/* Confirm Password */}
           <View style={styles.inputContainer}>
@@ -147,9 +186,10 @@ const SignUp = ({ navigation }) => {
               placeholderTextColor="#666"
               secureTextEntry={!showConfirmPassword}
               value={formData.confirmPassword}
-              onChangeText={(text) =>
-                setFormData({ ...formData, confirmPassword: text })
-              }
+              onChangeText={(text) => {
+                setFormData({ ...formData, confirmPassword: text });
+                setErrors((prev) => ({ ...prev, confirmPassword: "" }));
+              }}
             />
             <TouchableOpacity
               onPress={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -161,6 +201,9 @@ const SignUp = ({ navigation }) => {
               />
             </TouchableOpacity>
           </View>
+          {errors.confirmPassword ? (
+            <Text style={styles.errorText}>{errors.confirmPassword}</Text>
+          ) : null}
 
           {/* Roles */}
           <View style={styles.roleContainer}>
@@ -211,12 +254,7 @@ const SignUp = ({ navigation }) => {
           {/* Sign Up Button */}
           <TouchableOpacity style={styles.loginButton} onPress={handleSignUp}>
             <View style={styles.loginButtonContent}>
-              <AntDesign
-                name="login"
-                size={20}
-                color="white"
-                style={styles.loginIcon}
-              />
+              <AntDesign name="login" size={20} color="white" style={styles.loginIcon} />
               <Text style={styles.loginText}>SIGN UP</Text>
             </View>
           </TouchableOpacity>
@@ -224,12 +262,7 @@ const SignUp = ({ navigation }) => {
           {/* Google Button */}
           <TouchableOpacity style={styles.googleButton}>
             <View style={styles.googleButtonContent}>
-              <FontAwesome5
-                name="google"
-                size={20}
-                color="white"
-                style={styles.googleIcon}
-              />
+              <FontAwesome5 name="google" size={20} color="white" style={styles.googleIcon} />
               <Text style={styles.googleText}>SIGN UP WITH GOOGLE</Text>
             </View>
           </TouchableOpacity>
@@ -249,7 +282,6 @@ const SignUp = ({ navigation }) => {
 
 export default SignUp;
 
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -257,11 +289,11 @@ const styles = StyleSheet.create({
   },
   container: Platform.select({
     ios: {
-      flex: 1
+      flex: 1,
     },
     android: {
       flex: 1,
-      marginTop: 60
+      marginTop: 60,
     },
   }),
   scrollContent: {
@@ -323,6 +355,13 @@ const styles = StyleSheet.create({
     color: "#000",
     paddingRight: 10,
   },
+  errorText: {
+    width: width * 0.85,
+    color: "red",
+    fontSize: 13,
+    marginTop: 3,
+    marginLeft: 5,
+  },
   checkboxContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -339,15 +378,10 @@ const styles = StyleSheet.create({
   roleCheckbox: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: 0,
     ...Platform.select({
-      ios: {
-        marginRight: 34
-      },
-      android: {
-        marginRight: 44
-      }
-    })
+      ios: { marginRight: 34 },
+      android: { marginRight: 44 },
+    }),
   },
   label: {
     marginLeft: 10,
