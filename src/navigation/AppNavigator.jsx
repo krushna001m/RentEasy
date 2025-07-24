@@ -9,6 +9,9 @@ import SignUp from "../screens/SignUp";
 import Home from "../screens/Home";
 import BrowseItems from "../screens/BrowseItems";
 import ForgotPassword from "../screens/ForgotPassword";
+import ChangePassword from "../screens/ChangePassword";
+import OTPVerification from "../screens/OTPVerification";
+import ResetPassword from "../screens/ResetPassword";
 import AddItem from "../screens/AddItem";
 import History from "../screens/History";
 import Chat from "../screens/Chat";
@@ -56,6 +59,9 @@ const AppNavigator = () => {
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="BrowseItems" component={BrowseItems} />
         <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+        <Stack.Screen name="ChangePassword" component={ChangePassword} />
+        <Stack.Screen name="OTPVerification" component={OTPVerification} />
+        <Stack.Screen name="ResetPassword" component={ResetPassword} />
         <Stack.Screen name="AddItem" component={AddItem} />
         <Stack.Screen name="History" component={History} />
         <Stack.Screen name="Chat" component={Chat} />

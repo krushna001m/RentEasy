@@ -14,6 +14,7 @@ import {
 import Entypo from 'react-native-vector-icons/Entypo';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import RNHTMLtoPDF from "react-native-html-to-pdf";
 import FileViewer from "react-native-file-viewer";
 import Share from 'react-native-share';
@@ -217,40 +218,82 @@ const History = ({ navigation }) => {
                 ) : (
                     history.map((item, index) => (
                         <View key={index} style={styles.summaryCard}>
-                            <Text style={styles.summaryText}>📦 ITEM: {item.title}</Text>
-                            {item.owner && <Text style={styles.summaryText}>👤 OWNER: {item.owner}</Text>}
-                            {item.price && <Text style={styles.summaryText}>💸 PRICE: {item.price}</Text>}
-                            {item.date && (
-                                <Text style={styles.summaryText}>📅 DATE: {new Date(item.date).toLocaleDateString()}</Text>
+
+                            {/* ✅ ITEM */}
+                            <View style={styles.row}>
+                                <Ionicons name="cube-outline" size={16} color="#333" style={styles.icon} />
+                                <Text style={styles.summaryText}>ITEM: {item.title}</Text>
+                            </View>
+
+                            {/* ✅ OWNER */}
+                            {item.owner && (
+                                <View style={styles.row}>
+                                    <Ionicons name="person-outline" size={16} color="#333" style={styles.icon} />
+                                    <Text style={styles.summaryText}>OWNER: {item.owner}</Text>
+                                </View>
                             )}
-                            <Text style={styles.summaryText}>✅ STATUS: {item.status}</Text>
+
+                            {/* ✅ PRICE */}
+                            {item.price && (
+                                <View style={styles.row}>
+                                    <FontAwesome name="money" size={16} color="#333" style={styles.icon} />
+                                    <Text style={styles.summaryText}>PRICE: {item.price}</Text>
+                                </View>
+                            )}
+
+                            {/* ✅ DATE */}
+                            {item.date && (
+                                <View style={styles.row}>
+                                    <Ionicons name="calendar-outline" size={16} color="#333" style={styles.icon} />
+                                    <Text style={styles.summaryText}>
+                                        DATE: {new Date(item.date).toLocaleDateString()}
+                                    </Text>
+                                </View>
+                            )}
+
+                            {/* ✅ STATUS */}
+                            <View style={styles.row}>
+                                <Ionicons
+                                    name={item.status === "Completed" ? "checkmark-circle-outline" : "time-outline"}
+                                    size={16}
+                                    color={item.status === "Completed" ? "#4CAF50" : "#FF9800"}
+                                    style={styles.icon}
+                                />
+                                <Text style={styles.summaryText}>STATUS: {item.status}</Text>
+                            </View>
+
+                            {/* ✅ Action Buttons */}
                             <View style={styles.btnRows}>
-                                {/* ✅ Download Receipt */}
+
+                                {/* Download Receipt */}
                                 <TouchableOpacity
-                                    style={styles.downloadBtn}
+                                    style={[styles.downloadBtn, { backgroundColor: "#001F54" }]}
                                     onPress={() => generateReceipt(item)}
                                 >
-                                    <Ionicons name="download" size={18} color="#fff" />
+                                    <Ionicons name="download-outline" size={18} color="#fff" style={{ marginRight: 5 }} />
                                     <Text style={styles.downloadBtnText}>Download</Text>
                                 </TouchableOpacity>
 
-                                {/* ✅ Share Receipt */}
+                                {/* Share Receipt */}
                                 <TouchableOpacity
-                                    style={[styles.downloadBtn, { backgroundColor: "#4CAF50", marginTop: 5 }]}
+                                    style={[styles.downloadBtn, { backgroundColor: "#4CAF50" }]}
                                     onPress={() => generateReceipt(item, true)}
                                 >
-                                    <Ionicons name="share-social" size={18} color="#fff" />
+                                    <Ionicons name="share-social-outline" size={18} color="#fff" style={{ marginRight: 5 }} />
                                     <Text style={styles.downloadBtnText}>Share</Text>
                                 </TouchableOpacity>
-                                {/* ✅ PDF Preview */}
+
+                                {/* View PDF */}
                                 <TouchableOpacity
-                                    style={[styles.downloadBtn, { backgroundColor: "#FF9800", marginTop: 5 }]}
+                                    style={[styles.downloadBtn, { backgroundColor: "#FF9800" }]}
                                     onPress={() => viewReceipt(item)}
                                 >
-                                    <Ionicons name="eye" size={18} color="#fff" />
+                                    <Ionicons name="eye-outline" size={18} color="#fff" style={{ marginRight: 5 }} />
                                     <Text style={styles.downloadBtnText}>View</Text>
                                 </TouchableOpacity>
+
                             </View>
+
 
                         </View>
                     ))
@@ -356,13 +399,6 @@ const styles = StyleSheet.create({
         fontSize: 17
     },
     label: {
-        fontWeight: 'bold',
-        marginTop: 25,
-        fontSize: 17,
-        color: '#222',
-        marginBottom: 4
-    },
-    label: {
         fontSize: 20,
         fontWeight: 'bold',
         color: '#001F54',
@@ -390,6 +426,15 @@ const styles = StyleSheet.create({
         color: '#333',
         marginBottom: 4,
         fontWeight: '500',
+        marginLeft: 4,
+    },
+    row:{
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    icon: {
+        marginRight: 8,
     },
     downloadBtn: {
         flexDirection: "row",

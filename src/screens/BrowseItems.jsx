@@ -96,7 +96,7 @@ const BrowseItems = ({ navigation }) => {
                 {/* Browse Title */}
                 <View>
                     <TouchableOpacity style={{ flexDirection: 'row' }}>
-                        <MaterialIcons name="explore" size={28} color='#007bff' style={{ marginTop: 10 }} />
+                        <MaterialIcons name="explore" size={28} color='#001F54' style={{ marginTop: 10 }} />
                         <Text style={{ marginTop: 13, marginLeft: 6, fontWeight: '600', fontSize: 15, color: '#333' }}>Explore</Text>
                     </TouchableOpacity>
                 </View>
@@ -113,7 +113,8 @@ const BrowseItems = ({ navigation }) => {
                         ],
                         categories: ["electronics"],
                         included: [
-                            "🔋 Battery & Charger | 💾 64GB MEMORY CARD",
+                            "🔋 Battery & Charger ",
+                            "💾 64GB MEMORY CARD",
                             "🎒 Carry Case"
                         ],
                         price: "₹500/day | ₹1300/3 days | ₹2800/week",
@@ -156,7 +157,8 @@ const BrowseItems = ({ navigation }) => {
                         ],
                         categories: ["vehicles"],
                         included: [
-                            "💺 7-Seater | 🧳 Ample Luggage Space | 🛡️ Driver Airbags"
+                            "💺 7-Seater | 🧳 Ample Luggage Space ",
+                            "🛡️ Driver Airbags"
                         ],
                         price: "₹500/day | ₹1400/3 days | ₹3000/week",
                         deposit: "₹10,000 (REFUNDABLE)",

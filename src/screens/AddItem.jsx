@@ -136,10 +136,9 @@ const AddItem = ({ navigation }) => {
                 ownerPhone: currentUser.phone,
             };
 
-            await axios.post(`${URL}/items.json`, finalData);
+            await axios.post(`${URL}/items/${title}.json`, finalData);
 
             const historyData = {
-                title: finalData.title,
                 categories: finalData.categories,
                 owner: finalData.owner,
                 price: finalData.pricePerDay,
@@ -241,35 +240,35 @@ const AddItem = ({ navigation }) => {
                 </View>
                 <View style={styles.categoryContainer}>
                     <View flexDirection="row">
-                    <FontAwesome5 name="tags" size={25} color="#001F54" style={styles.TitleIcon} />
-                    <Text style={styles.sectionTitle}> Select Category</Text>
-                </View>
+                        <FontAwesome5 name="tags" size={25} color="#001F54" style={styles.TitleIcon} />
+                        <Text style={styles.sectionTitle}> Select Category</Text>
+                    </View>
 
-                <View style={styles.chipsContainer}>
-                    {categories.map((cat) => (
-                        <TouchableOpacity
-                            key={cat.id}
-                            style={[
-                                styles.chip,
-                                selectedCategory === cat.id && styles.chipSelected
-                            ]}
-                            onPress={() => setSelectedCategory(cat.id)}
-                        >
-                            <Text
+                    <View style={styles.chipsContainer}>
+                        {categories.map((cat) => (
+                            <TouchableOpacity
+                                key={cat.id}
                                 style={[
-                                    styles.chipText,
-                                    selectedCategory === cat.id && styles.chipTextSelected
+                                    styles.chip,
+                                    selectedCategory === cat.id && styles.chipSelected
                                 ]}
+                                onPress={() => setSelectedCategory(cat.id)}
                             >
-                                {cat.label}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                                <Text
+                                    style={[
+                                        styles.chipText,
+                                        selectedCategory === cat.id && styles.chipTextSelected
+                                    ]}
+                                >
+                                    {cat.label}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
                 </View>
 
 
-                {/* ✅ Rental Price */ }
+                {/* ✅ Rental Price */}
                 <View flexDirection="row">
                     <FontAwesome5 name="rupee-sign" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> RENTAL PRICE</Text>
@@ -306,7 +305,7 @@ const AddItem = ({ navigation }) => {
                     />
                 </View>
 
-    {/* ✅ Location */ }
+                {/* ✅ Location */}
                 <View flexDirection="row">
                     <Entypo name="location" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> LOCATION</Text>
@@ -320,7 +319,7 @@ const AddItem = ({ navigation }) => {
                     />
                 </View>
 
-    {/* ✅ Availability */ }
+                {/* ✅ Availability */}
                 <View flexDirection="row">
                     <FontAwesome name="calendar" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> AVAILABILITY STATUS</Text>
@@ -353,7 +352,7 @@ const AddItem = ({ navigation }) => {
                     </View>
                 </View>
 
-    {/* ✅ Owner Details */ }
+                {/* ✅ Owner Details */}
                 <View flexDirection="row">
                     <FontAwesome name="user" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> OWNER DETAILS</Text>
@@ -387,7 +386,7 @@ const AddItem = ({ navigation }) => {
                     />
                 </View>
 
-    {/* ✅ Terms and Conditions */ }
+                {/* ✅ Terms and Conditions */}
                 <View flexDirection="row">
                     <FontAwesome name="check-square-o" size={25} color="#001F54" style={styles.TitleIcon} />
                     <Text style={styles.sectionTitle}> TERMS AND CONDITIONS</Text>
@@ -428,111 +427,111 @@ const AddItem = ({ navigation }) => {
                     />
                 </View>
 
-    {/* ✅ Preview + Save Buttons */ }
-    <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 25 }}>
-        <TouchableOpacity
-            style={[styles.submitButton, { flex: 0.48, backgroundColor: '#666' }]}
-            onPress={() => setPreviewVisible(true)}
-        >
-            <Ionicons name="eye" size={24} color="#fff" />
-            <Text style={styles.submitText}>PREVIEW</Text>
-        </TouchableOpacity>
+                {/* ✅ Preview + Save Buttons */}
+                <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 25 }}>
+                    <TouchableOpacity
+                        style={[styles.submitButton, { flex: 0.48, backgroundColor: '#ff9800' }]}
+                        onPress={() => setPreviewVisible(true)}
+                    >
+                        <Ionicons name="eye" size={24} color="#fff" />
+                        <Text style={styles.submitText}>PREVIEW</Text>
+                    </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.submitButton, { flex: 0.48 }]} onPress={handleSubmit}>
-            <Ionicons name="checkmark-done-circle" size={24} color="#fff" />
-            <Text style={styles.submitText}>SAVE & POST</Text>
-        </TouchableOpacity>
-    </View>
+                    <TouchableOpacity style={[styles.submitButton, { flex: 0.48 }]} onPress={handleSubmit}>
+                        <Ionicons name="checkmark-done-circle" size={24} color="#fff" />
+                        <Text style={styles.submitText}>SAVE & POST</Text>
+                    </TouchableOpacity>
+                </View>
 
-    {/* ✅ Footer Buttons */ }
-    <View style={styles.footerButtons}>
-        <TouchableOpacity style={styles.secondaryBtn} onPress={handleReset}>
-            <Entypo name="cycle" size={18} color="#fff" />
-            <Text style={styles.secondaryBtnText}>RESET FORM</Text>
-        </TouchableOpacity>
-    </View>
+                {/* ✅ Footer Buttons */}
+                <View style={styles.footerButtons}>
+                    <TouchableOpacity style={styles.secondaryBtn} onPress={handleReset}>
+                        <Entypo name="cycle" size={18} color="#fff" />
+                        <Text style={styles.secondaryBtnText}>RESET FORM</Text>
+                    </TouchableOpacity>
+                </View>
             </ScrollView >
 
-    <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Home")}>
-            <Ionicons name="home" size={28} />
-            <Text style={styles.navLabel}>Home</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("BrowseItems")}>
-            <MaterialIcons name="explore" size={28} />
-            <Text style={styles.navLabel}>Explore</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("AddItem")}>
-            <Entypo name="plus" size={28} />
-            <Text style={styles.navLabel}>Add</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("History")}>
-            <Ionicons name="document-text" size={28} />
-            <Text style={styles.navLabel}>History</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Profile")}>
-            <Ionicons name="person" size={28} />
-            <Text style={styles.navLabel}>Profile</Text>
-        </TouchableOpacity>
-    </View>
-
-{/* ✅ Preview Modal */ }
-<Modal
-    animationType="slide"
-    transparent={true}
-    visible={previewVisible}
-    onRequestClose={() => setPreviewVisible(false)}
->
-    <View style={{
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        alignItems: 'center'
-    }}>
-        <View style={{
-            backgroundColor: '#fff',
-            borderRadius: 15,
-            width: '85%',
-            padding: 20,
-            alignItems: 'center',
-        }}>
-            <Image
-                source={{ uri: imageUri || Image.resolveAssetSource(require('../../assets/placeholder.jpg')).uri }}
-                style={{ width: 180, height: 180, borderRadius: 10, marginBottom: 10 }}
-            />
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#001F54' }}>{itemData.title || "No Title"}</Text>
-            <Text style={{ fontSize: 14, color: '#333', marginVertical: 5 }}>{itemData.description || "No Description"}</Text>
-            <Text style={{ fontSize: 16, fontWeight: '600', color: '#001F54', marginVertical: 5 }}>₹ {itemData.pricePerDay || "0"} / day</Text>
-            <Text style={{ fontSize: 14, color: '#666', marginVertical: 2 }}>📍 {itemData.location || "No Location"}</Text>
-            <Text style={{ fontSize: 14, color: '#666', marginVertical: 2 }}>👤 {itemData.ownerName || "No Owner"}</Text>
-
-            <View style={{ flexDirection: 'row', marginTop: 15 }}>
-                <TouchableOpacity
-                    style={[styles.secondaryBtn, { backgroundColor: '#aaa', marginRight: 10 }]}
-                    onPress={() => setPreviewVisible(false)}
-                >
-                    <Entypo name="cross" size={18} color="#fff" />
-                    <Text style={styles.secondaryBtnText}>CLOSE</Text>
+            <View style={styles.bottomNav}>
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Home")}>
+                    <Ionicons name="home" size={28} />
+                    <Text style={styles.navLabel}>Home</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                    style={[styles.submitButton, { backgroundColor: '#001F54' }]}
-                    onPress={() => {
-                        setPreviewVisible(false);
-                        handleSubmit();
-                    }}
-                >
-                    <Ionicons name="checkmark-done-circle" size={18} color="#fff" />
-                    <Text style={styles.submitText}>CONFIRM POST</Text>
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("BrowseItems")}>
+                    <MaterialIcons name="explore" size={28} />
+                    <Text style={styles.navLabel}>Explore</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("AddItem")}>
+                    <Entypo name="plus" size={28} />
+                    <Text style={styles.navLabel}>Add</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("History")}>
+                    <Ionicons name="document-text" size={28} />
+                    <Text style={styles.navLabel}>History</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Profile")}>
+                    <Ionicons name="person" size={28} />
+                    <Text style={styles.navLabel}>Profile</Text>
                 </TouchableOpacity>
             </View>
-        </View>
-    </View>
-</Modal>
+
+            {/* ✅ Preview Modal */}
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={previewVisible}
+                onRequestClose={() => setPreviewVisible(false)}
+            >
+                <View style={{
+                    flex: 1,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                }}>
+                    <View style={{
+                        backgroundColor: '#fff',
+                        borderRadius: 15,
+                        width: '85%',
+                        padding: 20,
+                        alignItems: 'center',
+                    }}>
+                        <Image
+                            source={{ uri: imageUri || Image.resolveAssetSource(require('../../assets/placeholder.jpg')).uri }}
+                            style={{ width: 180, height: 180, borderRadius: 10, marginBottom: 10 }}
+                        />
+                        <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#001F54' }}>{itemData.title || "No Title"}</Text>
+                        <Text style={{ fontSize: 14, color: '#333', marginVertical: 5 }}>{itemData.description || "No Description"}</Text>
+                        <Text style={{ fontSize: 16, fontWeight: '600', color: '#001F54', marginVertical: 5 }}>₹ {itemData.pricePerDay || "0"} / day</Text>
+                        <Text style={{ fontSize: 14, color: '#666', marginVertical: 2 }}>📍 {itemData.location || "No Location"}</Text>
+                        <Text style={{ fontSize: 14, color: '#666', marginVertical: 2 }}>👤 {itemData.ownerName || "No Owner"}</Text>
+
+                        <View style={{ flexDirection: 'row', marginTop: 15 }}>
+                            <TouchableOpacity
+                                style={[styles.secondaryBtn, { backgroundColor: '#aaa', marginRight: 10 }]}
+                                onPress={() => setPreviewVisible(false)}
+                            >
+                                <Entypo name="cross" size={18} color="#fff" />
+                                <Text style={styles.secondaryBtnText}>CLOSE</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.submitButton, { backgroundColor: '#001F54' }]}
+                                onPress={() => {
+                                    setPreviewVisible(false);
+                                    handleSubmit();
+                                }}
+                            >
+                                <Ionicons name="checkmark-done-circle" size={18} color="#fff" />
+                                <Text style={styles.submitText}>CONFIRM POST</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View >
     );
 };

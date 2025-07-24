@@ -8,6 +8,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import Entypo from 'react-native-vector-icons/Entypo';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import AntDesign from 'react-native-vector-icons/AntDesign';
 import { launchImageLibrary } from 'react-native-image-picker';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -199,8 +200,8 @@ const Profile = ({ navigation }) => {
                 {/* Title */}
                 <Text style={[styles.title, themeStyles.text]}>WELCOME TO RENTEASY</Text>
                 <Text style={[styles.subtitle, themeStyles.text]}>RENT IT, USE IT, RETURN IT!</Text>
-                <View style={{flexDirection: 'row', justifyContent: 'center', marginBottom: 1}}>
-                    <TouchableOpacity style={styles.settingsBtn}onPress={() => navigation.navigate("Settings")}>
+                <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 1 }}>
+                    <TouchableOpacity style={styles.settingsBtn} onPress={() => navigation.navigate("Settings")}>
                         <Ionicons name="settings-sharp" size={27} color="#001F54" style={{ marginLeft: 300 }} />
                     </TouchableOpacity>
                 </View>
@@ -250,7 +251,16 @@ const Profile = ({ navigation }) => {
                 {/* ✅ Dynamic Listings in Card */}
                 {profile.roles.includes("Owner") && (
                     <View style={styles.card}>
-                        <Text style={[styles.sectionText, themeStyles.text]}>📦 MY LISTINGS</Text>
+                        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
+                            <Entypo
+                                name="shop"
+                                size={23}
+                                color={themeStyles.text.color || "#000"}
+                                style={{ marginRight: 6 }}
+                            />
+                            <Text style={[styles.sectionText, themeStyles.text]}>MY LISTINGS</Text>
+                        </View>
+
                         {profile.listings.length > 0 ? (
                             profile.listings.map((item, idx) => (
                                 <View key={idx} style={styles.cardItem}>
@@ -268,7 +278,16 @@ const Profile = ({ navigation }) => {
                 {/* ✅ Dynamic Rentals in Card */}
                 {profile.roles.includes("Borrower") && (
                     <View style={styles.card}>
-                        <Text style={[styles.sectionText, themeStyles.text]}>📑 MY RENTALS</Text>
+                        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
+                            <Entypo
+                                name="shopping-cart" 
+                                size={23}
+                                color={themeStyles.text.color || "#000"}
+                                style={{ marginRight: 6 }}
+                            />
+                            <Text style={[styles.sectionText, themeStyles.text]}>MY RENTALS</Text>
+                        </View>
+
                         {profile.rentals.length > 0 ? (
                             profile.rentals.map((item, idx) => (
                                 <View key={idx} style={styles.cardItem}>
@@ -282,6 +301,7 @@ const Profile = ({ navigation }) => {
                         )}
                     </View>
                 )}
+
 
             </ScrollView>
 
@@ -462,7 +482,7 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         marginBottom: 10,
         backgroundColor: '#001F54',
-        height: 40,
+        height: 30,
         justifyContent: 'center',
         paddingHorizontal: 20,
         borderRadius: 20,
@@ -513,10 +533,11 @@ const styles = StyleSheet.create({
         })
     },
     sectionText: {
-        marginTop: 16,
-        marginBottom: 4,
+        marginTop: 7,
+        marginBottom: 8,
         fontWeight: 'bold',
         fontSize: 17,
+        marginLeft: 5,
     },
     listText: {
         fontSize: 15,
@@ -542,7 +563,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#4caf50",
+        backgroundColor: "#001F54",
         padding: 10,
         borderRadius: 8,
     },
@@ -571,13 +592,9 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         marginVertical: 5,
     },
-    sectionText: {
-        fontSize: 18,
-        fontWeight: "bold",
-        marginBottom: 8,
-    },
+
     listText: {
-        fontSize: 14,
+        fontSize: 15,
         color: "#555",
     },
     bottomNav: {

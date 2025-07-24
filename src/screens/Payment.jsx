@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -14,6 +14,7 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Entypo from 'react-native-vector-icons/Entypo';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -30,6 +31,33 @@ const Payment = ({ navigation, route }) => {
     });
     const [upiId, setUpiId] = useState('');
     const [agreed, setAgreed] = useState(false);
+
+    // ✅ NEW STATE: Days, Selected Price Option, Total Amount
+    const [days, setDays] = useState(1);
+    const [totalAmount, setTotalAmount] = useState(0);
+
+    // ✅ Auto Update Total When Days Change
+    useEffect(() => {
+        const perDay = Number(itemInfo.pricePerDay) || 0;
+        const threeDays = Number(itemInfo.price3Days) || 0;
+        const week = Number(itemInfo.priceWeek) || 0;
+        const deposit = Number(itemInfo.securityDeposit) || 0;
+
+        let total = 0;
+
+        if (days >= 7 && week > 0) {
+            total = week * Math.floor(days / 7) + (days % 7) * perDay;
+        } else if (days >= 3 && threeDays > 0) {
+            total = threeDays * Math.floor(days / 3) + (days % 3) * perDay;
+        } else {
+            total = perDay * days;
+        }
+
+        total += deposit; // ✅ Security Deposit added once
+
+        setTotalAmount(total.toFixed(2));
+    }, [days, itemInfo]); // ✅ Runs whenever days or itemInfo changes
+
 
     const handlePayNow = async () => {
         if (!agreed) {
@@ -60,6 +88,8 @@ const Payment = ({ navigation, route }) => {
             const historyItem = {
                 title,
                 ...itemInfo,
+                days,
+                totalAmount,
                 paymentMethod,
                 date: new Date().toISOString(),
                 status: "Completed",
@@ -67,7 +97,7 @@ const Payment = ({ navigation, route }) => {
 
             await axios.post(`${URL}/history/${username}.json`, historyItem);
 
-            Alert.alert('✅ Payment Successful', 'Thanks for renting with RentEasy!');
+            Alert.alert('✅ Payment Successful', `You rented for ${days} day(s). Total: ₹${totalAmount}`);
             navigation.navigate("History");
         } catch (error) {
             console.error("Error saving history:", error);
@@ -88,7 +118,6 @@ const Payment = ({ navigation, route }) => {
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-
                 <View>
                     <Text style={styles.title}>WELCOME TO RENTEASY</Text>
                     <Text style={styles.subtitle}>RENT IT, USE IT, RETURN IT!</Text>
@@ -96,26 +125,68 @@ const Payment = ({ navigation, route }) => {
 
                 {/* Booking Summary */}
                 <View style={styles.summaryCard}>
-                    <Text style={styles.sectionTitle}>📑 BOOKING SUMMARY</Text>
-                    <Text style={styles.summaryText}>📦 ITEM: {title}</Text>
+                    {/* Section Title */}
+                    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                        <Ionicons
+                            name="document-text-outline"
+                            size={22}
+                            color="#000"
+                            style={{ marginRight: 6, marginTop: 10 }}
+                        />
+                        <Text style={styles.sectionTitle}>BOOKING SUMMARY</Text>
+                    </View>
 
+                    {/* Item */}
+                    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
+                        <Ionicons name="cube-outline" size={16} color="#333" style={{ marginRight: 6 }} />
+                        <Text style={styles.summaryText}>ITEM: {title}</Text>
+                    </View>
+
+                    {/* Owner */}
                     {itemInfo.owner && (
-                        <Text style={styles.summaryText}>👤 OWNER: {itemInfo.owner}</Text>
+                        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
+                            <Ionicons name="person-outline" size={16} color="#333" style={{ marginRight: 6 }} />
+                            <Text style={styles.summaryText}>OWNER: {itemInfo.owner}</Text>
+                        </View>
                     )}
-                    {itemInfo.availability && (
-                        <Text style={styles.summaryText}>
-                            📅 RENTAL AVAILABILITY: {itemInfo.availability}
-                        </Text>
-                    )}
-                    {itemInfo.duration && (
-                        <Text style={styles.summaryText}>🕒 DURATION: {itemInfo.duration}</Text>
-                    )}
+
+                    {/* Rental Price */}
                     {itemInfo.price && (
-                        <Text style={styles.summaryText}>💸 RENTAL PRICE: {itemInfo.price}</Text>
+                        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
+                            <FontAwesome name="money" size={16} color="#333" style={{ marginRight: 6 }} />
+                            <Text style={styles.summaryText}>RENTAL PRICE (Per Day): ₹{itemInfo.price}</Text>
+                        </View>
                     )}
-                    {itemInfo.location && (
-                        <Text style={styles.summaryText}>📍 LOCATION: {itemInfo.location}</Text>
-                    )}
+
+                    {/* ✅ Days Picker */}
+                    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
+                        <MaterialCommunityIcons name="calendar-clock" size={18} color="#333" style={{ marginRight: 6 }} />
+                        <Text style={[styles.summaryText, { marginRight: 10 }]}>DAYS:</Text>
+
+                        <TouchableOpacity
+                            onPress={() => setDays(Math.max(1, days - 1))}
+                            style={{ backgroundColor: "#001F54", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4, marginRight: 6 }}
+                        >
+                            <Text style={{ color: "#fff", fontSize: 18 }}>-</Text>
+                        </TouchableOpacity>
+
+                        <Text style={[styles.summaryText, { fontWeight: "bold", marginHorizontal: 6 }]}>{days}</Text>
+
+                        <TouchableOpacity
+                            onPress={() => setDays(days + 1)}
+                            style={{ backgroundColor: "#001F54", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 }}
+                        >
+                            <Text style={{ color: "#fff", fontSize: 18 }}>+</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* ✅ Total Amount */}
+                    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
+                        <FontAwesome name="money" size={18} color="#001F54" style={{ marginRight: 6 }} />
+                        <Text style={[styles.summaryText, { fontWeight: "bold", color: "#001F54" }]}>
+                            TOTAL AMOUNT: ₹{totalAmount} (incl. Security Deposit)
+                        </Text>
+                    </View>
 
                     {/* ✅ Chat Button */}
                     {itemInfo.owner && (
@@ -123,7 +194,7 @@ const Payment = ({ navigation, route }) => {
                             style={styles.chatButton}
                             onPress={() =>
                                 navigation.navigate("Chat", {
-                                    ownerUsername: itemInfo.owner, // ✅ Just pass the username
+                                    ownerUsername: itemInfo.owner,
                                 })
                             }
                         >
@@ -135,18 +206,36 @@ const Payment = ({ navigation, route }) => {
 
 
                 {/* Payment Method Selection */}
-                <Text style={styles.sectionTitle}>💳 SELECT PAYMENT METHOD</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                    <MaterialIcons
+                        name="payment"
+                        size={22}
+                        color="#000"
+                        style={{ marginRight: 6, marginTop: 14 }}
+                    />
+                    <Text style={styles.sectionTitle}>SELECT PAYMENT METHOD</Text>
+                </View>
 
+                {/* ✅ Credit / Debit Card Option */}
                 <TouchableOpacity onPress={() => setPaymentMethod('card')} style={styles.radio}>
-                    <Text style={{ fontWeight: paymentMethod === 'card' ? 'bold' : 'normal' }}>
-                        🔘 💳 CREDIT / DEBIT CARD
-                    </Text>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <FontAwesome
+                            name={paymentMethod === 'card' ? 'dot-circle-o' : 'circle-o'}
+                            size={18}
+                            color={paymentMethod === 'card' ? '#001F54' : '#666'}
+                            style={{ marginRight: 6 }}
+                        />
+                        <Ionicons name="card-outline" size={18} color="#333" style={{ marginRight: 6 }} />
+                        <Text style={{ fontWeight: paymentMethod === 'card' ? 'bold' : 'normal' }}>
+                            CREDIT / DEBIT CARD
+                        </Text>
+                    </View>
                 </TouchableOpacity>
 
                 {paymentMethod === 'card' && (
                     <>
                         <TextInput
-                            placeholder="💳 Card Number "
+                            placeholder="Card Number"
                             style={styles.input}
                             keyboardType="numeric"
                             maxLength={16}
@@ -154,13 +243,13 @@ const Payment = ({ navigation, route }) => {
                             value={cardDetails.number}
                         />
                         <TextInput
-                            placeholder="📅 Expiry Date (MM/YY) "
+                            placeholder="Expiry Date (MM/YY)"
                             style={styles.input}
                             onChangeText={(text) => setCardDetails({ ...cardDetails, expiry: text })}
                             value={cardDetails.expiry}
                         />
                         <TextInput
-                            placeholder="🔒 CVV "
+                            placeholder="CVV"
                             style={styles.input}
                             secureTextEntry
                             keyboardType="numeric"
@@ -169,7 +258,7 @@ const Payment = ({ navigation, route }) => {
                             value={cardDetails.cvv}
                         />
                         <TextInput
-                            placeholder="🧾 Name on Card "
+                            placeholder="Name on Card"
                             style={styles.input}
                             onChangeText={(text) => setCardDetails({ ...cardDetails, name: text })}
                             value={cardDetails.name}
@@ -177,10 +266,25 @@ const Payment = ({ navigation, route }) => {
                     </>
                 )}
 
+                {/* ✅ UPI Option */}
                 <TouchableOpacity onPress={() => setPaymentMethod('upi')} style={styles.radio}>
-                    <Text style={{ fontWeight: paymentMethod === 'upi' ? 'bold' : 'normal' }}>
-                        🔘 💰 PAY VIA GOOGLE PAY / PHONEPE / PAYTM
-                    </Text>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <FontAwesome
+                            name={paymentMethod === 'upi' ? 'dot-circle-o' : 'circle-o'}
+                            size={18}
+                            color={paymentMethod === 'upi' ? '#001F54' : '#666'}
+                            style={{ marginRight: 6 }}
+                        />
+                        <MaterialCommunityIcons
+                            name="currency-inr"
+                            size={18}
+                            color="#333"
+                            style={{ marginRight: 6 }}
+                        />
+                        <Text style={{ fontWeight: paymentMethod === 'upi' ? 'bold' : 'normal' }}>
+                            PAY VIA GOOGLE PAY / PHONEPE / PAYTM
+                        </Text>
+                    </View>
                 </TouchableOpacity>
 
                 {paymentMethod === 'upi' && (
@@ -192,16 +296,41 @@ const Payment = ({ navigation, route }) => {
                     />
                 )}
 
+                {/* ✅ Net Banking Option */}
                 <TouchableOpacity onPress={() => setPaymentMethod('net')} style={styles.radio}>
-                    <Text style={{ fontWeight: paymentMethod === 'net' ? 'bold' : 'normal' }}>
-                        🔘 🏦 NET BANKING
-                    </Text>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <FontAwesome
+                            name={paymentMethod === 'net' ? 'dot-circle-o' : 'circle-o'}
+                            size={18}
+                            color={paymentMethod === 'net' ? '#001F54' : '#666'}
+                            style={{ marginRight: 6 }}
+                        />
+                        <FontAwesome
+                            name="bank"
+                            size={18}
+                            color="#333"
+                            style={{ marginRight: 6 }}
+                        />
+                        <Text style={{ fontWeight: paymentMethod === 'net' ? 'bold' : 'normal' }}>
+                            NET BANKING
+                        </Text>
+                    </View>
                 </TouchableOpacity>
 
-                <Text style={styles.note}>
-                    🔐 “All payments are 100% secure and encrypted. Your details are never stored.”
-                </Text>
+                {/* ✅ Secure Note */}
+                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 10 }}>
+                    <Ionicons
+                        name="lock-closed-outline"
+                        size={22}
+                        color="#000"
+                        style={{ marginRight: 6, marginTop: 47 }}
+                    />
+                    <Text style={styles.note}>
+                        All payments are 100% secure and encrypted. Your details are never stored.
+                    </Text>
+                </View>
 
+                {/* ✅ Agreement Checkbox */}
                 <TouchableOpacity
                     onPress={() => setAgreed(!agreed)}
                     style={styles.customCheckboxContainer}
@@ -209,16 +338,28 @@ const Payment = ({ navigation, route }) => {
                     <FontAwesome
                         name={agreed ? 'check-square' : 'square-o'}
                         size={24}
-                        color={agreed ? '#001F54' : '#888'}
+                        color={agreed ? '#001F54' : '#000'}
+                        style={{ marginRight: 6 }}
                     />
                     <Text style={styles.checkboxText}>
                         I AGREE TO RENTEASY’S RENTAL POLICY AND WILL RETURN THE ITEM SAFELY.
                     </Text>
                 </TouchableOpacity>
 
+                {/* ✅ Pay Now Button */}
                 <TouchableOpacity style={styles.payButton} onPress={handlePayNow}>
-                    <Text style={styles.payText}>PAY NOW</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
+                        <MaterialIcons
+                            name="payments"
+                            size={20}
+                            color="#fff"
+                            style={{ marginRight: 6 }}
+                        />
+                        <Text style={styles.payText}>PAY NOW</Text>
+                    </View>
                 </TouchableOpacity>
+
+
             </ScrollView>
 
             {/* Fixed Bottom Navigation */}
@@ -322,7 +463,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#007bff",
+        backgroundColor: "#001F54",
         paddingVertical: 10,
         paddingHorizontal: 15,
         borderRadius: 8,
@@ -365,17 +506,21 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
     },
     payButton: {
-        backgroundColor: '#001F54',
-        paddingVertical: 14,
-        borderRadius: 10,
-        alignItems: 'center',
-        marginTop: 10,
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#001F54",
+        borderRadius: 8,
+        paddingVertical: 12,
+        marginTop: 18,
     },
     payText: {
-        color: '#fff',
+        color: "#fff",
+        fontWeight: "bold",
+        textTransform: "uppercase",
         fontSize: 16,
-        fontWeight: 'bold',
     },
+
     bottomNav: {
         flexDirection: 'row',
         justifyContent: 'space-around',

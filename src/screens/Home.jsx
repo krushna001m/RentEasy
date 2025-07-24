@@ -49,7 +49,7 @@ const Home = ({ navigation }) => {
                 />
 
                 <View style={{ marginHorizontal: 10, flexDirection: 'row' }}>
-                    <MaterialIcons name="trending-up" size={25} color="#007bff" style={{ marginTop: 10 }} />
+                    <MaterialIcons name="trending-up" size={25} color="#001F54" style={{ marginTop: 10 }} />
                     <Text style={{ fontSize: 15, color: '#333', fontWeight: '600', marginTop: 10, marginLeft: 10 }}>Trending</Text>
                 </View>
 
@@ -66,15 +66,16 @@ const Home = ({ navigation }) => {
                         ],
                         categories: ["electronics"],
                         included: [
-                            "       🔋 BATTERY & CHARGER | 💾 64GB MEMORY CARD",
-                            "       🎒 CARRY CASE",
+                            "🔋 BATTERY & CHARGER ",
+                            "💾 64GB MEMORY CARD",
+                            "🎒 CARRY CASE",
                         ],
-                        price: "        📅 ₹500/DAY | ₹1300/3 DAYS | ₹2800/WEEK",
-                        deposit: "      ₹5000 (REFUNDABLE)",
-                        owner: "     KRUSHNA MENGAL",
-                        location: "     PUNE, MAHARASHTRA",
-                        rating: "       4.9/5 (100 REVIEWS)",
-                        availability: "     ON REQUEST",
+                        price: "📅 ₹500/DAY | ₹1300/3 DAYS | ₹2800/WEEK",
+                        deposit: "₹5000 (REFUNDABLE)",
+                        owner: "KRUSHNA MENGAL",
+                        location: "PUNE, MAHARASHTRA",
+                        rating: "4.9/5 (100 REVIEWS)",
+                        availability: "ON REQUEST",
                     }}
                     navigation={navigation}
                 />

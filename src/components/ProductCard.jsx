@@ -2,6 +2,9 @@ import React from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import Entypo from "react-native-vector-icons/Entypo";
 import { categories } from "../constants/categories";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+import FontAwesome from "react-native-vector-icons/FontAwesome";
 
 const ProductCard = ({ image, title, info, navigation }) => {
   const renderStars = (ratingString) => {
@@ -50,7 +53,11 @@ const ProductCard = ({ image, title, info, navigation }) => {
       )}
 
       <View style={styles.infoBox}>
-        <Text style={styles.infoTitle}>{title}</Text>
+        {/* Title with Icon */}
+        <View style={styles.titleRow}>
+          <Ionicons name="information-circle-outline" size={20} color="#333" />
+          <Text style={styles.infoTitle}>{title}</Text>
+        </View>
 
         {/* Features */}
         {info.features &&
@@ -61,9 +68,12 @@ const ProductCard = ({ image, title, info, navigation }) => {
           ))}
 
         {/* Categories */}
-        {Array.isArray(info.categories) && info.categories.length > 0 ? (
+        {Array.isArray(info.categories) && info.categories.length > 0 && (
           <>
-            <Text style={styles.infoHeader}>📂 CATEGORIES:</Text>
+            <View style={styles.headerRow}>
+              <MaterialIcons name="category" size={18} color="#555" />
+              <Text style={styles.infoHeader}>CATEGORIES:</Text>
+            </View>
             <Text style={styles.content}>
               {info.categories
                 .map((catId) => {
@@ -73,13 +83,15 @@ const ProductCard = ({ image, title, info, navigation }) => {
                 .join(", ")}
             </Text>
           </>
-        ) : null}
-
+        )}
 
         {/* Included */}
         {info.included && info.included.length > 0 && (
           <>
-            <Text style={styles.infoHeader}>📦 WHAT'S INCLUDED:</Text>
+            <View style={styles.headerRow}>
+              <Ionicons name="cube-outline" size={18} color="#555" />
+              <Text style={styles.infoHeader}>WHAT'S INCLUDED:</Text>
+            </View>
             {info.included.map((line, i) => (
               <Text style={styles.content} key={`incl-${i}`}>
                 {line}
@@ -91,7 +103,10 @@ const ProductCard = ({ image, title, info, navigation }) => {
         {/* Rental Price */}
         {info.price && (
           <>
-            <Text style={styles.infoHeader}>💰 RENTAL PRICE:</Text>
+            <View style={styles.headerRow}>
+              <FontAwesome name="money" size={18} color="#555" />
+              <Text style={styles.infoHeader}>RENTAL PRICE:</Text>
+            </View>
             <Text style={styles.content}>{info.price}</Text>
           </>
         )}
@@ -99,7 +114,10 @@ const ProductCard = ({ image, title, info, navigation }) => {
         {/* Security Deposit */}
         {info.deposit && (
           <>
-            <Text style={styles.infoHeader}>🔐 SECURITY DEPOSIT:</Text>
+            <View style={styles.headerRow}>
+              <Ionicons name="lock-closed-outline" size={18} color="#555" />
+              <Text style={styles.infoHeader}>SECURITY DEPOSIT:</Text>
+            </View>
             <Text style={styles.content}>{info.deposit}</Text>
           </>
         )}
@@ -107,7 +125,10 @@ const ProductCard = ({ image, title, info, navigation }) => {
         {/* Owner */}
         {info.owner && (
           <>
-            <Text style={styles.infoHeader}>👤 OWNER:</Text>
+            <View style={styles.headerRow}>
+              <Ionicons name="person-outline" size={18} color="#555" />
+              <Text style={styles.infoHeader}>OWNER:</Text>
+            </View>
             <Text style={styles.content}>{info.owner}</Text>
           </>
         )}
@@ -115,7 +136,10 @@ const ProductCard = ({ image, title, info, navigation }) => {
         {/* Location */}
         {info.location && (
           <>
-            <Text style={styles.infoHeader}>📍 LOCATION:</Text>
+            <View style={styles.headerRow}>
+              <Ionicons name="location-outline" size={18} color="#555" />
+              <Text style={styles.infoHeader}>LOCATION:</Text>
+            </View>
             <Text style={styles.content}>{info.location}</Text>
           </>
         )}
@@ -123,20 +147,24 @@ const ProductCard = ({ image, title, info, navigation }) => {
         {/* Availability */}
         {info.availability && (
           <>
-            <Text style={styles.infoHeader}>📅 AVAILABILITY:</Text>
+            <View style={styles.headerRow}>
+              <Ionicons name="calendar-outline" size={18} color="#555" />
+              <Text style={styles.infoHeader}>AVAILABILITY:</Text>
+            </View>
             <Text style={styles.content}>{info.availability}</Text>
           </>
         )}
 
+        {/* Book Now Button */}
         <TouchableOpacity
           style={styles.bookBtn}
-          onPress={() =>
-            navigation.navigate("Payment", { itemInfo: info, title })
-          }
+          onPress={() => navigation.navigate("Payment", { itemInfo: info, title })}
         >
-          <Text style={styles.bookText}>📅 BOOK NOW</Text>
+          <Ionicons name="calendar" size={18} color="#fff" />
+          <Text style={styles.bookText}>BOOK NOW</Text>
         </TouchableOpacity>
       </View>
+
     </View>
   );
 };
@@ -175,44 +203,60 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   infoBox: {
-    backgroundColor: "#eee",
-    padding: 16,
-    borderRadius: 20,
-    marginTop: 10,
-    borderColor: "black",
-    borderWidth: 0.4,
-  },
-  infoTitle: {
-    fontWeight: "bold",
-    fontSize: 18,
+    padding: 15,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    elevation: 3,
     marginBottom: 10,
-    color: "#000",
-    textAlign: "center",
-    textTransform: "uppercase",
   },
-  infoHeader: {
-    marginTop: 12,
+
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 5,
+  },
+
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+  },
+
+  infoTitle: {
+    fontSize: 18,
     fontWeight: "bold",
-    fontSize: 14,
     color: "#333",
+    marginLeft: 6,
   },
+
+  infoHeader: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#555",
+    marginLeft: 6,
+  },
+
   content: {
     fontSize: 14,
-    fontWeight: "400",
-    lineHeight: 20,
-    marginLeft:15
+    color: "#666",
+    marginLeft: 25, // aligns under the header
+    marginTop: 4,
   },
+
   bookBtn: {
-    backgroundColor: "#001F54",
-    marginTop: 18,
-    borderRadius: 8,
-    padding: 12,
+    flexDirection: "row",
+    justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#001F54",
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 15,
   },
+
   bookText: {
-    color: "white",
+    color: "#fff",
     fontWeight: "bold",
-    textTransform: "uppercase",
-    fontSize: 14,
+    fontSize: 16,
+    marginLeft: 5,
   },
 });

@@ -103,12 +103,12 @@ const SignUp = ({ navigation }) => {
         return;
       }
 
-      const response = await axios.post(`${URL}/users.json`, {
-        username,
+      const response = await axios.put(`${URL}/users/${username}.json`, {
         password,
         roles,
-        agreed,
+        agreed
       });
+
 
       if (response.status === 200) {
         Alert.alert("Success", "Account created successfully!");
