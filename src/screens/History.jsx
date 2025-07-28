@@ -22,6 +22,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PDFView from "react-native-view-pdf"; // For PDF preview
 import RNFS from 'react-native-fs';
+import Loader from '../components/Loader'; 
 
 const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
@@ -31,10 +32,12 @@ const History = ({ navigation }) => {
     const [pdfPath, setPdfPath] = useState("");
     console.log("RNHTMLtoPDF:", RNHTMLtoPDF);
     console.log("FileViewer:", FileViewer);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         const fetchHistory = async () => {
             try {
+                setLoading(true);
                 const username = await AsyncStorage.getItem("username");
                 if (!username) return;
 
@@ -43,6 +46,8 @@ const History = ({ navigation }) => {
                 setHistory(Object.values(data).reverse());
             } catch (error) {
                 console.error("Error fetching history:", error);
+            } finally {
+                setLoading(false);
             }
         };
 
@@ -292,6 +297,7 @@ const History = ({ navigation }) => {
                                     <Text style={styles.downloadBtnText}>View</Text>
                                 </TouchableOpacity>
 
+
                             </View>
 
 
@@ -322,6 +328,7 @@ const History = ({ navigation }) => {
                     <Text style={styles.navLabel}>Profile</Text>
                 </TouchableOpacity>
             </View>
+            <Loader visible={loading} />
         </View>
     );
 };

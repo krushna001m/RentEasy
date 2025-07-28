@@ -14,12 +14,15 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native'; // ✅ Auto-refresh when navigating back
 
+import Loader from '../components/Loader';
+
 const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
 const Profile = ({ navigation }) => {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     const isFocused = useIsFocused(); // ✅ Re-fetch when screen focused
+    const [loading, setLoading] = useState(false);
 
     const [profile, setProfile] = useState({
         name: "",
@@ -41,6 +44,7 @@ const Profile = ({ navigation }) => {
     // ✅ Fetch User Listings (Owner Role)
     const fetchUserListings = async (username) => {
         try {
+            setLoading(true);
             const response = await axios.get(`${URL}/items.json`);
             const items = response.data || {};
             return Object.entries(items)
@@ -54,12 +58,15 @@ const Profile = ({ navigation }) => {
         } catch (error) {
             console.error("Error fetching listings:", error);
             return [];
+        } finally {
+            setLoading(false);
         }
     };
 
     // ✅ Fetch User Rentals (Borrower Role)
     const fetchUserRentals = async (username) => {
         try {
+            setLoading(true);
             const response = await axios.get(`${URL}/history/${username}.json`);
             const history = response.data || {};
             return Object.entries(history).map(([key, rental]) => ({
@@ -72,11 +79,14 @@ const Profile = ({ navigation }) => {
         } catch (error) {
             console.error("Error fetching rentals:", error);
             return [];
+        } finally {
+            setLoading(false);
         }
     };
 
     const fetchUserProfile = async () => {
         try {
+            setLoading(true);
             const loggedInUserData = await AsyncStorage.getItem("loggedInUser");
             if (!loggedInUserData) return;
 
@@ -104,6 +114,8 @@ const Profile = ({ navigation }) => {
             setTempProfile(updatedProfile);
         } catch (error) {
             console.error("Profile Fetch Error:", error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -116,6 +128,7 @@ const Profile = ({ navigation }) => {
     // ✅ Save Updated Profile
     const saveProfile = async () => {
         try {
+            setLoading(true);
             const loggedInUserData = await AsyncStorage.getItem("loggedInUser");
             if (!loggedInUserData) return;
 
@@ -144,6 +157,8 @@ const Profile = ({ navigation }) => {
             }
         } catch (error) {
             Alert.alert("Profile Update Error:", error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -347,6 +362,7 @@ const Profile = ({ navigation }) => {
                     <Text style={styles.navLabel}>Profile</Text>
                 </TouchableOpacity>
             </View>
+            <Loader visible={loading} />
         </View>
     );
 };

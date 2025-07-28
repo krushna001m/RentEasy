@@ -18,10 +18,12 @@ import axios from 'axios';
 import { useIsFocused } from '@react-navigation/native';
 import { categories } from '../constants/categories';
 import SearchWithFilter from '../components/SearchWithFilter';
+import Loader from '../components/Loader';
 
 const BrowseItems = ({ navigation }) => {
     const [allItems, setAllItems] = useState([]);
     const [filteredItems, setFilteredItems] = useState([]);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         // ✅ fetch items from Firebase
@@ -43,6 +45,7 @@ const BrowseItems = ({ navigation }) => {
     useEffect(() => {
         const fetchItems = async () => {
             try {
+                setLoading(true);
                 const response = await axios.get(
                     `${URL}/items.json` // ✅ Replace with your DB URL
                 );
@@ -58,6 +61,8 @@ const BrowseItems = ({ navigation }) => {
                 }
             } catch (error) {
                 console.error("Error fetching items:", error);
+            } finally {
+                setLoading(false);
             }
         };
 
@@ -226,6 +231,7 @@ const BrowseItems = ({ navigation }) => {
                     <Text style={styles.navLabel}>Profile</Text>
                 </TouchableOpacity>
             </View>
+            <Loader visible={loading} />
         </View>
     );
 };

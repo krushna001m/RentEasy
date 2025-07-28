@@ -70,35 +70,35 @@ const Login = ({ navigation }) => {
   };
 
   const handleLogin = async () => {
-    if (!validateInputs()) {
-      return; // Stop if validation fails
+  if (!validateInputs()) return;
+
+  const { username, password } = formData;
+
+  try {
+    const response = await axios.get(`${URL}/users.json`);
+    const usersData = response.data || {};
+
+    const matchedUser = Object.values(usersData).find((user) => {
+      const input = username.toLowerCase().trim();
+      const userMatch = user.username?.toLowerCase() === input || user.email?.toLowerCase() === input;
+      return userMatch && user.password === password;
+    });
+
+    if (matchedUser) {
+      await AsyncStorage.setItem("username", matchedUser.username);
+      await AsyncStorage.setItem("loggedInUser", JSON.stringify(matchedUser));
+
+      console.log("✅ Logged in user:", matchedUser.username);
+      Alert.alert("Success", `Welcome back, ${matchedUser.username}!`);
+      navigation.navigate("Home");
+    } else {
+      Alert.alert("Login Failed", "Invalid username/email or password");
     }
-
-    const { username, password } = formData;
-
-    try {
-      const response = await axios.get(`${URL}/users.json`);
-      const usersData = response.data || {};
-
-      const matchedUser = Object.values(usersData).find(
-        (users) => users.username === username && users.password === password
-      );
-
-      if (matchedUser) {
-        await AsyncStorage.setItem("username", matchedUser.username);
-        await AsyncStorage.setItem("loggedInUser", JSON.stringify(matchedUser));
-
-        console.log("✅ Logged in user:", matchedUser.username);
-        Alert.alert("Success", `Welcome back, ${matchedUser.username}!`);
-        navigation.navigate("Home");
-      } else {
-        Alert.alert("Login Failed", "Invalid username or password");
-      }
-    } catch (error) {
-      console.error("Login Error:", error);
-      Alert.alert("Error", "Something went wrong. Try again.");
-    }
-  };
+  } catch (error) {
+    console.error("Login Error:", error.message);
+    Alert.alert("Error", "Something went wrong. Please try again later.");
+  }
+};
 
   return (
     <SafeAreaView style={styles.safeArea}>

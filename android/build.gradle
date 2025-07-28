@@ -9,6 +9,7 @@ buildscript {
 
     }
     repositories {
+         maven { url 'https://jitpack.io' }
         google()
         mavenCentral()
     }
@@ -17,6 +18,13 @@ buildscript {
         classpath("com.facebook.react:react-native-gradle-plugin")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
         classpath 'com.google.gms:google-services:4.4.2'
+    }
+}
+allprojects {
+    repositories {
+        maven { url 'https://jitpack.io' }    // 👈 This is required
+        google()
+        mavenCentral()
     }
 }
 

@@ -17,6 +17,7 @@ import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 import AntDesign from "react-native-vector-icons/AntDesign";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width, height } = Dimensions.get("window");
 
@@ -95,23 +96,44 @@ const SignUp = ({ navigation }) => {
       const usersData = existingUsers.data || {};
 
       const userExists = Object.values(usersData).some(
-        (user) => user.username === username
+        (user) => {
+          const input = username.toLowerCase().trim();
+          return (
+            user.username?.toLowerCase() === input ||
+            user.email?.toLowerCase() === input
+          );
+        }
       );
 
       if (userExists) {
-        Alert.alert("Error", "Username already exists.");
+        Alert.alert("Error", "Username or Email already exists.");
         return;
       }
 
-      const response = await axios.put(`${URL}/users/${username}.json`, {
+      const sanitizedUsername = username.replace(/[.#$/[\]]/g, "_");
+
+      const newUser = {
+        username,
         password,
         roles,
-        agreed
-      });
+        agreed,
+        createdAt: new Date().toISOString()
+      };
 
-
+      const response = await axios.post(`${URL}/users.json`, newUser);
       if (response.status === 200) {
+        await AsyncStorage.setItem("username", newUser.username);
+        await AsyncStorage.setItem("loggedInUser", JSON.stringify(newUser));
+
         Alert.alert("Success", "Account created successfully!");
+        setFormData({
+          username: "",
+          password: "",
+          confirmPassword: "",
+          isOwner: true,
+          isBorrower: true,
+          agreed: false,
+        });
         navigation.navigate("Home");
       } else {
         Alert.alert("Error", "Something went wrong. Try again.");
@@ -281,6 +303,7 @@ const SignUp = ({ navigation }) => {
 };
 
 export default SignUp;
+
 
 const styles = StyleSheet.create({
   safeArea: {

@@ -9,22 +9,33 @@ import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import ProductCard from '../components/ProductCard';
 import { categories } from '../constants/categories';
 import SearchWithFilter from '../components/SearchWithFilter';
+import axios from 'axios';
+import Loader from '../components/Loader';
 
 
 const Home = ({ navigation }) => {
     const [allItems, setAllItems] = useState([]);
     const [filteredItems, setFilteredItems] = useState([]);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        // ✅ fetch items from Firebase
-        const fetchItems = async () => {
+    const fetchItems = async () => {
+        setLoading(true); // show loader
+        try {
             const res = await axios.get(`${URL}/items.json`);
             const itemsArray = Object.values(res.data || {});
             setAllItems(itemsArray);
             setFilteredItems(itemsArray);
-        };
-        fetchItems();
-    }, []);
+        } catch (error) {
+            console.error('Error fetching items:', error);
+        } finally {
+            setLoading(false); // ✅ hide loader after fetch
+        }
+    };
+
+    fetchItems(); // ✅ correct async call
+}, []);
+
 
 
     return (
@@ -118,7 +129,7 @@ const Home = ({ navigation }) => {
                     <Text style={styles.navLabel}>Profile</Text>
                 </TouchableOpacity>
             </View>
-
+            <Loader visible={loading} />
         </View>
     );
 };

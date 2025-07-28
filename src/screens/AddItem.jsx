@@ -68,7 +68,7 @@ const AddItem = ({ navigation }) => {
     });
 
     const [imageUri, setImageUri] = useState(null);
-    const [previewVisible, setPreviewVisible] = useState(false); // ✅ NEW
+    const [previewVisible, setPreviewVisible] = useState(false); 
 
     const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
@@ -136,9 +136,10 @@ const AddItem = ({ navigation }) => {
                 ownerPhone: currentUser.phone,
             };
 
-            await axios.post(`${URL}/items/${title}.json`, finalData);
+            await axios.post(`${URL}/items/${itemData.title}.json`, finalData);
 
             const historyData = {
+                title: finalData.title,
                 categories: finalData.categories,
                 owner: finalData.owner,
                 price: finalData.pricePerDay,
