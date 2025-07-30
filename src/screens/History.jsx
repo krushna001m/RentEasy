@@ -9,7 +9,6 @@ import {
     Platform,
     Alert,
     PermissionsAndroid,
-    Modal
 } from 'react-native';
 import Entypo from 'react-native-vector-icons/Entypo';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -20,18 +19,13 @@ import FileViewer from "react-native-file-viewer";
 import Share from 'react-native-share';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import PDFView from "react-native-view-pdf"; // For PDF preview
 import RNFS from 'react-native-fs';
-import Loader from '../components/Loader'; 
+import Loader from '../components/Loader';
 
 const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
 const History = ({ navigation }) => {
     const [history, setHistory] = useState([]);
-    const [previewVisible, setPreviewVisible] = useState(false);
-    const [pdfPath, setPdfPath] = useState("");
-    console.log("RNHTMLtoPDF:", RNHTMLtoPDF);
-    console.log("FileViewer:", FileViewer);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -43,7 +37,11 @@ const History = ({ navigation }) => {
 
                 const response = await axios.get(`${URL}/history/${username}.json`);
                 const data = response.data || {};
-                setHistory(Object.values(data).reverse());
+                const historyArray = Object.entries(data).reverse().map(([key, value]) => ({
+                    key,
+                    ...value,
+                }));
+                setHistory(historyArray);
             } catch (error) {
                 console.error("Error fetching history:", error);
             } finally {
@@ -54,7 +52,6 @@ const History = ({ navigation }) => {
         fetchHistory();
     }, []);
 
-    // ✅ Ask storage permission for Android
     const requestStoragePermission = async () => {
         if (Platform.OS === "android") {
             const granted = await PermissionsAndroid.request(
@@ -62,8 +59,6 @@ const History = ({ navigation }) => {
                 {
                     title: "Storage Permission Required",
                     message: "RentEasy needs access to your storage to save receipts.",
-                    buttonNeutral: "Ask Me Later",
-                    buttonNegative: "Cancel",
                     buttonPositive: "OK",
                 }
             );
@@ -87,10 +82,10 @@ const History = ({ navigation }) => {
         }
     };
 
-    // ✅ Generate Receipt (Download / Share)
     const generateReceipt = async (item, share = false) => {
         const logoBase64 = await getLogoBase64();
         try {
+            setLoading(true);
             const hasPermission = await requestStoragePermission();
             if (!hasPermission) {
                 Alert.alert("Permission Denied", "Cannot save receipt without storage permission.");
@@ -98,47 +93,59 @@ const History = ({ navigation }) => {
             }
 
             const htmlContent = `
-            <div style="font-family: Arial, sans-serif; max-width: 400px; margin: auto; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #f9f9f9;">
-                
-                <!-- Header with Logo -->
-                 <div style="text-align: center; margin-bottom: 15px;">
-      <img src="${logoBase64}" style="width:80px; height:auto; margin-bottom:5px;" />
-      <h1 style="color:#001F54; font-size:20px; margin:5px 0;">RentEasy Receipt</h1>
+  <div style="
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 600px;
+      margin: auto;
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      border: 1px solid #e0e0e0;
+  ">
+    <h1 style="
+        text-align: center;
+        color: #2c3e50;
+        margin-bottom: 30px;
+        border-bottom: 3px solid #4CAF50;
+        padding-bottom: 10px;
+    ">
+      🧾 RentEasy Receipt
+    </h1>
+
+    <div style="margin-bottom: 20px;">
+      <h2 style="color: #4CAF50; font-size: 20px; margin-bottom: 10px;">📦 Item Details</h2>
+      <p style="font-size: 18px;"><strong>Title:</strong> ${item.title}</p>
+      <p style="font-size: 18px;"><strong>Owner:</strong> ${item.owner || "N/A"}</p>
+      <p style="font-size: 18px;"><strong>Price:</strong> ₹${item.price || "N/A"}</p>
+      <p style="font-size: 18px;"><strong>Status:</strong> ${item.status}</p>
+      <p style="font-size: 18px;"><strong>Date:</strong> ${new Date(item.date).toLocaleDateString()}</p>
     </div>
 
-                <!-- Receipt Details -->
-                <div style="background: #ffffff; padding: 10px; border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.1);">
-                <p style="margin:5px 0;"><b>Item:</b> ${item.title}</p>
-                <p style="margin:5px 0;"><b>Owner:</b> ${item.owner || "N/A"}</p>
-                <p style="margin:5px 0;"><b>Price:</b> <span style="color:#009688; font-weight:bold;">₹${item.price || "N/A"}</span></p>
-                <p style="margin:5px 0;"><b>Status:</b> ${item.status}</p>
-                <p style="margin:5px 0;"><b>Date:</b> ${new Date(item.date).toLocaleDateString()}</p>
-                </div>
+    <div style="
+        height: 1px;
+        background-color: #ccc;
+        margin: 20px 0;
+    "></div>
 
-                <hr style="margin:15px 0; border:none; border-top:1px solid #ccc;"/>
-
-                <!-- Footer -->
-                <p style="text-align:center; font-size:12px; color:#555;">
-                ✅ Thank you for using <b>RentEasy</b>!<br/>
-                <span style="color:#001F54;">www.renteasy.com</span>
-                </p>
-            </div>
+    <div style="text-align: center;">
+      <p style="font-size: 16px; color: #666;">For any queries, contact us at <strong>support@renteasy.com</strong></p>
+      <p style="font-size: 16px; color: #666;">Thank you for using <strong style="color: #4CAF50;">RentEasy</strong>!</p>
+    </div>
+  </div>
 `;
 
 
-            let options = {
+            const file = await RNHTMLtoPDF.convert({
                 html: htmlContent,
                 fileName: `RentEasy_Receipt_${item.title.replace(/\s/g, "_")}`,
                 directory: Platform.OS === "android" ? "Downloads" : "Documents",
-            };
-
-            const file = await RNHTMLtoPDF.convert(options);
+            });
 
             if (share) {
                 await Share.open({
                     url: `file://${file.filePath}`,
                     type: "application/pdf",
-                    failOnCancel: false,
                 });
             } else {
                 Alert.alert("Receipt Generated ✅", `Saved to: ${file.filePath}`);
@@ -146,37 +153,54 @@ const History = ({ navigation }) => {
         } catch (error) {
             console.error("PDF Error:", error);
             Alert.alert("Error", "Could not generate receipt.");
+        } finally {
+            setLoading(false);
         }
     };
 
-    // ✅ View Receipt using Native PDF Viewer
     const viewReceipt = async (item) => {
         try {
+            setLoading(true);
             const htmlContent = `
-  <div style="font-family: Arial, sans-serif; max-width: 400px; margin: auto; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #f9f9f9;">
-    
-    <!-- Header with Logo -->
-    <div style="text-align: center; margin-bottom: 15px;">
-      <img src="file:///android_asset/logo.png" alt="RentEasy Logo" style="width:80px; height:auto; margin-bottom:5px;" />
-      <h1 style="color:#001F54; font-size:20px; margin:5px 0;">RentEasy Receipt</h1>
+  <div style="
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 600px;
+      margin: auto;
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      border: 1px solid #e0e0e0;
+  ">
+    <h1 style="
+        text-align: center;
+        color: #2c3e50;
+        margin-bottom: 30px;
+        border-bottom: 3px solid #4CAF50;
+        padding-bottom: 10px;
+    ">
+      🧾 RentEasy Receipt
+    </h1>
+
+    <div style="margin-bottom: 20px;">
+      <h2 style="color: #4CAF50; font-size: 20px; margin-bottom: 10px;">📦 Item Details</h2>
+      <p style="font-size: 18px;"><strong>Title:</strong> ${item.title}</p>
+      <p style="font-size: 18px;"><strong>Owner:</strong> ${item.owner || "N/A"}</p>
+      <p style="font-size: 18px;"><strong>Price:</strong> ₹${item.price || "N/A"}</p>
+      <p style="font-size: 18px;"><strong>Status:</strong> ${item.status}</p>
+      <p style="font-size: 18px;"><strong>Date:</strong> ${new Date(item.date).toLocaleDateString()}</p>
     </div>
 
-    <!-- Receipt Details -->
-    <div style="background: #ffffff; padding: 10px; border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.1);">
-      <p style="margin:5px 0;"><b>Item:</b> ${item.title}</p>
-      <p style="margin:5px 0;"><b>Owner:</b> ${item.owner || "N/A"}</p>
-      <p style="margin:5px 0;"><b>Price:</b> <span style="color:#009688; font-weight:bold;">₹${item.price || "N/A"}</span></p>
-      <p style="margin:5px 0;"><b>Status:</b> ${item.status}</p>
-      <p style="margin:5px 0;"><b>Date:</b> ${new Date(item.date).toLocaleDateString()}</p>
+    <div style="
+        height: 1px;
+        background-color: #ccc;
+        margin: 20px 0;
+    "></div>
+
+    <div style="text-align: center;">
+      <p style="font-size: 16px; color: #666;">For any queries, contact us at <strong>support@renteasy.com</strong></p>
+      <p style="font-size: 16px; color: #666;">Thank you for using <strong style="color: #4CAF50;">RentEasy</strong>!</p>
     </div>
-
-    <hr style="margin:15px 0; border:none; border-top:1px solid #ccc;"/>
-
-    <!-- Footer -->
-    <p style="text-align:center; font-size:12px; color:#555;">
-      ✅ Thank you for using <b>RentEasy</b>!<br/>
-      <span style="color:#001F54;">www.renteasy.com</span>
-    </p>
   </div>
 `;
 
@@ -187,15 +211,29 @@ const History = ({ navigation }) => {
                 directory: Platform.OS === "android" ? "Downloads" : "Documents",
             });
 
-            await FileViewer.open(file.filePath, {
-                showOpenWithDialog: true, // Android: lets user pick app (Google Drive, etc.)
-                showAppsSuggestions: true,
-            });
+            await FileViewer.open(file.filePath);
         } catch (error) {
             console.error("Preview Error:", error);
             Alert.alert("Error", "Could not open receipt.");
+        } finally {
+            setLoading(false);
         }
     };
+
+    const deleteHistoryItem = async (itemKey) => {
+        try {
+            const username = await AsyncStorage.getItem("username");
+            if (!username) return;
+
+            await axios.delete(`${URL}/history/${username}/${itemKey}.json`);
+            setHistory(prev => prev.filter(entry => entry.key !== itemKey));
+            Alert.alert("Deleted ✅", "History item removed.");
+        } catch (error) {
+            console.error("Delete Error:", error);
+            Alert.alert("Error", "Failed to delete the item.");
+        }
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -211,123 +249,71 @@ const History = ({ navigation }) => {
                 <Text style={styles.title}>WELCOME TO RENTEASY</Text>
                 <Text style={styles.subtitle}>RENT IT, USE IT, RETURN IT!</Text>
 
-                <TouchableOpacity style={styles.historyTab}>
-                    <Text style={styles.historyTabText}>HISTORY</Text>
-                    <Ionicons name="document-text" size={20} color="#fff" style={{ marginLeft: 8 }} />
-                </TouchableOpacity>
-
                 <Text style={styles.label}>YOUR RENTAL HISTORY</Text>
 
                 {history.length === 0 ? (
                     <Text style={{ marginTop: 10, color: "#555" }}>No rental history yet.</Text>
                 ) : (
                     history.map((item, index) => (
-                        <View key={index} style={styles.summaryCard}>
+                        <View key={item.key} style={styles.summaryCard}>
+                            <View style={styles.row}><Ionicons name="cube-outline" size={16} color="#333" /><Text style={styles.summaryText}>ITEM: {item.title}</Text></View>
+                            {item.owner && <View style={styles.row}><Ionicons name="person-outline" size={16} color="#333" /><Text style={styles.summaryText}>OWNER: {item.owner}</Text></View>}
+                            {item.price && <View style={styles.row}><FontAwesome name="money" size={16} color="#333" /><Text style={styles.summaryText}>PRICE: ₹{item.price}</Text></View>}
+                            {item.date && <View style={styles.row}><Ionicons name="calendar-outline" size={16} color="#333" /><Text style={styles.summaryText}>DATE: {new Date(item.date).toLocaleDateString()}</Text></View>}
+                            <View style={styles.row}><Ionicons name={item.status === "Completed" ? "checkmark-circle-outline" : "time-outline"} size={16} color={item.status === "Completed" ? "#4CAF50" : "#FF9800"} /><Text style={styles.summaryText}>STATUS: {item.status}</Text></View>
 
-                            {/* ✅ ITEM */}
-                            <View style={styles.row}>
-                                <Ionicons name="cube-outline" size={16} color="#333" style={styles.icon} />
-                                <Text style={styles.summaryText}>ITEM: {item.title}</Text>
-                            </View>
-
-                            {/* ✅ OWNER */}
-                            {item.owner && (
-                                <View style={styles.row}>
-                                    <Ionicons name="person-outline" size={16} color="#333" style={styles.icon} />
-                                    <Text style={styles.summaryText}>OWNER: {item.owner}</Text>
-                                </View>
-                            )}
-
-                            {/* ✅ PRICE */}
-                            {item.price && (
-                                <View style={styles.row}>
-                                    <FontAwesome name="money" size={16} color="#333" style={styles.icon} />
-                                    <Text style={styles.summaryText}>PRICE: {item.price}</Text>
-                                </View>
-                            )}
-
-                            {/* ✅ DATE */}
-                            {item.date && (
-                                <View style={styles.row}>
-                                    <Ionicons name="calendar-outline" size={16} color="#333" style={styles.icon} />
-                                    <Text style={styles.summaryText}>
-                                        DATE: {new Date(item.date).toLocaleDateString()}
-                                    </Text>
-                                </View>
-                            )}
-
-                            {/* ✅ STATUS */}
-                            <View style={styles.row}>
-                                <Ionicons
-                                    name={item.status === "Completed" ? "checkmark-circle-outline" : "time-outline"}
-                                    size={16}
-                                    color={item.status === "Completed" ? "#4CAF50" : "#FF9800"}
-                                    style={styles.icon}
-                                />
-                                <Text style={styles.summaryText}>STATUS: {item.status}</Text>
-                            </View>
-
-                            {/* ✅ Action Buttons */}
                             <View style={styles.btnRows}>
-
-                                {/* Download Receipt */}
-                                <TouchableOpacity
-                                    style={[styles.downloadBtn, { backgroundColor: "#001F54" }]}
-                                    onPress={() => generateReceipt(item)}
-                                >
-                                    <Ionicons name="download-outline" size={18} color="#fff" style={{ marginRight: 5 }} />
-                                    <Text style={styles.downloadBtnText}>Download</Text>
+                                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "#001F54" }]} onPress={() => generateReceipt(item)}>
+                                    <Ionicons name="download-outline" size={18} color="#fff" />
+                                    <Text style={styles.actionBtnText}>Download</Text>
                                 </TouchableOpacity>
 
-                                {/* Share Receipt */}
-                                <TouchableOpacity
-                                    style={[styles.downloadBtn, { backgroundColor: "#4CAF50" }]}
-                                    onPress={() => generateReceipt(item, true)}
-                                >
-                                    <Ionicons name="share-social-outline" size={18} color="#fff" style={{ marginRight: 5 }} />
-                                    <Text style={styles.downloadBtnText}>Share</Text>
+                                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "#4CAF50" }]} onPress={() => generateReceipt(item, true)}>
+                                    <Ionicons name="share-social-outline" size={18} color="#fff" />
+                                    <Text style={styles.actionBtnText}>Share</Text>
                                 </TouchableOpacity>
 
-                                {/* View PDF */}
-                                <TouchableOpacity
-                                    style={[styles.downloadBtn, { backgroundColor: "#FF9800" }]}
-                                    onPress={() => viewReceipt(item)}
-                                >
-                                    <Ionicons name="eye-outline" size={18} color="#fff" style={{ marginRight: 5 }} />
-                                    <Text style={styles.downloadBtnText}>View</Text>
+                                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "#FF9800" }]} onPress={() => viewReceipt(item)}>
+                                    <Ionicons name="eye-outline" size={18} color="#fff" />
+                                    <Text style={styles.actionBtnText}>View</Text>
                                 </TouchableOpacity>
 
-
+                                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "#E53935" }]} onPress={() => deleteHistoryItem(item.key)}>
+                                    <Ionicons name="trash-outline" size={18} color="#fff" />
+                                    <Text style={styles.actionBtnText}>Delete</Text>
+                                </TouchableOpacity>
                             </View>
-
-
                         </View>
                     ))
                 )}
             </ScrollView>
-
             <View style={styles.bottomNav}>
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Home")}>
                     <Ionicons name="home" size={28} />
                     <Text style={styles.navLabel}>Home</Text>
                 </TouchableOpacity>
+
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("BrowseItems")}>
                     <MaterialIcons name="explore" size={28} />
                     <Text style={styles.navLabel}>Explore</Text>
                 </TouchableOpacity>
+
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("AddItem")}>
                     <Entypo name="plus" size={28} />
                     <Text style={styles.navLabel}>Add</Text>
                 </TouchableOpacity>
+
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("History")}>
                     <Ionicons name="document-text" size={28} />
                     <Text style={styles.navLabel}>History</Text>
                 </TouchableOpacity>
+
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Profile")}>
                     <Ionicons name="person" size={28} />
                     <Text style={styles.navLabel}>Profile</Text>
                 </TouchableOpacity>
             </View>
+
             <Loader visible={loading} />
         </View>
     );
@@ -340,172 +326,86 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#E6F0FA',
         paddingTop: 30,
-        ...Platform.select({
-            ios: {
-                flex: 1,
-                marginTop: 10
-            }
-        })
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
         paddingHorizontal: 16,
-        paddingBottom: 1,
     },
     logo: {
         width: 70,
         height: 70,
         resizeMode: 'contain',
-        borderRadius: 35, // half of width/height
+        borderRadius: 35,
     },
-
     title: {
-        fontSize: 25,
+        fontSize: 24,
         fontWeight: 'bold',
         textAlign: 'center',
         marginTop: 10,
-        marginBottom: 6,
         color: '#1E1E1E',
-
-        textShadowColor: 'rgba(0, 0, 0, 0.25)',
-        textShadowOffset: { width: 1, height: 2 },
-        textShadowRadius: 4,
     },
-
     subtitle: {
         fontSize: 16,
         textAlign: 'center',
-        marginBottom: 16,
         color: '#3a3a3a',
         fontStyle: 'italic',
-        fontWeight: '500',
-        letterSpacing: 0.5,
-        opacity: 0.9,
     },
-
     scrollContainer: {
         paddingHorizontal: 16,
-        paddingBottom: 120,
-    },
-
-    historyTab: {
-        backgroundColor: '#001F54',
-        alignSelf: 'center',
-        padding: 10,
-        paddingHorizontal: 20,
-        borderRadius: 30,
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 20
-    },
-    historyTabText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 17
+        paddingBottom: 100,
     },
     label: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: 'bold',
         color: '#001F54',
         textAlign: 'center',
         marginVertical: 15,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
     },
     summaryCard: {
         backgroundColor: '#fff',
         borderRadius: 12,
         padding: 12,
         marginVertical: 8,
-        marginHorizontal: 12,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 3,
-        elevation: 3, // Android shadow
+        elevation: 3,
         borderLeftWidth: 5,
-        borderLeftColor: '#001F54', // Accent bar
+        borderLeftColor: '#001F54',
+    },
+    row: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 6,
+        gap: 6,
     },
     summaryText: {
         fontSize: 14,
         color: '#333',
-        marginBottom: 4,
-        fontWeight: '500',
-        marginLeft: 4,
     },
-    row:{
+    btnRows: {
         flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 6,
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        marginTop: 10,
+        gap: 10,
     },
-    icon: {
-        marginRight: 8,
-    },
-    downloadBtn: {
+    actionBtn: {
         flexDirection: "row",
-        backgroundColor: "#001F54",
         padding: 8,
         borderRadius: 6,
-        marginTop: 8,
         alignItems: "center",
         justifyContent: "center",
+        flex: 1,
+        minWidth: '47%',
     },
-    downloadBtnText: {
+    actionBtnText: {
         color: "#fff",
         marginLeft: 6,
         fontSize: 13,
         fontWeight: "bold",
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: '#aaa',
-        borderRadius: 10,
-        padding: 10,
-        backgroundColor: '#fff',
-        marginTop: 6
-    },
-    periodRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between'
-    },
-    btnRows: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: 10,
-        marginBottom: 10,
-        flexWrap: 'wrap',
-        gap: 10,
-        alignItems: 'center',
-        paddingHorizontal: 1,
-        paddingVertical: 5,
-    },
-    textBreak: {
-        fontSize: 15,
-        color: '#444',
-        marginTop: 4,
-        marginLeft: 10
-    },
-    status: {
-        fontSize: 15,
-        marginTop: 6,
-        color: '#000',
-        marginLeft: 10
-    },
-    downloadBtn: {
-        marginTop: 30,
-        backgroundColor: '#001F54',
-        padding: 12,
-        borderRadius: 30,
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'center'
-    },
-    downloadText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 17
     },
     bottomNav: {
         flexDirection: 'row',

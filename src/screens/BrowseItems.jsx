@@ -6,7 +6,6 @@ import {
     Text,
     Image,
     ScrollView,
-    TextInput,
     Platform
 } from 'react-native';
 import ProductCard from '../components/ProductCard';
@@ -21,43 +20,29 @@ import SearchWithFilter from '../components/SearchWithFilter';
 import Loader from '../components/Loader';
 
 const BrowseItems = ({ navigation }) => {
-    const [allItems, setAllItems] = useState([]);
+    const [items, setItems] = useState([]);
     const [filteredItems, setFilteredItems] = useState([]);
     const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        // ✅ fetch items from Firebase
-        const fetchItems = async () => {
-            const res = await axios.get(`${URL}/items.json`);
-            const itemsArray = Object.values(res.data || {});
-            setAllItems(itemsArray);
-            setFilteredItems(itemsArray);
-        };
-        fetchItems();
-    }, []);
-
-    const [items, setItems] = useState([]);
     const isFocused = useIsFocused();
-
     const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
-
 
     useEffect(() => {
         const fetchItems = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get(
-                    `${URL}/items.json` // ✅ Replace with your DB URL
-                );
-
+                const response = await axios.get(`${URL}/items.json`);
                 if (response.data) {
-                    const formatted = Object.keys(response.data).map(key => ({
-                        id: key,
-                        ...response.data[key],
-                    }));
+                    const formatted = Object.entries(response.data).flatMap(([parentId, nestedItems]) =>
+                        Object.entries(nestedItems).map(([childId, item]) => ({
+                            id: `${parentId}_${childId}`,
+                            ...item
+                        }))
+                    );
                     setItems(formatted);
+                    setFilteredItems(formatted);
                 } else {
                     setItems([]);
+                    setFilteredItems([]);
                 }
             } catch (error) {
                 console.error("Error fetching items:", error);
@@ -67,13 +52,7 @@ const BrowseItems = ({ navigation }) => {
         };
 
         fetchItems();
-    }, []);
-
-    const getCategoryLabel = (categoryId) => {
-        const category = categories.find(cat => cat.id === categoryId);
-        return category ? category.label : "Unknown";
-    };
-
+    }, [isFocused]);
 
     return (
         <View style={styles.container}>
@@ -92,10 +71,10 @@ const BrowseItems = ({ navigation }) => {
                 <Text style={styles.title}>WELCOME TO RENTEASY</Text>
                 <Text style={styles.subtitle}>RENT IT, USE IT, RETURN IT!</Text>
 
-                {/* Search */}
+                {/* 🔍 Search & Filter */}
                 <SearchWithFilter
-                    allItems={allItems} // Pass your fetched items array here
-                    setFilteredItems={setFilteredItems} // Pass the state updater for displayed items
+                    allItems={items}
+                    setFilteredItems={setFilteredItems}
                 />
 
                 {/* Browse Title */}
@@ -106,77 +85,10 @@ const BrowseItems = ({ navigation }) => {
                     </TouchableOpacity>
                 </View>
 
-                {/* Static Items */}
-                <ProductCard
-                    image={require('../../assets/camera.png')}
-                    title="📸 NIKON D850 DSLR (BODY ONLY)"
 
-                    info={{
-                        features: [
-                            "🔍 45.7MP FULL-FRAME | 🎥 4K UHD VIDEO",
-                            "📷 PRO-LEVEL PERFORMANCE"
-                        ],
-                        categories: ["electronics"],
-                        included: [
-                            "🔋 Battery & Charger ",
-                            "💾 64GB MEMORY CARD",
-                            "🎒 Carry Case"
-                        ],
-                        price: "₹500/day | ₹1300/3 days | ₹2800/week",
-                        deposit: "₹5000 (REFUNDABLE)",
-                        owner: "KRUSHNA MENGAL",
-                        location: "PUNE, MAHARASHTRA",
-                        rating: "4.9/5 (100 REVIEWS)",
-                        availability: "ON REQUEST"
-                    }}
-                    navigation={navigation}
-                />
 
-                <ProductCard
-                    image={require('../../assets/house.png')}
-                    title="🏠2BHK HOUSE FOR RENT (INDEPENDENT VILLA STYLE)"
-                    info={{
-                        features: [
-                            "🌳 Calm Green Surroundings | 🏗️ Spacious Design"
-                        ],
-                        categories: ["furniture"],
-                        included: [
-                            "🛏️ 2 Bedrooms | 🛋️ Hall | 🍳 Kitchen",
-                            "🚿 2 Bathrooms | 🚗 Parking"
-                        ],
-                        price: "₹8,000/month",
-                        deposit: "₹25,000 (REFUNDABLE)",
-                        owner: "KRUSHNA MENGAL",
-                        location: "NASHIK, MAHARASHTRA",
-                        rating: "4.8/5",
-                        availability: "IMMEDIATE"
-                    }}
-                    navigation={navigation}
-                />
-                <ProductCard
-                    image={require('../../assets/car.png')}
-                    title="🚗 TOYOTA INNOVA CRYSTA (7-SEATER) FOR RENT"
-                    info={{
-                        features: [
-                            " 🛣️ Comfortable for Long Drives |❄️Dual A/C               🎵 Music System"
-                        ],
-                        categories: ["vehicles"],
-                        included: [
-                            "💺 7-Seater | 🧳 Ample Luggage Space ",
-                            "🛡️ Driver Airbags"
-                        ],
-                        price: "₹500/day | ₹1400/3 days | ₹3000/week",
-                        deposit: "₹10,000 (REFUNDABLE)",
-                        owner: "KRUSHNA MENGAL",
-                        location: "SINNAR, MAHARASHTRA",
-                        rating: "4.7/5",
-                        availability: "ON REQUEST"
-                    }}
-                    navigation={navigation}
-                />
-
-                {/* ✅ Dynamically Fetched Items */}
-                {items.map(item => (
+                {/* 🔁 Filtered Dynamic Items */}
+                {filteredItems.map(item => (
                     <ProductCard
                         key={item.id}
                         image={item.imageUri ? { uri: item.imageUri } : require('../../assets/item_placeholder.png')}
@@ -187,7 +99,7 @@ const BrowseItems = ({ navigation }) => {
                                 ? item.categories
                                 : item.categories
                                     ? [item.categories]
-                                    : ["others"], // ✅ fallback always an array
+                                    : ["others"],
                             included: item.included ? [item.included] : [],
                             price: `₹${item.pricePerDay}/day`,
                             deposit: `₹${item.securityDeposit || '0'} (REFUNDABLE)`,
@@ -204,39 +116,38 @@ const BrowseItems = ({ navigation }) => {
                 ))}
             </ScrollView>
 
-            {/* Bottom Nav */}
+            {/* Footer Navigation */}
             <View style={styles.bottomNav}>
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Home")}>
                     <Ionicons name="home" size={28} />
                     <Text style={styles.navLabel}>Home</Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("BrowseItems")}>
                     <MaterialIcons name="explore" size={28} />
                     <Text style={styles.navLabel}>Explore</Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("AddItem")}>
                     <Entypo name="plus" size={28} />
                     <Text style={styles.navLabel}>Add</Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("History")}>
                     <Ionicons name="document-text" size={28} />
                     <Text style={styles.navLabel}>History</Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Profile")}>
                     <Ionicons name="person" size={28} />
                     <Text style={styles.navLabel}>Profile</Text>
                 </TouchableOpacity>
             </View>
+
             <Loader visible={loading} />
         </View>
     );
 };
 
 export default BrowseItems;
+
+// 🔧 styles unchanged
 
 const styles = StyleSheet.create({
     container: {

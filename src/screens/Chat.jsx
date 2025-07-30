@@ -16,24 +16,21 @@ import Entypo from "react-native-vector-icons/Entypo";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
+import firestore from "@react-native-firebase/firestore"; // ✅ Firestore
 
 const Chat = ({ navigation, route }) => {
-    const { ownerUsername } = route.params || {}; // ✅ Passed from Booking Summary screen
-
+    const { ownerUsername } = route.params || {};
     const [currentUser, setCurrentUser] = useState("");
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const scrollViewRef = useRef();
-    const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
-    // ✅ Create Unique Chat Room ID (Sorted usernames)
     const chatRoomId =
         currentUser && ownerUsername
             ? [currentUser, ownerUsername].sort().join("__")
             : "";
 
-    // ✅ Get logged-in username from AsyncStorage
+    // ✅ Get username
     useEffect(() => {
         const fetchUsername = async () => {
             const username = await AsyncStorage.getItem("username");
@@ -47,41 +44,41 @@ const Chat = ({ navigation, route }) => {
         fetchUsername();
     }, []);
 
-    // ✅ Fetch messages every 1 second (Polling)
+    // ✅ Real-time message listener from Firestore
     useEffect(() => {
-        let interval;
-        if (chatRoomId) {
-            interval = setInterval(fetchMessages, 1000);
-        }
-        return () => clearInterval(interval);
+        if (!chatRoomId) return;
+
+        const unsubscribe = firestore()
+            .collection("chats")
+            .doc(chatRoomId)
+            .collection("messages")
+            .orderBy("timestamp", "asc")
+            .onSnapshot(snapshot => {
+                const fetchedMessages = snapshot.docs.map(doc => doc.data());
+                setMessages(fetchedMessages);
+            });
+
+        return () => unsubscribe();
     }, [chatRoomId]);
 
-    const fetchMessages = async () => {
-        try {
-            const response = await axios.get(`${URL}/chats/${chatRoomId}.json`);
-            const data = response.data || {};
-            const formattedMessages = Object.values(data).sort(
-                (a, b) => a.timestamp - b.timestamp
-            );
-            setMessages(formattedMessages);
-        } catch (error) {
-            console.error("Fetch Messages Error:", error);
-        }
-    };
-
+    // ✅ Send message to Firestore
     const handleSend = async () => {
         if (!input.trim()) return;
 
         const newMessage = {
             text: input.trim(),
             sender: currentUser,
-            timestamp: Date.now(),
+            timestamp: firestore.FieldValue.serverTimestamp(),
         };
 
         try {
-            await axios.post(`${URL}/chats/${chatRoomId}.json`, newMessage);
+            await firestore()
+                .collection("chats")
+                .doc(chatRoomId)
+                .collection("messages")
+                .add(newMessage);
+
             setInput("");
-            setMessages((prev) => [...prev, newMessage]);
         } catch (error) {
             console.error("Send Message Error:", error);
             Alert.alert("Error", "Could not send message.");
@@ -110,17 +107,12 @@ const Chat = ({ navigation, route }) => {
             {/* Title */}
             <Text style={styles.title}>WELCOME TO RENTEASY</Text>
             <Text style={styles.subtitle}>RENT IT, USE IT, RETURN IT!</Text>
-            
+
             <TouchableOpacity style={styles.chatLabel}>
                 <Text style={styles.chatText}>
                     CHAT WITH {ownerUsername ? ownerUsername.toUpperCase() : "OWNER"}
                 </Text>
-                <Entypo
-                    name="message"
-                    size={18}
-                    color="#fff"
-                    style={{ marginLeft: 4 }}
-                />
+                <Entypo name="message" size={18} color="#fff" style={{ marginLeft: 4 }} />
             </TouchableOpacity>
 
             {/* Messages */}
@@ -134,9 +126,7 @@ const Chat = ({ navigation, route }) => {
                         key={index}
                         style={[
                             styles.messageBubble,
-                            msg.sender === currentUser
-                                ? styles.right
-                                : styles.left,
+                            msg.sender === currentUser ? styles.right : styles.left,
                         ]}
                     >
                         <Text style={styles.messageText}>{msg.text}</Text>
@@ -150,13 +140,9 @@ const Chat = ({ navigation, route }) => {
             </ScrollView>
 
             {/* Input Area */}
-            <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : undefined}
-            >
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
                 <View>
-                    <TouchableOpacity
-                        onPress={() => navigation.navigate("ChatBot")}
-                    >
+                    <TouchableOpacity onPress={() => navigation.navigate("ChatBot")}>
                         <Image
                             source={require("../../assets/ChatBot.png")}
                             style={styles.ChatBot}
@@ -164,7 +150,6 @@ const Chat = ({ navigation, route }) => {
                     </TouchableOpacity>
                 </View>
                 <View style={styles.inputBar}>
-                    <FontAwesome name="smile-o" size={24} color="#555" />
                     <TextInput
                         style={styles.input}
                         value={input}
@@ -173,8 +158,8 @@ const Chat = ({ navigation, route }) => {
                         placeholderTextColor="#999"
                         onSubmitEditing={handleSend}
                     />
-                    <TouchableOpacity onPress={handleSend}>
-                        <Entypo name="attachment" size={24} color="#555" />
+                    <TouchableOpacity onPress={handleSend} >
+                        <Ionicons name="send" size={28} color="#007bff" />
                     </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
@@ -315,32 +300,53 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         marginLeft: 325,
     },
-    inputBar: {
-        flexDirection: "row",
-        alignItems: "center",
-        borderTopWidth: 1.5,
-        borderWidth: 1,
-        borderColor: "#ccc",
+        inputBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderTopWidth: 1,
+        borderColor: '#ccc',
         padding: 10,
-        backgroundColor: "#eee",
-        marginBottom: 80,
+        backgroundColor: '#fff',
+        ...Platform.select({
+            android: {
+                padding: 5,
+                paddingHorizontal: 10,
+                marginTop: 10,
+                marginBottom: 10,
+                borderWidth: 0.5,
+                borderColor: 'black',
+                backgroundColor: '#eee'
+            },
+            ios: {
+                padding: 10,
+                paddingHorizontal: 15,
+                marginTop: 10,
+                marginBottom: 10,
+                borderWidth: 0.5,
+                borderColor: 'black',
+                backgroundColor: '#eee'
+            }
+        }),
+        marginBottom: 75,
         borderRadius: 10,
         marginHorizontal: 16,
-        ...Platform.select({
-            ios: {
-                marginBottom: 20, // Adjust for iOS keyboard
-            },
-            android: {
-                marginBottom: 80, // Adjust for Android keyboard
-                height: 50,
-                padding:4
-            },
-        }),
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+        zIndex: 1,
+        marginTop: 10,
+        height: 50
+
     },
     input: {
         flex: 1,
         fontSize: 16,
-        paddingHorizontal: 10,
+        paddingHorizontal: 10
     },
     bottomNav: {
         flexDirection: 'row',

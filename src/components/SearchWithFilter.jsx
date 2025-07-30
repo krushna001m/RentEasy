@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     TextInput,
@@ -9,41 +9,48 @@ import {
     StyleSheet
 } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import { categories } from '../constants/categories'; // ✅ Reuse same categories
+import { categories } from '../constants/categories';
 
 const SearchWithFilter = ({ allItems, setFilteredItems }) => {
     const [searchQuery, setSearchQuery] = useState("");
     const [filterVisible, setFilterVisible] = useState(false);
     const [selectedFilter, setSelectedFilter] = useState("");
+    const [noItemsFound, setNoItemsFound] = useState(false);
 
-    const handleSearch = (text) => {
-        setSearchQuery(text);
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            applyFilter(searchQuery, selectedFilter);
+        }, 300);
+        return () => clearTimeout(timeout);
+    }, [searchQuery, selectedFilter]);
 
+    const applyFilter = useCallback((text, categoryId) => {
         const filtered = allItems.filter((item) => {
             const matchesSearch = item.title?.toLowerCase().includes(text.toLowerCase());
-            const matchesCategory = selectedFilter ? item.category === selectedFilter : true;
-            return matchesSearch && matchesCategory;
-        });
-
-        setFilteredItems(filtered);
-    };
-
-    const handleCategoryFilter = (categoryId) => {
-        setSelectedFilter(categoryId);
-
-        const filtered = allItems.filter((item) => {
-            const matchesSearch = item.title?.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesCategory = categoryId ? item.category === categoryId : true;
             return matchesSearch && matchesCategory;
         });
 
         setFilteredItems(filtered);
+        setNoItemsFound(filtered.length === 0);
+    }, [allItems]);
+
+    const handleSearch = (text) => {
+        setSearchQuery(text);
+    };
+
+    const handleCategoryFilter = (categoryId) => {
+        setSelectedFilter(categoryId);
         setFilterVisible(false);
+    };
+
+    const clearSearch = () => {
+        setSearchQuery("");
     };
 
     return (
         <View>
-            {/* ✅ Search Bar */}
+            {/* 🔍 Search Bar */}
             <View style={styles.searchBar}>
                 <FontAwesome name="search" size={20} style={{ marginHorizontal: 10 }} />
                 <TextInput
@@ -52,12 +59,24 @@ const SearchWithFilter = ({ allItems, setFilteredItems }) => {
                     value={searchQuery}
                     onChangeText={handleSearch}
                 />
+                {searchQuery.length > 0 && (
+                    <TouchableOpacity onPress={clearSearch}>
+                        <FontAwesome name="times-circle" size={20} color="#888" style={{ marginHorizontal: 5 }} />
+                    </TouchableOpacity>
+                )}
                 <TouchableOpacity onPress={() => setFilterVisible(true)}>
                     <FontAwesome name="filter" size={25} style={{ marginHorizontal: 10 }} />
                 </TouchableOpacity>
             </View>
 
-            {/* ✅ Filter Modal */}
+            {/* ❌ No Results Message */}
+            {noItemsFound && (
+                <Text style={{ textAlign: "center", marginTop: 10, color: "gray", fontStyle: "italic" }}>
+                    No items found.
+                </Text>
+            )}
+
+            {/* 🧾 Filter Modal */}
             <Modal
                 visible={filterVisible}
                 animationType="slide"
@@ -90,7 +109,7 @@ const SearchWithFilter = ({ allItems, setFilteredItems }) => {
                             ))}
                         </ScrollView>
 
-                        {/* ✅ Clear Filter */}
+                        {/* 🧹 Clear Filter Button */}
                         <TouchableOpacity
                             style={[styles.clearBtn, { marginTop: 10 }]}
                             onPress={() => handleCategoryFilter("")}
@@ -106,9 +125,8 @@ const SearchWithFilter = ({ allItems, setFilteredItems }) => {
 
 export default SearchWithFilter;
 
-
 const styles = StyleSheet.create({
- searchBar: {
+    searchBar: {
         flexDirection: 'row',
         backgroundColor: '#eee',
         borderRadius: 10,

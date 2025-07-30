@@ -8,8 +8,7 @@ const Loader = ({ visible }) => {
       <View style={styles.overlay}>
         <View style={styles.glowContainer}>
           <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
-          <Text style={styles.text}>RentEasy</Text>
-          <ActivityIndicator size="large" color="#FFA500" style={styles.loader} />
+          <ActivityIndicator size='small' color="#FFA500" style={styles.loader} />
         </View>
       </View>
     </Modal>
@@ -24,7 +23,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   glowContainer: {
-    backgroundColor: '#111',
+    // backgroundColor: '#111',
     borderRadius: 20,
     padding: 30,
     alignItems: 'center',
@@ -33,13 +32,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 20,
-    width: 200,
+    width: 100,
+    height: 100,
   },
   logo: {
     width: 100,
     height: 100,
-    marginBottom: 10,
-    tintColor: '#FFA500',
+    marginBottom: 1,
+    // tintColor: '#FFA500',
   },
   text: {
     fontSize: 24,
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   loader: {
-    marginTop: 10,
+    marginTop: 1,
   },
 });
 

@@ -21,6 +21,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import { categories } from '../../constants/categories';
+import Loader from '../components/Loader';
 
 const AddItem = ({ navigation }) => {
     const isFocused = useIsFocused();
@@ -35,7 +36,7 @@ const AddItem = ({ navigation }) => {
     ];
 
     const [selectedCategory, setSelectedCategory] = useState("");
-
+    const [loading, setLoading] = useState(false);
 
     const [itemData, setItemData] = useState({
         title: "",
@@ -92,9 +93,7 @@ const AddItem = ({ navigation }) => {
             fullDescription: "",
             included: "",
             category: selectedCategory || "others",
-            pricePerDay: "",
-            price3Days: "",
-            priceWeek: "",
+            price: [pricePerDay, price3Days, priceWeek],
             securityDeposit: "",
             location: "",
             ownerName: "",
@@ -109,70 +108,79 @@ const AddItem = ({ navigation }) => {
     };
 
     const handleSubmit = async () => {
-        if (!itemData.title || !itemData.pricePerDay || !itemData.location) {
-            Alert.alert("Error", "Please fill at least Title, Price, and Location.");
+    if (!itemData.title || !itemData.pricePerDay || !itemData.location) {
+        Alert.alert("Error", "Please fill at least Title, Price, and Location.");
+        return;
+    }
+
+    try {
+        setLoading(true);
+
+        const loggedInUserData = await AsyncStorage.getItem("loggedInUser");
+        if (!loggedInUserData) {
+            Alert.alert("Error", "User not logged in!");
             return;
         }
 
-        try {
-            const loggedInUserData = await AsyncStorage.getItem("loggedInUser");
-            if (!loggedInUserData) {
-                Alert.alert("Error", "User not logged in!");
-                return;
-            }
+        const currentUser = JSON.parse(loggedInUserData);
+        const defaultImageUri = Image.resolveAssetSource(require('../../assets/item_placeholder.png')).uri;
 
-            const currentUser = JSON.parse(loggedInUserData);
-            const defaultImageUri = Image.resolveAssetSource(require('../../assets/item_placeholder.png')).uri;
+        const finalData = {
+            ...itemData,
+            terms,
+            availability,
+            categories: selectedCategory || "others",
+            image: imageUri || defaultImageUri,
+            createdAt: new Date().toISOString(),
+            owner: currentUser.username,
+            ownerEmail: currentUser.email,
+            ownerPhone: currentUser.phone,
+        };
 
-            const finalData = {
-                ...itemData,
-                terms,
-                availability,
-                categories: selectedCategory || "others",
-                image: imageUri || defaultImageUri,
-                createdAt: new Date().toISOString(),
-                owner: currentUser.username,
-                ownerEmail: currentUser.email,
-                ownerPhone: currentUser.phone,
-            };
+        // ✅ Store finalData inside a push key → item1
+        const pushRef = await axios.post(`${URL}/items.json`, {}); // create a push key
+        const pushKey = pushRef.data.name;
+        await axios.put(`${URL}/items/${pushKey}/item1.json`, finalData); // save under item1
 
-            await axios.post(`${URL}/items/${itemData.title}.json`, finalData);
+        // ✅ History tracking
+        const historyData = {
+            title: finalData.title,
+            categories: finalData.categories,
+            owner: finalData.owner,
+            price: finalData.pricePerDay,
+            date: finalData.createdAt,
+            status: "Posted",
+            image: finalData.image,
+        };
 
-            const historyData = {
-                title: finalData.title,
-                categories: finalData.categories,
-                owner: finalData.owner,
-                price: finalData.pricePerDay,
-                date: finalData.createdAt,
-                status: "Posted",
-                image: finalData.image,
-            };
+        await axios.post(`${URL}/history/${currentUser.username}.json`, historyData);
 
-            await axios.post(`${URL}/history/${currentUser.username}.json`, historyData);
+        // ✅ Update user role to "Owner"
+        const res = await axios.get(`${URL}/users.json`);
+        const users = res.data || {};
+        const userKey = Object.keys(users).find(
+            key => users[key].username === currentUser.username
+        );
 
-            const res = await axios.get(`${URL}/users.json`);
-            const users = res.data || {};
-            const userKey = Object.keys(users).find(
-                key => users[key].username === currentUser.username
+        if (userKey) {
+            const updatedRoles = Array.from(
+                new Set([...(users[userKey].roles || []), "Owner"])
             );
-
-            if (userKey) {
-                const updatedRoles = Array.from(
-                    new Set([...(users[userKey].roles || []), "Owner"])
-                );
-                await axios.patch(`${URL}/users/${userKey}.json`, { roles: updatedRoles });
-                const updatedUser = { ...currentUser, roles: updatedRoles };
-                await AsyncStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
-            }
-
-            Alert.alert("Success", "Item has been added successfully!");
-            handleReset();
-            navigation.navigate("History");
-        } catch (error) {
-            console.error("Error storing data:", error);
-            Alert.alert("Error", "Failed to store data in Realtime Database.");
+            await axios.patch(`${URL}/users/${userKey}.json`, { roles: updatedRoles });
+            const updatedUser = { ...currentUser, roles: updatedRoles };
+            await AsyncStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
         }
-    };
+
+        Alert.alert("Success", "Item has been added successfully!");
+        handleReset();
+        navigation.navigate("History");
+    } catch (error) {
+        console.error("Error storing data:", error);
+        Alert.alert("Error", "Failed to store data in Realtime Database.");
+    } finally {
+        setLoading(false);
+    }
+};
 
     return (
         <View style={styles.container}>

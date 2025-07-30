@@ -47,12 +47,14 @@ const Profile = ({ navigation }) => {
             setLoading(true);
             const response = await axios.get(`${URL}/items.json`);
             const items = response.data || {};
+
             return Object.entries(items)
                 .filter(([key, item]) => item.owner === username)
                 .map(([key, item]) => ({
                     id: key,
                     title: item.title,
                     price: item.pricePerDay || item.price || "N/A",
+                    image: item.image,
                     status: item.availability?.notAvailable ? "Not Available" : "Available",
                 }));
         } catch (error) {
@@ -62,6 +64,7 @@ const Profile = ({ navigation }) => {
             setLoading(false);
         }
     };
+
 
     // ✅ Fetch User Rentals (Borrower Role)
     const fetchUserRentals = async (username) => {
@@ -295,7 +298,7 @@ const Profile = ({ navigation }) => {
                     <View style={styles.card}>
                         <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
                             <Entypo
-                                name="shopping-cart" 
+                                name="shopping-cart"
                                 size={23}
                                 color={themeStyles.text.color || "#000"}
                                 style={{ marginRight: 6 }}
