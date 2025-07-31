@@ -1,17 +1,19 @@
 // firebaseConfig.js
 import { initializeApp } from "firebase/app";
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import { getDatabase, ref, set, push } from "firebase/database";
 
 const firebaseConfig = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyAPs_NeoYTDs7ufIRmfKyXKXdTHOt4Lh6I",
+  authDomain: "renteasy-bbce5.firebaseapp.com",
+  databaseURL: "https://renteasy-bbce5-default-rtdb.firebaseio.com",
+  projectId: "renteasy-bbce5",
+  storageBucket: "renteasy-bbce5.appspot.com", // correct Firebase Storage bucket
+  messagingSenderId: "822340796747",
+  appId: "1:822340796747:android:560109758edbd5ef9fa8ce"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 
-export { auth, RecaptchaVerifier, signInWithPhoneNumber };
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+
+export { database, ref, set, push };

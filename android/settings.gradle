@@ -1,4 +1,10 @@
 pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+        maven { url 'https://jitpack.io' } // ✅ Required for AndroidPdfViewer
+    }
     includeBuild("../node_modules/@react-native/gradle-plugin")
 }
 
@@ -6,19 +12,21 @@ plugins {
     id("com.facebook.react.settings")
 }
 
-extensions.configure(com.facebook.react.ReactSettingsExtension){ ex ->
-    ex.autolinkLibrariesFromCommand()
-}
-
-rootProject.name = 'RentEasy'
-include ':app'
-includeBuild('../node_modules/@react-native/gradle-plugin')
-
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS) // ✅ allows plugin-added repos
     repositories {
-        maven { url 'https://jitpack.io' }
         google()
         mavenCentral()
+        maven { url 'https://jitpack.io' } // ✅ Required for AndroidPdfViewer
     }
+}
+
+rootProject.name = "RentEasy"
+
+include(":app")
+includeBuild("../node_modules/@react-native/gradle-plugin")
+
+// ✅ Extension configuration must come after plugins block
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
+    ex.autolinkLibrariesFromCommand()
 }

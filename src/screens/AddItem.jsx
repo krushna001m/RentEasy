@@ -18,6 +18,7 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Entypo from 'react-native-vector-icons/Entypo';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import axios from 'axios';
+import { uploadImageToFirebase } from '../firebaseService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import { categories } from '../../constants/categories';
@@ -69,7 +70,7 @@ const AddItem = ({ navigation }) => {
     });
 
     const [imageUri, setImageUri] = useState(null);
-    const [previewVisible, setPreviewVisible] = useState(false); 
+    const [previewVisible, setPreviewVisible] = useState(false);
 
     const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
@@ -108,79 +109,80 @@ const AddItem = ({ navigation }) => {
     };
 
     const handleSubmit = async () => {
-    if (!itemData.title || !itemData.pricePerDay || !itemData.location) {
-        Alert.alert("Error", "Please fill at least Title, Price, and Location.");
-        return;
-    }
-
-    try {
-        setLoading(true);
-
-        const loggedInUserData = await AsyncStorage.getItem("loggedInUser");
-        if (!loggedInUserData) {
-            Alert.alert("Error", "User not logged in!");
+        if (!itemData.title || !itemData.pricePerDay || !itemData.location) {
+            Alert.alert("Error", "Please fill at least Title, Price, and Location.");
             return;
         }
 
-        const currentUser = JSON.parse(loggedInUserData);
-        const defaultImageUri = Image.resolveAssetSource(require('../../assets/item_placeholder.png')).uri;
+        try {
+            setLoading(true);
+            const loggedInUserData = await AsyncStorage.getItem("loggedInUser");
+            if (!loggedInUserData) {
+                Alert.alert("Error", "User not logged in!");
+                return;
+            }
 
-        const finalData = {
-            ...itemData,
-            terms,
-            availability,
-            categories: selectedCategory || "others",
-            image: imageUri || defaultImageUri,
-            createdAt: new Date().toISOString(),
-            owner: currentUser.username,
-            ownerEmail: currentUser.email,
-            ownerPhone: currentUser.phone,
-        };
+            const currentUser = JSON.parse(loggedInUserData);
+            const defaultImageUri = Image.resolveAssetSource(require('../../assets/item_placeholder.png')).uri;
 
-        // ✅ Store finalData inside a push key → item1
-        const pushRef = await axios.post(`${URL}/items.json`, {}); // create a push key
-        const pushKey = pushRef.data.name;
-        await axios.put(`${URL}/items/${pushKey}/item1.json`, finalData); // save under item1
+            // 🔼 Upload image if provided
+            let uploadedImageUrl = defaultImageUri;
+            if (imageUri) {
+                uploadedImageUrl = await uploadImageToFirebase(imageUri);
+            }
 
-        // ✅ History tracking
-        const historyData = {
-            title: finalData.title,
-            categories: finalData.categories,
-            owner: finalData.owner,
-            price: finalData.pricePerDay,
-            date: finalData.createdAt,
-            status: "Posted",
-            image: finalData.image,
-        };
+            const finalData = {
+                ...itemData,
+                terms,
+                availability,
+                categories: selectedCategory || "others",
+                image: uploadedImageUrl,
+                createdAt: new Date().toISOString(),
+                owner: currentUser.username,
+                ownerEmail: currentUser.email,
+                ownerPhone: currentUser.phone,
+            };
 
-        await axios.post(`${URL}/history/${currentUser.username}.json`, historyData);
+            await axios.post(`${URL}/items.json`, finalData);
 
-        // ✅ Update user role to "Owner"
-        const res = await axios.get(`${URL}/users.json`);
-        const users = res.data || {};
-        const userKey = Object.keys(users).find(
-            key => users[key].username === currentUser.username
-        );
+            const historyData = {
+                title: finalData.title,
+                categories: finalData.categories,
+                owner: finalData.owner,
+                price: finalData.pricePerDay,
+                date: finalData.createdAt,
+                status: "Posted",
+                image: finalData.image,
+            };
 
-        if (userKey) {
-            const updatedRoles = Array.from(
-                new Set([...(users[userKey].roles || []), "Owner"])
+            await axios.post(`${URL}/history/${currentUser.username}.json`, historyData);
+
+            const res = await axios.get(`${URL}/users.json`);
+            const users = res.data || {};
+            const userKey = Object.keys(users).find(
+                key => users[key].username === currentUser.username
             );
-            await axios.patch(`${URL}/users/${userKey}.json`, { roles: updatedRoles });
-            const updatedUser = { ...currentUser, roles: updatedRoles };
-            await AsyncStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
-        }
 
-        Alert.alert("Success", "Item has been added successfully!");
-        handleReset();
-        navigation.navigate("History");
-    } catch (error) {
-        console.error("Error storing data:", error);
-        Alert.alert("Error", "Failed to store data in Realtime Database.");
-    } finally {
-        setLoading(false);
-    }
-};
+            if (userKey) {
+                const updatedRoles = Array.from(
+                    new Set([...(users[userKey].roles || []), "Owner"])
+                );
+                await axios.patch(`${URL}/users/${userKey}.json`, { roles: updatedRoles });
+                const updatedUser = { ...currentUser, roles: updatedRoles };
+                await AsyncStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
+            }
+
+            Alert.alert("Success", "Item has been added successfully!");
+            handleReset();
+            navigation.navigate("History");
+        } catch (error) {
+            console.error("Error storing data:", error);
+            Alert.alert("Error", "Failed to store data in Realtime Database.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
     return (
         <View style={styles.container}>

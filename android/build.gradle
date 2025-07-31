@@ -6,17 +6,20 @@ buildscript {
         targetSdkVersion = 35
         ndkVersion = "27.1.12297006"
         kotlinVersion = "2.1.20"
+    pdfViewerVersion = '3.2.0-beta.1'
+    pdfViewerRepo = 'com.github.mhiew'
+
     }
     repositories {
         google()
         mavenCentral()
-        maven { url 'https://jitpack.io' }
+        maven { url 'https://jitpack.io' } 
     }
     dependencies {
-        classpath("com.android.tools.build:gradle:8.2.2")
-        classpath("com.facebook.react:react-native-gradle-plugin:0.73.0") // or your RN version
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.20")
-        classpath("com.google.gms:google-services:4.4.2")
+        classpath("com.android.tools.build:gradle")
+        classpath("com.facebook.react:react-native-gradle-plugin")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
+        classpath 'com.google.gms:google-services:4.4.2'
     }
 }
 
