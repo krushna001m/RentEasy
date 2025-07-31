@@ -345,13 +345,13 @@ const styles = StyleSheet.create({
     }),
   },
   maintitle: {
-    fontSize: height * 0.045,
+    fontSize: height * 0.035,
     fontWeight: "bold",
     color: "black",
     marginBottom: 5,
   },
   subtitle: {
-    fontSize: height * 0.032,
+    fontSize: height * 0.022,
     fontWeight: "bold",
     color: "black",
     marginBottom: 15,
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     ...Platform.select({
       ios: { marginRight: 34 },
-      android: { marginRight: 44 },
+      android: { marginRight: 20 },
     }),
   },
   label: {

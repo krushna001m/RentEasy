@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Modal, View, Text, Image, StyleSheet, ActivityIndicator } from 'react-native';
+import { Modal, View, Text, Image, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 
 const Loader = ({ visible }) => {
   return (
@@ -34,6 +34,13 @@ const styles = StyleSheet.create({
     elevation: 20,
     width: 100,
     height: 100,
+    ...Platform.select({
+      android: {
+        // backgroundColor: '#e5d1abff',
+        width: 0,
+        height: 0,
+      }
+    })
   },
   logo: {
     width: 100,

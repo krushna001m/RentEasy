@@ -92,7 +92,7 @@ const BrowseItems = ({ navigation }) => {
                     <ProductCard
                         key={item.id}
                         image={{ uri: item.images && item.images[0] ? item.images[0] : require('../../assets/item_placeholder.png')}}
-                        title={` ${item.title}`}
+                        title={`${item.title}`}
                         info={{
                             features: [item.description || "No description provided"],
                             categories: Array.isArray(item.categories)

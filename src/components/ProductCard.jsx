@@ -192,6 +192,7 @@ const styles = StyleSheet.create({
     resizeMode: "cover",
     backgroundColor: '#E6F0FA',
     marginTop: 20,
+    marginBottom:20,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 300,
     borderBottomLeftRadius: 30,
@@ -208,6 +209,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     elevation: 3,
     marginBottom: 10,
+    marginTop:10
   },
 
   titleRow: {

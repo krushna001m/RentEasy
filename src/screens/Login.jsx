@@ -223,14 +223,14 @@ const styles = StyleSheet.create({
     }),
   },
   maintitle: {
-    fontSize: height * 0.045,
+    fontSize: height * 0.035,
     textAlign: "center",
     fontWeight: "bold",
     color: "black",
     marginBottom: 10,
   },
   subtitle: {
-    fontSize: height * 0.032,
+    fontSize: height * 0.022,
     textAlign: "center",
     fontWeight: "bold",
     color: "black",

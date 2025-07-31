@@ -18,11 +18,12 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Entypo from 'react-native-vector-icons/Entypo';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import axios from 'axios';
-import { uploadImageToFirebase } from '../firebaseService';
+import { uploadImageToFirebase, saveImageUrlToRealtimeDB, saveImageUrlToFirestore } from '../firebaseService'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import { categories } from '../../constants/categories';
 import Loader from '../components/Loader';
+
 
 const AddItem = ({ navigation }) => {
     const isFocused = useIsFocused();
@@ -38,6 +39,9 @@ const AddItem = ({ navigation }) => {
 
     const [selectedCategory, setSelectedCategory] = useState("");
     const [loading, setLoading] = useState(false);
+    const [imageUris, setImageUris] = useState([]);
+    const [uploading, setUploading] = useState(false);
+
 
     const [itemData, setItemData] = useState({
         title: "",
@@ -75,14 +79,19 @@ const AddItem = ({ navigation }) => {
     const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
     const pickImage = () => {
-        const options = { mediaType: 'photo', quality: 1 };
+        const options = {
+            mediaType: 'photo',
+            quality: 1,
+            selectionLimit: 5, // allow up to 5 images (you can change this)
+        };
         launchImageLibrary(options, (response) => {
             if (response.didCancel) {
                 console.log('User cancelled image picker');
             } else if (response.errorCode) {
                 console.error('ImagePicker Error:', response.errorMessage);
             } else if (response.assets && response.assets.length > 0) {
-                setImageUri(response.assets[0].uri);
+                const selectedUris = response.assets.map(asset => asset.uri);
+                setImageUris(selectedUris);
             }
         });
     };
@@ -94,7 +103,9 @@ const AddItem = ({ navigation }) => {
             fullDescription: "",
             included: "",
             category: selectedCategory || "others",
-            price: [pricePerDay, price3Days, priceWeek],
+            pricePerDay: "",
+            price3Days: "",
+            priceWeek: "",
             securityDeposit: "",
             location: "",
             ownerName: "",
@@ -107,15 +118,15 @@ const AddItem = ({ navigation }) => {
         setAvailability({ request: false, booking: false, notAvailable: false });
         setTerms({ idProof: true, handleWithCare: true, lateCharges: true });
     };
-
     const handleSubmit = async () => {
-        if (!itemData.title || !itemData.pricePerDay || !itemData.location) {
+        if (!itemData.title || !itemData.pricePerDay || !itemData.location || imageUris.length === 0) {
             Alert.alert("Error", "Please fill at least Title, Price, and Location.");
             return;
         }
 
         try {
             setLoading(true);
+
             const loggedInUserData = await AsyncStorage.getItem("loggedInUser");
             if (!loggedInUserData) {
                 Alert.alert("Error", "User not logged in!");
@@ -125,26 +136,49 @@ const AddItem = ({ navigation }) => {
             const currentUser = JSON.parse(loggedInUserData);
             const defaultImageUri = Image.resolveAssetSource(require('../../assets/item_placeholder.png')).uri;
 
-            // 🔼 Upload image if provided
-            let uploadedImageUrl = defaultImageUri;
-            if (imageUri) {
-                uploadedImageUrl = await uploadImageToFirebase(imageUri);
+            // 🔼 Upload all selected images
+            const uploadedImageUrls = [];
+            for (const uri of imageUris) {
+                try {
+                    const url = await uploadImageToFirebase(uri);
+                    if (url) uploadedImageUrls.push(url);
+                } catch (err) {
+                    console.error("🔥 Error uploading image:", err);
+                }
             }
 
+            if (uploadedImageUrls.length === 0) {
+                uploadedImageUrls.push(defaultImageUri);
+            }
+
+            // 📦 Create item in DB and get new ID
+            const itemRef = database().ref("/items").push();
+            const itemId = itemRef.key;
+
+            // 📄 Final item data
             const finalData = {
                 ...itemData,
                 terms,
                 availability,
                 categories: selectedCategory || "others",
-                image: uploadedImageUrl,
+                image: uploadedImageUrls[0], // Thumbnail
                 createdAt: new Date().toISOString(),
                 owner: currentUser.username,
                 ownerEmail: currentUser.email,
                 ownerPhone: currentUser.phone,
             };
 
-            await axios.post(`${URL}/items.json`, finalData);
+            // ✅ Save item data to DB
+            await itemRef.set(finalData);
 
+            // ✅ Save each image URL under /items/{itemId}/images
+            for (const url of uploadedImageUrls) {
+                await database()
+                    .ref(`/items/${itemId}/images`)
+                    .push(url);
+            }
+
+            // 📜 History log
             const historyData = {
                 title: finalData.title,
                 categories: finalData.categories,
@@ -154,9 +188,9 @@ const AddItem = ({ navigation }) => {
                 status: "Posted",
                 image: finalData.image,
             };
-
             await axios.post(`${URL}/history/${currentUser.username}.json`, historyData);
 
+            // 👥 Update user role
             const res = await axios.get(`${URL}/users.json`);
             const users = res.data || {};
             const userKey = Object.keys(users).find(
@@ -175,14 +209,14 @@ const AddItem = ({ navigation }) => {
             Alert.alert("Success", "Item has been added successfully!");
             handleReset();
             navigation.navigate("History");
+
         } catch (error) {
-            console.error("Error storing data:", error);
-            Alert.alert("Error", "Failed to store data in Realtime Database.");
+            console.error("🔥 Submission Error:", error);
+            Alert.alert("Error", "Something went wrong while submitting.");
         } finally {
             setLoading(false);
         }
     };
-
 
     return (
         <View style={styles.container}>
@@ -204,14 +238,22 @@ const AddItem = ({ navigation }) => {
                     <Text style={styles.subtitle}>RENT IT, USE IT, RETURN IT!</Text>
                 </View>
 
-                {/* ✅ Image Picker */}
+                {/* ✅ Image Picker with Previews Inside */}
                 <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
-                    {imageUri ? (
-                        <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+                    {imageUris.length > 0 ? (
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                            {imageUris.map((uri, index) => (
+                                <Image
+                                    key={index}
+                                    source={{ uri }}
+                                    style={styles.imagePreview}
+                                />
+                            ))}
+                        </ScrollView>
                     ) : (
                         <>
                             <FontAwesome name="image" size={50} color="#001F54" />
-                            <Text style={styles.pickImageText}>UPLOAD ITEM IMAGE</Text>
+                            <Text style={styles.pickImageText}>UPLOAD ITEM IMAGES</Text>
                         </>
                     )}
                 </TouchableOpacity>
@@ -490,7 +532,6 @@ const AddItem = ({ navigation }) => {
                 </TouchableOpacity>
             </View>
 
-            {/* ✅ Preview Modal */}
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -510,15 +551,44 @@ const AddItem = ({ navigation }) => {
                         padding: 20,
                         alignItems: 'center',
                     }}>
-                        <Image
-                            source={{ uri: imageUri || Image.resolveAssetSource(require('../../assets/placeholder.jpg')).uri }}
-                            style={{ width: 180, height: 180, borderRadius: 10, marginBottom: 10 }}
-                        />
-                        <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#001F54' }}>{itemData.title || "No Title"}</Text>
-                        <Text style={{ fontSize: 14, color: '#333', marginVertical: 5 }}>{itemData.description || "No Description"}</Text>
-                        <Text style={{ fontSize: 16, fontWeight: '600', color: '#001F54', marginVertical: 5 }}>₹ {itemData.pricePerDay || "0"} / day</Text>
-                        <Text style={{ fontSize: 14, color: '#666', marginVertical: 2 }}>📍 {itemData.location || "No Location"}</Text>
-                        <Text style={{ fontSize: 14, color: '#666', marginVertical: 2 }}>👤 {itemData.ownerName || "No Owner"}</Text>
+                        {/* ✅ Scrollable Image Carousel */}
+                        {imageUris.length > 0 ? (
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                                {imageUris.map((uri, index) => (
+                                    <Image
+                                        key={index}
+                                        source={{ uri }}
+                                        style={{
+                                            width: 180,
+                                            height: 180,
+                                            borderRadius: 10,
+                                            marginRight: 10
+                                        }}
+                                    />
+                                ))}
+                            </ScrollView>
+                        ) : (
+                            <Image
+                                source={require('../../assets/placeholder.jpg')}
+                                style={{ width: 180, height: 180, borderRadius: 10, marginBottom: 10 }}
+                            />
+                        )}
+
+                        <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#001F54' }}>
+                            {itemData.title || "No Title"}
+                        </Text>
+                        <Text style={{ fontSize: 14, color: '#333', marginVertical: 5 }}>
+                            {itemData.description || "No Description"}
+                        </Text>
+                        <Text style={{ fontSize: 16, fontWeight: '600', color: '#001F54', marginVertical: 5 }}>
+                            ₹ {itemData.pricePerDay || "0"} / day
+                        </Text>
+                        <Text style={{ fontSize: 14, color: '#666', marginVertical: 2 }}>
+                            📍 {itemData.location || "No Location"}
+                        </Text>
+                        <Text style={{ fontSize: 14, color: '#666', marginVertical: 2 }}>
+                            👤 {itemData.ownerName || "No Owner"}
+                        </Text>
 
                         <View style={{ flexDirection: 'row', marginTop: 15 }}>
                             <TouchableOpacity
@@ -754,6 +824,12 @@ const styles = StyleSheet.create({
     chipTextSelected: {
         color: "#fff",
         fontWeight: "bold",
+    },
+    imagePreview: {
+        width: 100,
+        height: 100,
+        borderRadius: 10,
+        marginRight: 10,
     },
 
     bottomNav: {

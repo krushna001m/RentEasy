@@ -211,7 +211,7 @@ const Profile = ({ navigation }) => {
                     <Image source={require("../../assets/logo.png")} style={styles.logo} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => navigation.navigate("Chat")}>
-                    <Entypo name="chat" size={36} color={isDark ? "#fff" : "#000"} />
+                    <Entypo name="chat" size={36} color={isDark ? "#000" : "#000"} />
                 </TouchableOpacity>
             </View>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -220,7 +220,7 @@ const Profile = ({ navigation }) => {
                 <Text style={[styles.subtitle, themeStyles.text]}>RENT IT, USE IT, RETURN IT!</Text>
                 <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 1 }}>
                     <TouchableOpacity style={styles.settingsBtn} onPress={() => navigation.navigate("Settings")}>
-                        <Ionicons name="settings-sharp" size={27} color="#001F54" style={{ marginLeft: 300 }} />
+                        <Ionicons name="settings-sharp" size={27} color="#001F54" style={{ marginLeft: 290 }} />
                     </TouchableOpacity>
                 </View>
 
@@ -387,13 +387,13 @@ const lightStyles = StyleSheet.create({
 
 const darkStyles = StyleSheet.create({
     container: {
-        backgroundColor: '#121212',
+        backgroundColor: '#E6F0FA',
     },
     text: {
-        color: '#fff'
+        color: '#111'
     },
     inputField: {
-        color: '#fff'
+        color: '#000'
     }
 });
 

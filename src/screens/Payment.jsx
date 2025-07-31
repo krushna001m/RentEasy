@@ -30,33 +30,50 @@ const Payment = ({ navigation, route }) => {
         name: '',
     });
     const [upiId, setUpiId] = useState('');
+    const [netBankingDetails, setNetBankingDetails] = useState({
+        name: '',
+        bank: '',
+        account: '',
+        ifsc: ''
+    });
     const [agreed, setAgreed] = useState(false);
 
     // ✅ NEW STATE: Days, Selected Price Option, Total Amount
     const [days, setDays] = useState(1);
     const [totalAmount, setTotalAmount] = useState(0);
 
-    // ✅ Auto Update Total When Days Change
+
     useEffect(() => {
-        const perDay = Number(itemInfo.pricePerDay) || 0;
-        const threeDays = Number(itemInfo.price3Days) || 0;
-        const week = Number(itemInfo.priceWeek) || 0;
-        const deposit = Number(itemInfo.securityDeposit) || 0;
+        const perDay = Number(itemInfo?.pricePerDay || 0);
+        const price3Days = Number(itemInfo?.price3Days || 0);
+        const priceWeek = Number(itemInfo?.priceWeek || 0);
+        const deposit = Number(itemInfo?.securityDeposit || 0);
 
         let total = 0;
+        let remainingDays = days;
 
-        if (days >= 7 && week > 0) {
-            total = week * Math.floor(days / 7) + (days % 7) * perDay;
-        } else if (days >= 3 && threeDays > 0) {
-            total = threeDays * Math.floor(days / 3) + (days % 3) * perDay;
-        } else {
-            total = perDay * days;
+        // Apply week pricing
+        if (priceWeek > 0 && remainingDays >= 7) {
+            const weeks = Math.floor(remainingDays / 7);
+            total += weeks * priceWeek;
+            remainingDays -= weeks * 7;
         }
 
-        total += deposit; // ✅ Security Deposit added once
+        // Apply 3-day block pricing
+        if (price3Days > 0 && remainingDays >= 3) {
+            const blocks = Math.floor(remainingDays / 3);
+            total += blocks * price3Days;
+            remainingDays -= blocks * 3;
+        }
+
+        // Remaining days use per-day pricing
+        total += remainingDays * perDay;
+
+        // Add security deposit
+        total += deposit;
 
         setTotalAmount(total.toFixed(2));
-    }, [days, itemInfo]); // ✅ Runs whenever days or itemInfo changes
+    }, [days, itemInfo]);
 
 
     const handlePayNow = async () => {
@@ -89,15 +106,18 @@ const Payment = ({ navigation, route }) => {
                 title,
                 ...itemInfo,
                 days,
-                totalAmount,
+                totalAmount: parseFloat(totalAmount),
                 paymentMethod,
+                upiId,
+                netBankingDetails,
                 date: new Date().toISOString(),
                 status: "Completed",
             };
 
+
             await axios.post(`${URL}/history/${username}.json`, historyItem);
 
-            Alert.alert('✅ Payment Successful', `You rented for ${days} day(s). Total: ₹${totalAmount}`);
+            Alert.alert('✅ Payment Successful', `You rented for ${days} day(s). Total: ₹${itemInfo.price}`);
             navigation.navigate("History");
         } catch (error) {
             console.error("Error saving history:", error);
@@ -154,7 +174,7 @@ const Payment = ({ navigation, route }) => {
                     {itemInfo.price && (
                         <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
                             <FontAwesome name="money" size={16} color="#333" style={{ marginRight: 6 }} />
-                            <Text style={styles.summaryText}>RENTAL PRICE (Per Day): ₹{itemInfo.price}</Text>
+                            <Text style={styles.summaryText}>RENTAL PRICE (Per Day): {itemInfo.price}</Text>
                         </View>
                     )}
 
@@ -184,7 +204,7 @@ const Payment = ({ navigation, route }) => {
                     <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
                         <FontAwesome name="money" size={18} color="#001F54" style={{ marginRight: 6 }} />
                         <Text style={[styles.summaryText, { fontWeight: "bold", color: "#001F54" }]}>
-                            TOTAL AMOUNT: ₹{totalAmount} (incl. Security Deposit)
+                            TOTAL AMOUNT: {totalAmount} (incl. Security Deposit)
                         </Text>
                     </View>
 
@@ -316,6 +336,37 @@ const Payment = ({ navigation, route }) => {
                         </Text>
                     </View>
                 </TouchableOpacity>
+
+                {paymentMethod === 'net' && (
+                    <>
+                        <TextInput
+                            placeholder="Account Holder Name"
+                            style={styles.input}
+                            onChangeText={(text) => setNetBankingDetails({ ...netBankingDetails, name: text })}
+                            value={netBankingDetails?.name}
+                        />
+                        <TextInput
+                            placeholder="Bank Name"
+                            style={styles.input}
+                            onChangeText={(text) => setNetBankingDetails({ ...netBankingDetails, bank: text })}
+                            value={netBankingDetails?.bank}
+                        />
+                        <TextInput
+                            placeholder="Account Number"
+                            style={styles.input}
+                            keyboardType="numeric"
+                            onChangeText={(text) => setNetBankingDetails({ ...netBankingDetails, account: text })}
+                            value={netBankingDetails?.account}
+                        />
+                        <TextInput
+                            placeholder="IFSC Code"
+                            style={styles.input}
+                            onChangeText={(text) => setNetBankingDetails({ ...netBankingDetails, ifsc: text })}
+                            value={netBankingDetails?.ifsc}
+                        />
+                    </>
+                )}
+
 
                 {/* ✅ Secure Note */}
                 <View style={{ flexDirection: "row", alignItems: "center", marginTop: 10 }}>

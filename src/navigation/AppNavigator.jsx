@@ -19,6 +19,7 @@ import Profile from "../screens/Profile";
 import Settings from "../screens/Settings";
 import ChatBot from "../screens/ChatBot";
 import Payment from "../screens/Payment";
+import Loader from "../components/Loader";
 
 const Stack = createNativeStackNavigator();
 
@@ -45,9 +46,7 @@ const AppNavigator = () => {
 
   if (!initialRoute) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#001F54" />
-      </View>
+      <Loader/>
     );
   }
 
