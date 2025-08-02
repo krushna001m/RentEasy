@@ -41,7 +41,8 @@
     "react-native-share": "^12.1.0",
     "react-native-uuid": "^2.0.3",
     "react-native-vector-icons": "^10.2.0",
-    "react-native-view-pdf": "^0.14.0"
+    "react-native-view-pdf": "^0.14.0",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

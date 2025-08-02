@@ -91,8 +91,14 @@ const BrowseItems = ({ navigation }) => {
                 {filteredItems.map(item => (
                     <ProductCard
                         key={item.id}
-                        image={{ uri: item.images && item.images[0] ? item.images[0] : require('../../assets/item_placeholder.png')}}
-                        title={`${item.title}`}
+
+                        image={
+                            item.images && item.images.length > 0
+                                ? { uri: item.images[0] }
+                                : require('../../assets/item_placeholder.png')
+                        }
+
+                        title={` ${item.title}`}
                         info={{
                             features: [item.description || "No description provided"],
                             categories: Array.isArray(item.categories)
