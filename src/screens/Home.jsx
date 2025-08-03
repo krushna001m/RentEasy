@@ -10,6 +10,9 @@ import ProductCard from '../components/ProductCard';
 import { categories } from '../constants/categories';
 import SearchWithFilter from '../components/SearchWithFilter';
 import axios from 'axios';
+import { initializeApp } from "firebase/app";
+import { database } from '../firebaseConfig';
+import { getDatabase, ref, get } from "firebase/database";
 import Loader from '../components/Loader';
 import RentEasyModal from '../components/RentEasyModal';
 
@@ -17,6 +20,7 @@ import RentEasyModal from '../components/RentEasyModal';
 const Home = ({ navigation }) => {
     const [allItems, setAllItems] = useState([]);
     const [filteredItems, setFilteredItems] = useState([]);
+    const [trendingItems, setTrendingItems] = useState([]);
     const [loading, setLoading] = useState(false);
 
     const [modalVisible, setModalVisible] = useState(false);
@@ -28,24 +32,41 @@ const Home = ({ navigation }) => {
     };
 
     useEffect(() => {
-        const fetchItems = async () => {
-            setLoading(true); // show loader
+        const fetchTrendingItems = async () => {
             try {
-                const res = await axios.get(`${URL}/items.json`);
-                const itemsArray = Object.values(res.data || {});
-                setAllItems(itemsArray);
-                setFilteredItems(itemsArray);
+                setLoading(true);
+                const snapshot = await get(ref(database, "items"));
+
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+
+                    // Flatten nested data
+                    const allItems = Object.entries(data).flatMap(([ownerId, ownerItems]) =>
+                        Object.entries(ownerItems).map(([itemKey, item]) => ({
+                            ...item,
+                            ownerId,
+                            itemKey,
+                            purchaseCount: item.purchaseCount || 0,
+                        }))
+                    );
+
+                    // Sort by purchaseCount
+                    const sortedItems = allItems.sort((a, b) => b.purchaseCount - a.purchaseCount);
+
+                    // Get top 3
+                    const topTrending = sortedItems.slice(0, 3);
+
+                    setTrendingItems(topTrending); // <-- set this to a state variable
+                }
             } catch (error) {
-                console.error('Error fetching items:', error);
+                console.error("Error fetching trending items:", error);
             } finally {
-                setLoading(false); // ✅ hide loader after fetch
+                setLoading(false);
             }
         };
 
-        fetchItems(); // ✅ correct async call
+        fetchTrendingItems();
     }, []);
-
-
 
     return (
         <View style={styles.container}>
@@ -76,35 +97,43 @@ const Home = ({ navigation }) => {
 
 
                 {/* Info Section */}
-                <ProductCard
-                    image={require('../../assets/camera.png')}
-                    title="📸 NIKON D850 DSLR (BODY ONLY)"
-                    info={{
-                        features: [
-                            "🔍 45.7MP FULL-FRAME | 🎥 4K UHD VIDEO",
-                            "📷 PRO-LEVEL PERFORMANCE",
-                        ],
-                        categories: ["electronics"],
-                        included: [
-                            "🔋 BATTERY & CHARGER ",
-                            "💾 64GB MEMORY CARD",
-                            "🎒 CARRY CASE",
-                        ],
-                        price: "📅 ₹500/DAY | ₹1300/3 DAYS | ₹2800/WEEK",
-                        deposit: "₹5000 (REFUNDABLE)",
-                        owner: "KRUSHNA MENGAL",
-                        location: "PUNE, MAHARASHTRA",
-                        rating: "4.9/5 (100 REVIEWS)",
-                        availability: "ON REQUEST",
-                    }}
-                    navigation={navigation}
-                />
+                {trendingItems.length > 0 && (
+                    <View style={{ marginTop: 1 }}>
+                        
+                        {trendingItems.map((item, index) => (
+                            <ProductCard
+                                key={item.itemKey}
+                                image={
+                                    item.images?.length > 0
+                                        ? item.images
+                                        : [require('../../assets/item_placeholder.png')]
+                                }
+                                title={`🔥 Trending #${index + 1} : ${item.title}`}
+                                info={{
+                                    features: [item.description || "No description provided"],
+                                    categories: Array.isArray(item.categories)
+                                        ? item.categories
+                                        : item.categories
+                                            ? [item.categories]
+                                            : ["others"],
+                                    included: item.included ? [item.included] : [],
+                                    price: `₹${item.pricePerDay}/day`,
+                                    deposit: `₹${item.securityDeposit || '0'} (REFUNDABLE)`,
+                                    location: `${item.location || "Not specified"}`,
+                                    owner: `${item.owner || 'N/A'}`,
+                                    availability: item.availability?.request
+                                        ? "Available on Request"
+                                        : item.availability?.booking
+                                            ? "Available for Booking"
+                                            : "Not Available",
+                                }}
+                                navigation={navigation}
+                            />
+                        ))}
+                    </View>
+                )}
 
-
-
-                {/* Buttons */}
-
-
+                {/* Button */}
                 <TouchableOpacity style={styles.browseButton} onPress={() => navigation.navigate("BrowseItems")} >
                     <Text style={styles.browseText}>BROWSE ITEM’S</Text>
                     <Ionicons name="search" size={24} color="#fff" style={{ marginLeft: 6 }} />
@@ -139,7 +168,7 @@ const Home = ({ navigation }) => {
                 </TouchableOpacity>
             </View>
             <Loader visible={loading} />
-            
+
         </View>
     );
 };
