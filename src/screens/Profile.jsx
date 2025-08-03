@@ -15,10 +15,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native'; // ✅ Auto-refresh when navigating back
 
 import Loader from '../components/Loader';
+import RentEasyModal from '../components/RentEasyModal';
 
 const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
 const Profile = ({ navigation }) => {
+
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalContent, setModalContent] = useState({ title: "", message: "" });
+
+    const showModal = (title, message) => {
+        setModalContent({ title, message });
+        setModalVisible(true);
+    };
+
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     const isFocused = useIsFocused(); // ✅ Re-fetch when screen focused
@@ -156,10 +166,10 @@ const Profile = ({ navigation }) => {
 
                 const updatedUser = { ...currentUser, ...tempProfile };
                 await AsyncStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
-                Alert.alert('✅ Profile Updated', "Profile Updated Successfully!");
+                showModal('✅ Profile Updated', "Profile Updated Successfully!");
             }
         } catch (error) {
-            Alert.alert("Profile Update Error:", error);
+            showModal("Profile Update Error:", error);
         } finally {
             setLoading(false);
         }
@@ -366,6 +376,14 @@ const Profile = ({ navigation }) => {
                 </TouchableOpacity>
             </View>
             <Loader visible={loading} />
+             <RentEasyModal
+                visible={modalVisible}
+                title={modalContent.title}
+                message={modalContent.message}
+                onClose={() => setModalVisible(false)}
+            />
+
+
         </View>
     );
 };

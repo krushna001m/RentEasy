@@ -18,10 +18,23 @@ import AntDesign from "react-native-vector-icons/AntDesign";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from '../firebaseConfig';
+import { getDatabase, ref, set } from "firebase/database";
+import RentEasyModal from '../components/RentEasyModal';
 
 const { width, height } = Dimensions.get("window");
 
 const SignUp = ({ navigation }) => {
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalContent, setModalContent] = useState({ title: "", message: "" });
+
+  const showModal = (title, message) => {
+    setModalContent({ title, message });
+    setModalVisible(true);
+  };
+
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -83,7 +96,7 @@ const SignUp = ({ navigation }) => {
     const { username, password, isOwner, isBorrower, agreed } = formData;
 
     if (!agreed) {
-      Alert.alert("Error", "You must agree to the terms!");
+      showModal("Error", "You must agree to the terms!");
       return;
     }
 
@@ -91,28 +104,39 @@ const SignUp = ({ navigation }) => {
     if (isOwner) roles.push("Owner");
     if (isBorrower) roles.push("Borrower");
 
+    const auth = getAuth(app); // initialize auth
+
     try {
       const existingUsers = await axios.get(`${URL}/users.json`);
       const usersData = existingUsers.data || {};
 
-      const userExists = Object.values(usersData).some(
-        (user) => {
-          const input = username.toLowerCase().trim();
-          return (
-            user.username?.toLowerCase() === input ||
-            user.email?.toLowerCase() === input
-          );
-        }
-      );
+      const userExists = Object.values(usersData).some((user) => {
+        const input = username.toLowerCase().trim();
+        return (
+          user.username?.toLowerCase() === input ||
+          user.email?.toLowerCase() === input
+        );
+      });
 
       if (userExists) {
-        Alert.alert("Error", "Username or Email already exists.");
+        showModal("Error", "Username or Email already exists.");
         return;
       }
+
+      // 🔐 Firebase Auth Sign Up
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        username, // this should be an email format (e.g., "test@gmail.com")
+        password
+      );
+
+      const firebaseUser = userCredential.user;
 
       const sanitizedUsername = username.replace(/[.#$/[\]]/g, "_");
 
       const newUser = {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
         username,
         password,
         roles,
@@ -120,12 +144,14 @@ const SignUp = ({ navigation }) => {
         createdAt: new Date().toISOString()
       };
 
+      // ✅ Save user to Realtime Database
       const response = await axios.post(`${URL}/users.json`, newUser);
+
       if (response.status === 200) {
         await AsyncStorage.setItem("username", newUser.username);
         await AsyncStorage.setItem("loggedInUser", JSON.stringify(newUser));
 
-        Alert.alert("Success", "Account created successfully!");
+        showModal("Success", "Account created successfully!");
         setFormData({
           username: "",
           password: "",
@@ -136,13 +162,14 @@ const SignUp = ({ navigation }) => {
         });
         navigation.navigate("Home");
       } else {
-        Alert.alert("Error", "Something went wrong. Try again.");
+        showModal("Error", "Something went wrong. Try again.");
       }
     } catch (error) {
       console.error("SignUp Error:", error.message);
-      Alert.alert("Error", "Network issue or invalid data.");
+      showModal("Error", error.message);
     }
   };
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -298,6 +325,14 @@ const SignUp = ({ navigation }) => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <RentEasyModal
+        visible={modalVisible}
+        title={modalContent.title}
+        message={modalContent.message}
+        onClose={() => setModalVisible(false)}
+      />
+
+
     </SafeAreaView>
   );
 };

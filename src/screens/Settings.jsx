@@ -17,10 +17,20 @@ import Entypo from 'react-native-vector-icons/Entypo';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from "axios";
+import RentEasyModal from '../components/RentEasyModal';
 
 const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
 const Settings = ({ navigation }) => {
+
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalContent, setModalContent] = useState({ title: "", message: "" });
+
+    const showModal = (title, message) => {
+        setModalContent({ title, message });
+        setModalVisible(true);
+    };
+
     const [darkMode, setDarkMode] = useState(false);
     const [notifications, setNotifications] = useState(true);
     const [selectedLanguage, setSelectedLanguage] = useState("English");
@@ -28,7 +38,7 @@ const Settings = ({ navigation }) => {
 
     // ✅ Logout Functionality
     const handleLogout = async () => {
-        Alert.alert("Logout", "Are you sure you want to logout?", [
+        showModal("Logout", "Are you sure you want to logout?", [
             { text: "Cancel", style: "cancel" },
             {
                 text: "Logout",
@@ -43,7 +53,7 @@ const Settings = ({ navigation }) => {
 
     // ✅ Deactivate Account
     const handleDeactivateAccount = async () => {
-        Alert.alert("Deactivate Account", "This will permanently delete your account. Continue?", [
+        showModal("Deactivate Account", "This will permanently delete your account. Continue?", [
             { text: "Cancel", style: "cancel" },
             {
                 text: "Deactivate",
@@ -52,16 +62,16 @@ const Settings = ({ navigation }) => {
                     try {
                         const username = await AsyncStorage.getItem("username");
                         if (!username) {
-                            Alert.alert("Error", "No account found.");
+                            showModal("Error", "No account found.");
                             return;
                         }
                         await axios.delete(`${URL}/users/${username}.json`);
                         await AsyncStorage.removeItem("username");
-                        Alert.alert("Account Deleted", "Your account has been deactivated.");
+                        showModal("Account Deleted", "Your account has been deactivated.");
                         navigation.replace("Login");
                     } catch (err) {
                         console.error("Error deleting account:", err);
-                        Alert.alert("Error", "Could not deactivate account.");
+                        showModal("Error", "Could not deactivate account.");
                     }
                 }
             }
@@ -70,13 +80,13 @@ const Settings = ({ navigation }) => {
 
     // ✅ Clear App Cache
     const handleClearCache = async () => {
-        Alert.alert("Clear Cache", "Are you sure you want to clear app cache?", [
+        showModal("Clear Cache", "Are you sure you want to clear app cache?", [
             { text: "Cancel", style: "cancel" },
             {
                 text: "Clear",
                 onPress: async () => {
                     await AsyncStorage.clear();
-                    Alert.alert("Cache Cleared", "App cache has been cleared.");
+                    showModal("Cache Cleared", "App cache has been cleared.");
                 }
             }
         ]);
@@ -191,6 +201,14 @@ const Settings = ({ navigation }) => {
                     </View>
                 </View>
             </Modal>
+             <RentEasyModal
+                visible={modalVisible}
+                title={modalContent.title}
+                message={modalContent.message}
+                onClose={() => setModalVisible(false)}
+            />
+
+
         </View>
     );
 };
@@ -284,7 +302,7 @@ const styles = StyleSheet.create({
         padding: 10,
         borderRadius: 10,
         marginVertical: 5,
-        marginLeft:20
+        marginLeft: 20
     },
     rowIcon: {
         marginRight: 10,

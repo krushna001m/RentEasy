@@ -21,12 +21,28 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNFS from 'react-native-fs';
 import Loader from '../components/Loader';
+import RentEasyModal from '../components/RentEasyModal';
 
 const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
 const History = ({ navigation }) => {
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(false);
+
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalContent, setModalContent] = useState({ title: "", message: "" });
+    const [pendingDeleteKey, setPendingDeleteKey] = useState(null);
+
+    const showModal = (title, message, onConfirm = null) => {
+        setModalContent({ title, message, onConfirm });
+        setModalVisible(true);
+    };
+
+    const confirmDelete = (itemKey) => {
+        setPendingDeleteKey(itemKey);
+        showModal("Delete History?", "Are you sure you want to delete this item?", handleDeleteConfirmed);
+    };
+
 
     useEffect(() => {
         const fetchHistory = async () => {
@@ -88,7 +104,7 @@ const History = ({ navigation }) => {
             setLoading(true);
             const hasPermission = await requestStoragePermission();
             if (!hasPermission) {
-                Alert.alert("Permission Denied", "Cannot save receipt without storage permission.");
+                showModal("Permission Denied", "Cannot save receipt without storage permission.");
                 return;
             }
 
@@ -148,11 +164,11 @@ const History = ({ navigation }) => {
                     type: "application/pdf",
                 });
             } else {
-                Alert.alert("Receipt Generated ✅", `Saved to: ${file.filePath}`);
+                showModal("Receipt Generated ✅", `Saved to: ${file.filePath}`);
             }
         } catch (error) {
             console.error("PDF Error:", error);
-            Alert.alert("Error", "Could not generate receipt.");
+            showModal("Error", "Could not generate receipt.");
         } finally {
             setLoading(false);
         }
@@ -214,25 +230,33 @@ const History = ({ navigation }) => {
             await FileViewer.open(file.filePath);
         } catch (error) {
             console.error("Preview Error:", error);
-            Alert.alert("Error", "Could not open receipt.");
+            showModal("Error", "Could not open receipt.");
         } finally {
             setLoading(false);
         }
     };
 
-    const deleteHistoryItem = async (itemKey) => {
-        try {
-            const username = await AsyncStorage.getItem("username");
-            if (!username) return;
+    const handleDeleteConfirmed = async () => {
+    try {
+        const username = await AsyncStorage.getItem("username");
+        if (!username || !pendingDeleteKey) return;
 
-            await axios.delete(`${URL}/history/${username}/${itemKey}.json`);
-            setHistory(prev => prev.filter(entry => entry.key !== itemKey));
-            Alert.alert("Deleted ✅", "History item removed.");
-        } catch (error) {
-            console.error("Delete Error:", error);
-            Alert.alert("Error", "Failed to delete the item.");
-        }
-    };
+        await axios.delete(`${URL}/history/${username}/${pendingDeleteKey}.json`);
+
+        // 🔄 Update local state
+        setHistory(prev => prev.filter(entry => entry.key !== pendingDeleteKey));
+
+        // ✅ Show success and close modal
+        setPendingDeleteKey(null);
+        setModalVisible(false);  // <- This closes the modal immediately
+        showModal("Deleted ✅", "History item removed.");
+    } catch (error) {
+        console.error("Delete Error:", error);
+        showModal("Error", "Failed to delete the item.");
+    }
+};
+
+
 
     return (
         <View style={styles.container}>
@@ -278,7 +302,8 @@ const History = ({ navigation }) => {
                                     <Text style={styles.actionBtnText}>View</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "#E53935" }]} onPress={() => deleteHistoryItem(item.key)}>
+                                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "#E53935" }]} onPress={() => confirmDelete(item.key)}
+>
                                     <Ionicons name="trash-outline" size={18} color="#fff" />
                                     <Text style={styles.actionBtnText}>Delete</Text>
                                 </TouchableOpacity>
@@ -315,6 +340,15 @@ const History = ({ navigation }) => {
             </View>
 
             <Loader visible={loading} />
+            <RentEasyModal
+                visible={modalVisible}
+                title={modalContent.title}
+                message={modalContent.message}
+                onClose={() => setModalVisible(false)}
+                onConfirm={modalContent.onConfirm}
+            />
+
+
         </View>
     );
 };

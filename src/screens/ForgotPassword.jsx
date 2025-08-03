@@ -9,25 +9,42 @@ import {
     Alert,
 } from "react-native";
 import emailjs from "@emailjs/browser";
-import AntDesign from "react-native-vector-icons/AntDesign"; 
-import { auth, RecaptchaVerifier, signInWithPhoneNumber } from "../../firebaseConfig";
+import AntDesign from "react-native-vector-icons/AntDesign";
+
+import auth from '@react-native-firebase/auth';
+import RentEasyModal from '../components/RentEasyModal';
+
 
 const ForgotPassword = ({ navigation }) => {
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
     const [generatedOTP, setGeneratedOTP] = useState("");
     const [method, setMethod] = useState(""); // "email" or "sms"
-    const recaptchaVerifier = useRef(null);
+
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalContent, setModalContent] = useState({ title: "", message: "" });
+
+    const showModal = (title, message) => {
+        setModalContent({ title, message });
+        setModalVisible(true);
+    };
 
     const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
     const sendEmailOTP = async () => {
         if (!email.trim()) {
-            Alert.alert("Error", "Enter your registered email.");
+            showModal("Error", "Enter your registered email.");
             return;
         }
+
+        if (!/^\S+@\S+\.\S+$/.test(email)) {
+            showModal("Error", "Please enter a valid email address.");
+            return;
+        }
+
         const otp = generateOTP();
         setGeneratedOTP(otp);
+
         try {
             await emailjs.send(
                 "service_oajvkpf",
@@ -35,34 +52,45 @@ const ForgotPassword = ({ navigation }) => {
                 { to_email: email, otp_code: otp },
                 "PTi9Iuo1Yj94r00Ha"
             );
-            Alert.alert("Success", `OTP sent to ${email}`);
+
+            await AsyncStorage.setItem("recoveryEmail", email); // optional
             setMethod("email");
-            navigation.navigate("OTPVerification", { generatedOTP: otp });
+
+            showModal("Success", `OTP sent to ${maskEmail(email)}`);
+            navigation.navigate("OTPVerification", { generatedOTP: otp, method: "email" });
+
         } catch (error) {
-            Alert.alert("Error", "Failed to send OTP via Email.");
-            console.log(error);
+            showModal("Error", "Failed to send OTP via Email.");
+            console.log("Email OTP error:", error);
         }
+    };
+
+    const maskEmail = (email) => {
+        const [name, domain] = email.split("@");
+        return `${name[0]}***@${domain}`;
     };
 
     const sendSMSOTP = async () => {
         if (!phone.trim()) {
-            Alert.alert("Error", "Enter your registered phone number.");
+            showModal("Error", "Enter your registered phone number.");
             return;
         }
+
         try {
-            const confirmation = await signInWithPhoneNumber(auth, phone, recaptchaVerifier.current);
-            Alert.alert("Success", `OTP sent to ${phone}`);
-            setMethod("sms");
-            navigation.navigate("OTPVerification", { confirmation });
+            const confirmation = await auth().signInWithPhoneNumber(phone);
+            showModal("Success", `OTP sent to ${phone}`);
+            navigation.navigate("OTPVerification", { confirmation, method: "sms" });
+
         } catch (error) {
-            Alert.alert("Error", "Failed to send OTP via SMS.");
-            console.log(error);
+            console.log("SMS OTP Error:", error.message);
+            showModal("Error", "Failed to send OTP via SMS.");
         }
     };
 
+
     return (
         <View style={styles.container}>
-            
+
             <Text style={styles.title}>FORGOT PASSWORD</Text>
             <Text style={styles.subtitle}>Reset your password via OTP</Text>
 
@@ -91,14 +119,20 @@ const ForgotPassword = ({ navigation }) => {
                 <Text style={styles.buttonText}>Send OTP via SMS</Text>
             </TouchableOpacity>
 
-            {/* Recaptcha */}
-            <View ref={recaptchaVerifier}></View>
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                 <View style={styles.buttonContent}>
                     <AntDesign name="arrowleft" size={20} color="white" style={styles.buttonIcon} />
                     <Text style={styles.buttonText}>BACK</Text>
                 </View>
             </TouchableOpacity>
+             <RentEasyModal
+                visible={modalVisible}
+                title={modalContent.title}
+                message={modalContent.message}
+                onClose={() => setModalVisible(false)}
+            />
+
+
         </View>
     );
 };

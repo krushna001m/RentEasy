@@ -20,6 +20,7 @@ import Settings from "../screens/Settings";
 import ChatBot from "../screens/ChatBot";
 import Payment from "../screens/Payment";
 import Loader from "../components/Loader";
+import RentEasyModal from "../components/RentEasyModal";
 
 const Stack = createNativeStackNavigator();
 

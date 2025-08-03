@@ -17,11 +17,21 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import RentEasyModal from '../components/RentEasyModal';
 
 const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
 const Payment = ({ navigation, route }) => {
-    const { itemInfo, title } = route.params;
+
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalContent, setModalContent] = useState({ title: "", message: "" });
+
+    const showModal = (title, message) => {
+        setModalContent({ title, message });
+        setModalVisible(true);
+    };
+
+    const { itemInfo, title, parentKey, itemKey } = route.params;
     const [paymentMethod, setPaymentMethod] = useState('card');
     const [cardDetails, setCardDetails] = useState({
         number: '',
@@ -77,53 +87,73 @@ const Payment = ({ navigation, route }) => {
 
 
     const handlePayNow = async () => {
-        if (!agreed) {
-            Alert.alert('⚠️ Agreement Required', 'Please agree to the rental policy.');
+    if (!agreed) {
+        showModal('⚠️ Agreement Required', 'Please agree to the rental policy.');
+        return;
+    }
+
+    if (paymentMethod === 'card') {
+        const { number, expiry, cvv, name } = cardDetails;
+        if (!number || !expiry || !cvv || !name) {
+            showModal('⚠️ Missing Info', 'Please fill all card details.');
+            return;
+        }
+    }
+
+    if (paymentMethod === 'upi' && !upiId) {
+        showModal('⚠️ Missing UPI', 'Please enter your UPI ID.');
+        return;
+    }
+
+    try {
+        const username = await AsyncStorage.getItem("username");
+        if (!username) {
+            showModal("Login Required", "Please login first!");
             return;
         }
 
-        if (paymentMethod === 'card') {
-            const { number, expiry, cvv, name } = cardDetails;
-            if (!number || !expiry || !cvv || !name) {
-                Alert.alert('⚠️ Missing Info', 'Please fill all card details.');
-                return;
-            }
+        const historyItem = {
+            title,
+            ...itemInfo,
+            days,
+            totalAmount: parseFloat(totalAmount),
+            paymentMethod,
+            upiId,
+            netBankingDetails,
+            date: new Date().toISOString(),
+            status: "Completed",
+        };
+
+        // ✅ Save transaction to user's history
+        await axios.post(`${URL}/history/${username}.json`, historyItem);
+
+        // ✅ Increment purchase count for this item
+        const parentKey = itemInfo.parentKey;
+        const itemKey = itemInfo.itemKey;
+
+        if (parentKey && itemKey) {
+            const itemRef = `${URL}/items/${parentKey}/${itemKey}/purchaseCount.json`;
+
+            // Fetch existing purchaseCount
+            const response = await axios.get(itemRef);
+            const currentCount = response.data || 0;
+
+            // Update with incremented count
+            await axios.put(itemRef, currentCount + 1);
         }
 
-        if (paymentMethod === 'upi' && !upiId) {
-            Alert.alert('⚠️ Missing UPI', 'Please enter your UPI ID.');
-            return;
-        }
-
-        try {
-            const username = await AsyncStorage.getItem("username");
-            if (!username) {
-                Alert.alert("Login Required", "Please login first!");
-                return;
-            }
-
-            const historyItem = {
-                title,
-                ...itemInfo,
-                days,
-                totalAmount: parseFloat(totalAmount),
-                paymentMethod,
-                upiId,
-                netBankingDetails,
-                date: new Date().toISOString(),
-                status: "Completed",
-            };
-
-
-            await axios.post(`${URL}/history/${username}.json`, historyItem);
-
-            Alert.alert('✅ Payment Successful', `You rented for ${days} day(s). Total: ₹${itemInfo.price}`);
+        // ✅ Show success message and navigate
+        showModal('✅ Payment Successful', `You rented for ${days} day(s). Total: ₹${itemInfo.price}`);
+        setTimeout(() => {
             navigation.navigate("History");
-        } catch (error) {
-            console.error("Error saving history:", error);
-            Alert.alert("Error", "Could not update history. Try again.");
-        }
-    };
+        }, 1500);
+
+    } catch (error) {
+        console.error("Error saving history or updating count:", error);
+        showModal("Error", "Could not complete payment. Please try again.");
+    }
+};
+
 
     return (
         <View style={styles.container}>
@@ -436,6 +466,14 @@ const Payment = ({ navigation, route }) => {
                     <Text style={styles.navLabel}>Profile</Text>
                 </TouchableOpacity>
             </View>
+            <RentEasyModal
+                visible={modalVisible}
+                title={modalContent.title}
+                message={modalContent.message}
+                onClose={() => setModalVisible(false)}
+            />
+
+
         </View>
     );
 };

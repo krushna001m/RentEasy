@@ -18,6 +18,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { categories } from '../constants/categories';
 import SearchWithFilter from '../components/SearchWithFilter';
 import Loader from '../components/Loader';
+import RentEasyModal from '../components/RentEasyModal';
 
 const BrowseItems = ({ navigation }) => {
     const [items, setItems] = useState([]);
@@ -25,6 +26,14 @@ const BrowseItems = ({ navigation }) => {
     const [loading, setLoading] = useState(false);
     const isFocused = useIsFocused();
     const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
+
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalContent, setModalContent] = useState({ title: "", message: "" });
+
+    const showModal = (title, message) => {
+        setModalContent({ title, message });
+        setModalVisible(true);
+    };
 
     useEffect(() => {
         const fetchItems = async () => {
@@ -91,14 +100,11 @@ const BrowseItems = ({ navigation }) => {
                 {filteredItems.map(item => (
                     <ProductCard
                         key={item.id}
-
                         image={
-  item.images && item.images.length > 0
-    ? item.images
-    : [require('../../assets/item_placeholder.png')]
-}
-
-
+                            item.images && item.images.length > 0
+                                ? item.images
+                                : [require('../../assets/item_placeholder.png')]
+                        }
                         title={` ${item.title}`}
                         info={{
                             features: [item.description || "No description provided"],
@@ -118,8 +124,11 @@ const BrowseItems = ({ navigation }) => {
                                     ? "Available for Booking"
                                     : "Not Available"
                         }}
+                        itemKey={item.id.split("_")[1]}        // <- Extract actual item key from id
+                        parentKey={item.id.split("_")[0]}      // <- Extract parentKey from id
                         navigation={navigation}
                     />
+
                 ))}
             </ScrollView>
 
@@ -148,6 +157,13 @@ const BrowseItems = ({ navigation }) => {
             </View>
 
             <Loader visible={loading} />
+            <RentEasyModal
+                visible={modalVisible}
+                title={modalContent.title}
+                message={modalContent.message}
+                onClose={() => setModalVisible(false)}
+            />
+
         </View>
     );
 };

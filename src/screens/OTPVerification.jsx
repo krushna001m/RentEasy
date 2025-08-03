@@ -1,30 +1,40 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import RentEasyModal from '../components/RentEasyModal';
 
 const OTPVerification = ({ route, navigation }) => {
+
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalContent, setModalContent] = useState({ title: "", message: "" });
+
+    const showModal = (title, message) => {
+        setModalContent({ title, message });
+        setModalVisible(true);
+    };
+
     const { generatedOTP, confirmation, method, email, phone } = route.params;
     const [otp, setOtp] = useState("");
 
     const verifyOTP = async () => {
         if (!otp.trim()) {
-            Alert.alert("Error", "Please enter OTP");
+            showModal("Error", "Please enter OTP");
             return;
         }
 
         if (method === "email") {
             if (otp === generatedOTP) {
-                Alert.alert("Success", "OTP Verified Successfully");
+                showModal("Success", "OTP Verified Successfully");
                 navigation.navigate("ResetPassword", { method, email });
             } else {
-                Alert.alert("Error", "Invalid OTP");
+                showModal("Error", "Invalid OTP");
             }
         } else if (method === "sms") {
             try {
                 await confirmation.confirm(otp);
-                Alert.alert("Success", "OTP Verified Successfully");
+                showModal("Success", "OTP Verified Successfully");
                 navigation.navigate("ResetPassword", { method, phone });
             } catch (error) {
-                Alert.alert("Error", "Invalid OTP");
+                showModal("Error", "Invalid OTP");
                 console.log(error);
             }
         }
@@ -47,6 +57,13 @@ const OTPVerification = ({ route, navigation }) => {
             <TouchableOpacity style={styles.button} onPress={verifyOTP}>
                 <Text style={styles.buttonText}>VERIFY OTP</Text>
             </TouchableOpacity>
+             <RentEasyModal
+                visible={modalVisible}
+                title={modalContent.title}
+                message={modalContent.message}
+                onClose={() => setModalVisible(false)}
+            />
+
         </View>
     );
 };

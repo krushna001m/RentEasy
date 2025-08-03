@@ -17,6 +17,7 @@ import FontAwesome from "react-native-vector-icons/FontAwesome";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import firestore from "@react-native-firebase/firestore"; // ✅ Firestore
+import RentEasyModal from '../components/RentEasyModal';
 
 const Chat = ({ navigation, route }) => {
     const { ownerUsername } = route.params || {};
@@ -24,6 +25,14 @@ const Chat = ({ navigation, route }) => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const scrollViewRef = useRef();
+
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalContent, setModalContent] = useState({ title: "", message: "" });
+
+    const showModal = (title, message) => {
+        setModalContent({ title, message });
+        setModalVisible(true);
+    };
 
     const chatRoomId =
         currentUser && ownerUsername
@@ -35,7 +44,7 @@ const Chat = ({ navigation, route }) => {
         const fetchUsername = async () => {
             const username = await AsyncStorage.getItem("username");
             if (!username) {
-                Alert.alert("Error", "Please login first!");
+                showModal("Error", "Please login first!");
                 navigation.navigate("Login");
                 return;
             }
@@ -81,7 +90,7 @@ const Chat = ({ navigation, route }) => {
             setInput("");
         } catch (error) {
             console.error("Send Message Error:", error);
-            Alert.alert("Error", "Could not send message.");
+            showModal("Error", "Could not send message.");
         }
     };
 
@@ -206,6 +215,14 @@ const Chat = ({ navigation, route }) => {
                     <Text style={styles.navLabel}>Profile</Text>
                 </TouchableOpacity>
             </View>
+             <RentEasyModal
+                visible={modalVisible}
+                title={modalContent.title}
+                message={modalContent.message}
+                onClose={() => setModalVisible(false)}
+            />
+
+
         </View>
     );
 };
@@ -300,7 +317,7 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         marginLeft: 325,
     },
-        inputBar: {
+    inputBar: {
         flexDirection: 'row',
         alignItems: 'center',
         borderTopWidth: 1,

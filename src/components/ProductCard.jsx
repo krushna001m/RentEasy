@@ -8,22 +8,22 @@ import FontAwesome from "react-native-vector-icons/FontAwesome";
 const screenWidth = Dimensions.get("window").width;
 import { Dimensions } from 'react-native';
 
-const ProductCard = ({ image, title, info, navigation }) => {
+const ProductCard = ({ image, title, info, navigation, itemKey, parentKey }) => {
   const imageList = Array.isArray(image)
-  ? image.length > 0
-    ? image
-    : [require('../../assets/item_placeholder.png')]
-  : [image];
+    ? image.length > 0
+      ? image
+      : [require('../../assets/item_placeholder.png')]
+    : [image];
 
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollRef = useRef(null);
 
- const handleScroll = (event) => {
-  const newIndex = Math.round(
-    event.nativeEvent.contentOffset.x / screenWidth
-  );
-  setActiveIndex(newIndex);
-};
+  const handleScroll = (event) => {
+    const newIndex = Math.round(
+      event.nativeEvent.contentOffset.x / screenWidth
+    );
+    setActiveIndex(newIndex);
+  };
 
 
 
@@ -62,7 +62,7 @@ const ProductCard = ({ image, title, info, navigation }) => {
 
   return (
     <View style={styles.card}>
-      
+
       <ScrollView
         ref={scrollRef}
         horizontal
@@ -73,11 +73,11 @@ const ProductCard = ({ image, title, info, navigation }) => {
         style={styles.imageScroll}
       >
         {imageList.map((imgSrc, idx) => (
-         <Image
-  key={`img-${idx}`}
-  source={typeof imgSrc === "string" ? { uri: imgSrc } : imgSrc}
-  style={styles.image}
-/>
+          <Image
+            key={`img-${idx}`}
+            source={typeof imgSrc === "string" ? { uri: imgSrc } : imgSrc}
+            style={styles.image}
+          />
 
         ))}
       </ScrollView>
@@ -205,14 +205,21 @@ const ProductCard = ({ image, title, info, navigation }) => {
           </>
         )}
 
-        {/* Book Now Button */}
         <TouchableOpacity
-          style={styles.bookBtn}
-          onPress={() => navigation.navigate("Payment", { itemInfo: info, title })}
-        >
+                style={styles.bookBtn}
+                onPress={() =>
+                    navigation.navigate("Payment", {
+                        itemInfo: info,
+                        title,
+                        itemKey,
+                        parentKey
+                    })
+                }
+            >
           <Ionicons name="calendar" size={18} color="#fff" />
           <Text style={styles.bookText}>BOOK NOW</Text>
         </TouchableOpacity>
+
       </View>
 
     </View>
@@ -241,13 +248,13 @@ const styles = StyleSheet.create({
     marginBottom: 20
   },
   image: {
-    width: screenWidth *0.9,
+    width: screenWidth * 0.9,
     height: 250,
     resizeMode: "cover",
     backgroundColor: '#E6F0FA',
     marginTop: 20,
-    marginBottom:10,
-    marginRight:20,
+    marginBottom: 10,
+    marginRight: 20,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 300,
     borderBottomLeftRadius: 30,
@@ -283,7 +290,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     elevation: 3,
     marginBottom: 10,
-    marginTop:10
+    marginTop: 10
   },
 
   titleRow: {

@@ -23,10 +23,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import { categories } from '../../constants/categories';
 import Loader from '../components/Loader';
+import RentEasyModal from "../components/RentEasyModal";
 
 const AddItem = ({ navigation }) => {
     const isFocused = useIsFocused();
     const [loading, setLoading] = useState(false);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalContent, setModalContent] = useState({ title: "", message: "" });
+
+    const showModal = (title, message) => {
+        setModalContent({ title, message });
+        setModalVisible(true);
+    };
+
 
     const categories = [
         { id: "electronics", label: "Electronics" },
@@ -76,33 +85,33 @@ const AddItem = ({ navigation }) => {
     const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
     const pickImage = () => {
-    const options = {
-        mediaType: 'photo',
-        quality: 1,
-        selectionLimit: 5 - imageUris.length, // Allow only remaining slots
+        const options = {
+            mediaType: 'photo',
+            quality: 1,
+            selectionLimit: 5 - imageUris.length, // Allow only remaining slots
+        };
+
+        launchImageLibrary(options, async (response) => {
+            if (response.didCancel || response.errorCode) return;
+
+            const selectedAssets = response.assets || [];
+
+            if (selectedAssets.length + imageUris.length > 5) {
+                showModal("Limit Reached", "You can upload a maximum of 5 images.");
+                return;
+            }
+
+            const newUris = selectedAssets.map(asset => asset.uri);
+            setImageUris(prev => [...prev, ...newUris]);
+        });
     };
-
-    launchImageLibrary(options, async (response) => {
-        if (response.didCancel || response.errorCode) return;
-
-        const selectedAssets = response.assets || [];
-
-        if (selectedAssets.length + imageUris.length > 5) {
-            Alert.alert("Limit Reached", "You can upload a maximum of 5 images.");
-            return;
-        }
-
-        const newUris = selectedAssets.map(asset => asset.uri);
-        setImageUris(prev => [...prev, ...newUris]);
-    });
-};
 
 
 
     const handleSubmit = async () => {
 
         if (!itemData.title || !itemData.pricePerDay || !itemData.location || imageUris.length === 0) {
-            Alert.alert("Error", "Please fill Title, Price, Location and upload at least 1 image.");
+            showModal("Error", "Please fill Title, Price, Location and upload at least 1 image.");
             return;
         }
 
@@ -111,7 +120,7 @@ const AddItem = ({ navigation }) => {
 
             const loggedInUserData = await AsyncStorage.getItem("loggedInUser");
             if (!loggedInUserData) {
-                Alert.alert("Error", "User not logged in!");
+                showModal("Error", "User not logged in!");
                 return;
             }
 
@@ -126,7 +135,7 @@ const AddItem = ({ navigation }) => {
             }
 
             if (uploadedImageUrls.length === 0) {
-                Alert.alert("Error", "Failed to upload any image.");
+                showModal("Error", "Failed to upload any image.");
                 return;
             }
 
@@ -146,6 +155,7 @@ const AddItem = ({ navigation }) => {
                 owner: currentUser.username,
                 ownerEmail: currentUser.email,
                 ownerPhone: currentUser.phone,
+                purchaseCount: 0, // ✅ Initialize count to 0
             };
 
             // ✅ Upload to Firebase Realtime DB
@@ -177,12 +187,12 @@ const AddItem = ({ navigation }) => {
                 await AsyncStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
             }
 
-            Alert.alert("Success", "Item has been added successfully!");
+            showModal("Success", "Item has been added successfully!");
             handleReset();
             navigation.navigate("History");
         } catch (error) {
             console.error("Error storing data:", error);
-            Alert.alert("Error", "Failed to store data in Realtime Database.");
+            showModal("Error", "Failed to store data in Realtime Database.");
         } finally {
             setLoading(false);
         }
@@ -604,6 +614,13 @@ const AddItem = ({ navigation }) => {
                     </View>
                 </View>
             </Modal>
+            <RentEasyModal
+                visible={modalVisible}
+                title={modalContent.title}
+                message={modalContent.message}
+                onClose={() => setModalVisible(false)}
+            />
+
         </View >
     );
 };

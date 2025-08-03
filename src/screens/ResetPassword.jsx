@@ -1,21 +1,31 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import axios from "axios";
+import RentEasyModal from '../components/RentEasyModal';
 
 const URL = "https://your-firebase-db-url"; // Replace with your Firebase or API URL
 
 const ResetPassword = ({ route, navigation }) => {
+
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalContent, setModalContent] = useState({ title: "", message: "" });
+
+    const showModal = (title, message) => {
+        setModalContent({ title, message });
+        setModalVisible(true);
+    };
+
     const { method, email, phone } = route.params;
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
     const handlePasswordReset = async () => {
         if (!newPassword || !confirmPassword) {
-            Alert.alert("Error", "Please fill all fields");
+            showModal("Error", "Please fill all fields");
             return;
         }
         if (newPassword !== confirmPassword) {
-            Alert.alert("Error", "Passwords do not match");
+            showModal("Error", "Passwords do not match");
             return;
         }
 
@@ -26,10 +36,10 @@ const ResetPassword = ({ route, navigation }) => {
                 password: newPassword,
             });
 
-            Alert.alert("Success", "Password Reset Successfully");
+            showModal("Success", "Password Reset Successfully");
             navigation.navigate("Login");
         } catch (error) {
-            Alert.alert("Error", "Failed to update password");
+            showModal("Error", "Failed to update password");
             console.log(error);
         }
     };
@@ -58,6 +68,14 @@ const ResetPassword = ({ route, navigation }) => {
             <TouchableOpacity style={styles.button} onPress={handlePasswordReset}>
                 <Text style={styles.buttonText}>RESET PASSWORD</Text>
             </TouchableOpacity>
+             <RentEasyModal
+                visible={modalVisible}
+                title={modalContent.title}
+                message={modalContent.message}
+                onClose={() => setModalVisible(false)}
+            />
+
+
         </View>
     );
 };

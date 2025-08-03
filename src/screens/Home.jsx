@@ -11,6 +11,7 @@ import { categories } from '../constants/categories';
 import SearchWithFilter from '../components/SearchWithFilter';
 import axios from 'axios';
 import Loader from '../components/Loader';
+import RentEasyModal from '../components/RentEasyModal';
 
 
 const Home = ({ navigation }) => {
@@ -18,23 +19,31 @@ const Home = ({ navigation }) => {
     const [filteredItems, setFilteredItems] = useState([]);
     const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-    const fetchItems = async () => {
-        setLoading(true); // show loader
-        try {
-            const res = await axios.get(`${URL}/items.json`);
-            const itemsArray = Object.values(res.data || {});
-            setAllItems(itemsArray);
-            setFilteredItems(itemsArray);
-        } catch (error) {
-            console.error('Error fetching items:', error);
-        } finally {
-            setLoading(false); // ✅ hide loader after fetch
-        }
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalContent, setModalContent] = useState({ title: "", message: "" });
+
+    const showModal = (title, message) => {
+        setModalContent({ title, message });
+        setModalVisible(true);
     };
 
-    fetchItems(); // ✅ correct async call
-}, []);
+    useEffect(() => {
+        const fetchItems = async () => {
+            setLoading(true); // show loader
+            try {
+                const res = await axios.get(`${URL}/items.json`);
+                const itemsArray = Object.values(res.data || {});
+                setAllItems(itemsArray);
+                setFilteredItems(itemsArray);
+            } catch (error) {
+                console.error('Error fetching items:', error);
+            } finally {
+                setLoading(false); // ✅ hide loader after fetch
+            }
+        };
+
+        fetchItems(); // ✅ correct async call
+    }, []);
 
 
 
@@ -130,6 +139,7 @@ const Home = ({ navigation }) => {
                 </TouchableOpacity>
             </View>
             <Loader visible={loading} />
+            
         </View>
     );
 };

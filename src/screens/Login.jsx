@@ -17,10 +17,23 @@ import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 import AntDesign from "react-native-vector-icons/AntDesign";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from '../firebaseConfig' // adjust path as needed
+import RentEasyModal from '../components/RentEasyModal';
+
 
 const { width, height } = Dimensions.get("window");
 
 const Login = ({ navigation }) => {
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalContent, setModalContent] = useState({ title: "", message: "" });
+
+  const showModal = (title, message) => {
+    setModalContent({ title, message });
+    setModalVisible(true);
+  };
+
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -70,35 +83,38 @@ const Login = ({ navigation }) => {
   };
 
   const handleLogin = async () => {
-  if (!validateInputs()) return;
+    if (!validateInputs()) return;
 
-  const { username, password } = formData;
+    const { username, password } = formData;
 
-  try {
-    const response = await axios.get(`${URL}/users.json`);
-    const usersData = response.data || {};
+    try {
+      // ✅ Firebase Auth Login
+      const userCredential = await signInWithEmailAndPassword(auth, username, password);
+      const firebaseUser = userCredential.user;
 
-    const matchedUser = Object.values(usersData).find((user) => {
-      const input = username.toLowerCase().trim();
-      const userMatch = user.username?.toLowerCase() === input || user.email?.toLowerCase() === input;
-      return userMatch && user.password === password;
-    });
+      // ✅ Get additional user data from Firebase Realtime DB (optional)
+      const response = await axios.get(`${URL}/users.json`);
+      const usersData = response.data || {};
 
-    if (matchedUser) {
-      await AsyncStorage.setItem("username", matchedUser.username);
-      await AsyncStorage.setItem("loggedInUser", JSON.stringify(matchedUser));
+      const matchedUser = Object.values(usersData).find(
+        (user) => user.email?.toLowerCase() === firebaseUser.email?.toLowerCase()
+      );
 
-      console.log("✅ Logged in user:", matchedUser.username);
-      Alert.alert("Success", `Welcome back, ${matchedUser.username}!`);
-      navigation.navigate("Home");
-    } else {
-      Alert.alert("Login Failed", "Invalid username/email or password");
+      if (matchedUser) {
+        await AsyncStorage.setItem("username", matchedUser.username);
+        await AsyncStorage.setItem("loggedInUser", JSON.stringify(matchedUser));
+
+        showModal("Success", `Welcome back, ${matchedUser.username}!`);
+        navigation.navigate("Home");
+      } else {
+        showModal("Login Failed", "User data not found in database.");
+      }
+    } catch (error) {
+      console.error("Firebase Login Error:", error.message);
+      showModal("Login Error", error.message);
     }
-  } catch (error) {
-    console.error("Login Error:", error.message);
-    Alert.alert("Error", "Something went wrong. Please try again later.");
-  }
-};
+  };
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -176,6 +192,14 @@ const Login = ({ navigation }) => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <RentEasyModal
+        visible={modalVisible}
+        title={modalContent.title}
+        message={modalContent.message}
+        onClose={() => setModalVisible(false)}
+      />
+
+
     </SafeAreaView>
   );
 };

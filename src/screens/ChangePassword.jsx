@@ -11,6 +11,7 @@ import {
 import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 import AntDesign from "react-native-vector-icons/AntDesign";
 import axios from "axios";
+import RentEasyModal from '../components/RentEasyModal';
 
 const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
@@ -20,13 +21,21 @@ const ChangePassword = ({ navigation }) => {
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalContent, setModalContent] = useState({ title: "", message: "" });
+
+    const showModal = (title, message) => {
+        setModalContent({ title, message });
+        setModalVisible(true);
+    };
+
     const handleChangePassword = async () => {
         if (!username || !currentPassword || !newPassword || !confirmPassword) {
-            Alert.alert("Error", "Please fill all fields.");
+            showModal("Error", "Please fill all fields.");
             return;
         }
         if (newPassword !== confirmPassword) {
-            Alert.alert("Error", "New passwords do not match.");
+            showModal("Error", "New passwords do not match.");
             return;
         }
 
@@ -35,7 +44,7 @@ const ChangePassword = ({ navigation }) => {
             const userData = res.data;
 
             if (!userData || userData.password !== currentPassword) {
-                Alert.alert("Error", "Invalid username or current password.");
+                showModal("Error", "Invalid username or current password.");
                 return;
             }
 
@@ -43,12 +52,12 @@ const ChangePassword = ({ navigation }) => {
                 password: newPassword,
             });
 
-            Alert.alert("Success", "Password changed successfully!", [
+            showModal("Success", "Password changed successfully!", [
                 { text: "OK", onPress: () => navigation.goBack() },
             ]);
         } catch (error) {
             console.error(error);
-            Alert.alert("Error", "Something went wrong.");
+            showModal("Error", "Something went wrong.");
         }
     };
 
@@ -118,6 +127,14 @@ const ChangePassword = ({ navigation }) => {
                     <Text style={styles.buttonText}>BACK</Text>
                 </View>
             </TouchableOpacity>
+             <RentEasyModal
+                visible={modalVisible}
+                title={modalContent.title}
+                message={modalContent.message}
+                onClose={() => setModalVisible(false)}
+            />
+
+
         </View>
     );
 };

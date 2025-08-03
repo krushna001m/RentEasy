@@ -16,9 +16,18 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import axios from 'axios';
 import { GEMINI_API_KEY } from '@env';
+import RentEasyModal from '../components/RentEasyModal';
 
 const ChatBot = ({ navigation }) => {
     console.log("ChatBot API Key:", GEMINI_API_KEY);
+
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalContent, setModalContent] = useState({ title: "", message: "" });
+
+    const showModal = (title, message) => {
+        setModalContent({ title, message });
+        setModalVisible(true);
+    };
 
     const [messages, setMessages] = useState([
         { sender: 'bot', text: 'Hi 👋! How can I help you today?' }
@@ -143,6 +152,14 @@ const ChatBot = ({ navigation }) => {
                     <Text style={styles.navLabel}>Profile</Text>
                 </TouchableOpacity>
             </View>
+             <RentEasyModal
+                visible={modalVisible}
+                title={modalContent.title}
+                message={modalContent.message}
+                onClose={() => setModalVisible(false)}
+            />
+
+
         </KeyboardAvoidingView>
     );
 };
@@ -170,12 +187,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingBottom: 1,
     },
-logo: {
-    width: 70,
-    height: 70,
-    resizeMode: 'contain',
-    borderRadius: 35, // half of width/height
-},
+    logo: {
+        width: 70,
+        height: 70,
+        resizeMode: 'contain',
+        borderRadius: 35, // half of width/height
+    },
 
     title: {
         fontSize: 25,
