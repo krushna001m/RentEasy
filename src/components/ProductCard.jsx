@@ -1,12 +1,32 @@
-import React from "react";
-import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useRef, useState } from "react";
+import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import Entypo from "react-native-vector-icons/Entypo";
 import { categories } from "../constants/categories";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
+const screenWidth = Dimensions.get("window").width;
+import { Dimensions } from 'react-native';
 
 const ProductCard = ({ image, title, info, navigation }) => {
+  const imageList = Array.isArray(image)
+  ? image.length > 0
+    ? image
+    : [require('../../assets/item_placeholder.png')]
+  : [image];
+
+  const [activeIndex, setActiveIndex] = useState(0);
+  const scrollRef = useRef(null);
+
+ const handleScroll = (event) => {
+  const newIndex = Math.round(
+    event.nativeEvent.contentOffset.x / screenWidth
+  );
+  setActiveIndex(newIndex);
+};
+
+
+
   const renderStars = (ratingString) => {
     const rating = parseFloat(ratingString);
     const fullStars = Math.floor(rating);
@@ -42,7 +62,37 @@ const ProductCard = ({ image, title, info, navigation }) => {
 
   return (
     <View style={styles.card}>
-      <Image source={image} style={styles.image} />
+      
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        style={styles.imageScroll}
+      >
+        {imageList.map((imgSrc, idx) => (
+         <Image
+  key={`img-${idx}`}
+  source={typeof imgSrc === "string" ? { uri: imgSrc } : imgSrc}
+  style={styles.image}
+/>
+
+        ))}
+      </ScrollView>
+      {/* Bottom Dots */}
+      <View style={styles.dotsContainer}>
+        {imageList.map((_, idx) => (
+          <View
+            key={idx}
+            style={[
+              styles.dot,
+              activeIndex === idx ? styles.activeDot : null
+            ]}
+          />
+        ))}
+      </View>
 
       {/* ⭐ Dynamic Rating Row */}
       {info.rating && (
@@ -186,13 +236,18 @@ const styles = StyleSheet.create({
     color: "#333",
     fontWeight: "bold",
   },
+  imageScroll: {
+    marginTop: 20,
+    marginBottom: 20
+  },
   image: {
-    width: 380,
+    width: screenWidth *0.9,
     height: 250,
     resizeMode: "cover",
     backgroundColor: '#E6F0FA',
     marginTop: 20,
-    marginBottom:20,
+    marginBottom:10,
+    marginRight:20,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 300,
     borderBottomLeftRadius: 30,
@@ -202,6 +257,25 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 6,
+  },
+  dotsContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 1,
+  },
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#aaa",
+    marginHorizontal: 4,
+  },
+  activeDot: {
+    backgroundColor: "#001F54", // highlighted color for the active image
+    width: 8,
+    height: 8,
+    borderRadius: 6,
   },
   infoBox: {
     padding: 15,

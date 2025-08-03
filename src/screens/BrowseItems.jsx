@@ -93,10 +93,11 @@ const BrowseItems = ({ navigation }) => {
                         key={item.id}
 
                         image={
-                            item.images && item.images.length > 0
-                                ? { uri: item.images[0] }
-                                : require('../../assets/item_placeholder.png')
-                        }
+  item.images && item.images.length > 0
+    ? item.images
+    : [require('../../assets/item_placeholder.png')]
+}
+
 
                         title={` ${item.title}`}
                         info={{

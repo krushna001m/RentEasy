@@ -18,7 +18,7 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Entypo from 'react-native-vector-icons/Entypo';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import axios from 'axios';
-import {uploadImageToFirebase} from '../firebaseService';
+import { uploadImageToFirebase } from '../firebaseService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import { categories } from '../../constants/categories';
@@ -26,7 +26,7 @@ import Loader from '../components/Loader';
 
 const AddItem = ({ navigation }) => {
     const isFocused = useIsFocused();
-    const [loading,setLoading]=useState(false);
+    const [loading, setLoading] = useState(false);
 
     const categories = [
         { id: "electronics", label: "Electronics" },
@@ -70,103 +70,123 @@ const AddItem = ({ navigation }) => {
         notAvailable: false,
     });
 
-    const [imageUri, setImageUri] = useState(null);
+    const [imageUris, setImageUris] = useState([]); // Replace `imageUri`
     const [previewVisible, setPreviewVisible] = useState(false); // ✅ NEW
 
     const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
     const pickImage = () => {
-    const options = { mediaType: 'photo', quality: 1 };
-    launchImageLibrary(options, (response) => {
-        if (response.didCancel) {
-            console.log('User cancelled image picker');
-        } else if (response.errorCode) {
-            console.error('ImagePicker Error:', response.errorMessage);
-        } else if (response.assets && response.assets.length > 0) {
-            setImageUri(response.assets[0].uri);
+    const options = {
+        mediaType: 'photo',
+        quality: 1,
+        selectionLimit: 5 - imageUris.length, // Allow only remaining slots
+    };
+
+    launchImageLibrary(options, async (response) => {
+        if (response.didCancel || response.errorCode) return;
+
+        const selectedAssets = response.assets || [];
+
+        if (selectedAssets.length + imageUris.length > 5) {
+            Alert.alert("Limit Reached", "You can upload a maximum of 5 images.");
+            return;
         }
+
+        const newUris = selectedAssets.map(asset => asset.uri);
+        setImageUris(prev => [...prev, ...newUris]);
     });
 };
 
-const handleSubmit = async () => {
-    if (!itemData.title || !itemData.pricePerDay || !itemData.location) {
-        Alert.alert("Error", "Please fill at least Title, Price, and Location.");
-        return;
-    }
 
-    try {
-        setLoading(true);
 
-        const loggedInUserData = await AsyncStorage.getItem("loggedInUser");
-        if (!loggedInUserData) {
-            Alert.alert("Error", "User not logged in!");
+    const handleSubmit = async () => {
+
+        if (!itemData.title || !itemData.pricePerDay || !itemData.location || imageUris.length === 0) {
+            Alert.alert("Error", "Please fill Title, Price, Location and upload at least 1 image.");
             return;
         }
-        const currentUser = JSON.parse(loggedInUserData);
-        const userId = "-OWW6H-fnjJwLOpeZ1zZ"; // Or dynamic from user
 
-        // 🔼 Upload single image to Firebase Storage
-        const uploadedImageUrl = imageUri
-            ? await uploadImageToFirebase(imageUri)
-            : Image.resolveAssetSource(require('../../assets/item_placeholder.png')).uri;
+        try {
+            setLoading(true);
 
-        // 🔁 Get item count to create next item key
-        const response = await axios.get(`${URL}/items/${userId}.json`);
-        const existingItems = response.data || {};
-        const nextItemKey = `item${Object.keys(existingItems).length + 1}`;
+            const loggedInUserData = await AsyncStorage.getItem("loggedInUser");
+            if (!loggedInUserData) {
+                Alert.alert("Error", "User not logged in!");
+                return;
+            }
 
-        // 📤 Final item data
-        const finalData = {
-            ...itemData,
-            image: uploadedImageUrl,
-            createdAt: new Date().toISOString(),
-            terms,
-            availability,
-            categories: selectedCategory || "others",
-            owner: currentUser.username,
-            ownerEmail: currentUser.email,
-            ownerPhone: currentUser.phone,
-        };
+            const currentUser = JSON.parse(loggedInUserData);
+            const userId = "-OWW6H-fnjJwLOpeZ1zZ"; // Replace this with dynamic user ID if needed
 
-        // ✅ Upload item to Firebase DB
-        await axios.put(`${URL}/items/${userId}/${nextItemKey}.json`, finalData);
+            // 🔼 Upload multiple images to Firebase Storage
+            const uploadedImageUrls = [];
+            for (let uri of imageUris) {
+                const url = await uploadImageToFirebase(uri);
+                if (url) uploadedImageUrls.push(url);
+            }
 
-        // 📥 Add to history
-        const historyData = {
-            title: finalData.title,
-            categories: finalData.categories,
-            owner: finalData.owner,
-            price: finalData.pricePerDay,
-            date: finalData.createdAt,
-            status: "Posted",
-            image: finalData.image,
-        };
-        await axios.post(`${URL}/history/${currentUser.username}.json`, historyData);
+            if (uploadedImageUrls.length === 0) {
+                Alert.alert("Error", "Failed to upload any image.");
+                return;
+            }
 
-        // 👤 Update user role
-        const res = await axios.get(`${URL}/users.json`);
-        const users = res.data || {};
-        const userKey = Object.keys(users).find(
-            key => users[key].username === currentUser.username
-        );
-        if (userKey) {
-            const updatedRoles = Array.from(new Set([...(users[userKey].roles || []), "Owner"]));
-            await axios.patch(`${URL}/users/${userKey}.json`, { roles: updatedRoles });
+            // 🔁 Generate item key
+            const response = await axios.get(`${URL}/items/${userId}.json`);
+            const existingItems = response.data || {};
+            const nextItemKey = `item${Object.keys(existingItems).length + 1}`;
 
-            const updatedUser = { ...currentUser, roles: updatedRoles };
-            await AsyncStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
+            // 📤 Prepare item data
+            const finalData = {
+                ...itemData,
+                images: uploadedImageUrls, // 📌 Store all image URLs in an array
+                createdAt: new Date().toISOString(),
+                terms,
+                availability,
+                categories: selectedCategory || "others",
+                owner: currentUser.username,
+                ownerEmail: currentUser.email,
+                ownerPhone: currentUser.phone,
+            };
+
+            // ✅ Upload to Firebase Realtime DB
+            await axios.put(`${URL}/items/${userId}/${nextItemKey}.json`, finalData);
+
+            // 📥 History log
+            const historyData = {
+                title: finalData.title,
+                categories: finalData.categories,
+                owner: finalData.owner,
+                price: finalData.pricePerDay,
+                date: finalData.createdAt,
+                status: "Posted",
+                images: uploadedImageUrls[0], // Just show the first image in history (optional)
+            };
+            await axios.post(`${URL}/history/${currentUser.username}.json`, historyData);
+
+            // 👤 Update user roles
+            const res = await axios.get(`${URL}/users.json`);
+            const users = res.data || {};
+            const userKey = Object.keys(users).find(
+                key => users[key].username === currentUser.username
+            );
+            if (userKey) {
+                const updatedRoles = Array.from(new Set([...(users[userKey].roles || []), "Owner"]));
+                await axios.patch(`${URL}/users/${userKey}.json`, { roles: updatedRoles });
+
+                const updatedUser = { ...currentUser, roles: updatedRoles };
+                await AsyncStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
+            }
+
+            Alert.alert("Success", "Item has been added successfully!");
+            handleReset();
+            navigation.navigate("History");
+        } catch (error) {
+            console.error("Error storing data:", error);
+            Alert.alert("Error", "Failed to store data in Realtime Database.");
+        } finally {
+            setLoading(false);
         }
-
-        Alert.alert("Success", "Item has been added successfully!");
-        handleReset();
-        navigation.navigate("History");
-    } catch (error) {
-        console.error("Error storing data:", error);
-        Alert.alert("Error", "Failed to store data in Realtime Database.");
-    } finally{
-        setLoading(false);
-    }
-};
+    };
 
     const handleReset = () => {
         setItemData({
@@ -186,7 +206,7 @@ const handleSubmit = async () => {
             email: "",
             customTerms: "",
         });
-        setImageUri(null);
+        setImageUris(null);
         setAvailability({ request: false, booking: false, notAvailable: false });
         setTerms({ idProof: true, handleWithCare: true, lateCharges: true });
     };
@@ -212,17 +232,25 @@ const handleSubmit = async () => {
                     <Text style={styles.subtitle}>RENT IT, USE IT, RETURN IT!</Text>
                 </View>
 
-                {/* ✅ Image Picker */}
-                <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
-                    {imageUri ? (
-                        <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-                    ) : (
-                        <>
-                            <FontAwesome name="image" size={50} color="#001F54" />
-                            <Text style={styles.pickImageText}>UPLOAD ITEM IMAGE</Text>
-                        </>
-                    )}
-                </TouchableOpacity>
+                {/* ✅ Combined Picker and Preview Area */}
+                <View style={styles.imagePickerContainer}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                        {/* Add Image Button */}
+                        <TouchableOpacity onPress={pickImage} style={styles.uploadButton}>
+                            <FontAwesome name="plus" size={30} color="#001F54" />
+                            <Text style={styles.pickImageText}>Upload Image</Text>
+                        </TouchableOpacity>
+
+                        {/* Display All Selected Images */}
+                        {imageUris.map((uri, index) => (
+                            <View key={index} style={styles.imageWrapper}>
+                                <Image source={{ uri }} style={styles.imagePreview} />
+                            </View>
+                        ))}
+                    </ScrollView>
+                </View>
+
+
 
                 {/* ✅ Item Details */}
                 <View flexDirection="row">
@@ -518,10 +546,35 @@ const handleSubmit = async () => {
                         padding: 20,
                         alignItems: 'center',
                     }}>
-                        <Image
-                            source={{ uri: imageUri || Image.resolveAssetSource(require('../../assets/placeholder.jpg')).uri }}
-                            style={{ width: 180, height: 180, borderRadius: 10, marginBottom: 10 }}
-                        />
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+                            {/* If images are picked */}
+                            {imageUris.length > 0 ? (
+                                imageUris.map((uri, index) => (
+                                    <Image
+                                        key={index}
+                                        source={{ uri }}
+                                        style={{
+                                            width: 180,
+                                            height: 180,
+                                            borderRadius: 10,
+                                            marginRight: 10,
+                                        }}
+                                    />
+                                ))
+                            ) : (
+                                // Fallback placeholder
+                                <Image
+                                    source={require('../../assets/placeholder.jpg')}
+                                    style={{
+                                        width: 180,
+                                        height: 180,
+                                        borderRadius: 10,
+                                        marginRight: 10,
+                                    }}
+                                />
+                            )}
+                        </ScrollView>
+
                         <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#001F54' }}>{itemData.title || "No Title"}</Text>
                         <Text style={{ fontSize: 14, color: '#333', marginVertical: 5 }}>{itemData.description || "No Description"}</Text>
                         <Text style={{ fontSize: 16, fontWeight: '600', color: '#001F54', marginVertical: 5 }}>₹ {itemData.pricePerDay || "0"} / day</Text>
@@ -632,36 +685,42 @@ const styles = StyleSheet.create({
         marginLeft: 5
     },
 
-    imagePicker: {
+    imagePickerContainer: {
+        marginVertical: 10,
+        padding: 5,
+        backgroundColor: '#f2f2f2',
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: '#ccc',
-        borderStyle: 'dashed',
-        borderRadius: 10,
-        padding: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: 220,
-        marginVertical: 10,
-        backgroundColor: '#f9f9f9',
+        height: 170
     },
 
-    imagePreview: {
-        width: '100%',
-        height: '100%',
-        resizeMode: 'cover',
+    uploadButton: {
+        width: 100,
+        height: 150,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#e6e6e6',
         borderRadius: 10,
-        height: 180,
+        marginRight: 10,
     },
 
     pickImageText: {
-        marginTop: 10,
-        color: '#333',
-        fontSize: 15,
-        fontWeight: 'bold',
+        marginTop: 5,
+        fontSize: 12,
+        color: '#001F54',
+        fontWeight: '600',
     },
-    previewContainer: {
-        paddingHorizontal: 16,
-        marginTop: 20,
+
+    imageWrapper: {
+        marginRight: 10,
+        position: 'relative',
+    },
+
+    imagePreview: {
+        width: 150,
+        height: 150,
+        borderRadius: 10,
     },
     TitleIcon: {
         flexDirection: 'row',
