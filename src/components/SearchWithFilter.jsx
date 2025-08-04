@@ -69,6 +69,43 @@ const SearchWithFilter = ({ allItems, setFilteredItems }) => {
                 </TouchableOpacity>
             </View>
 
+            {/* 🧾 Inline Horizontal Filter Bar */}
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.inlineFilterChips}
+            >
+                {categories.map((cat) => (
+                    <TouchableOpacity
+                        key={cat.id}
+                        style={[
+                            styles.chip,
+                            selectedFilter === cat.id && styles.chipSelected,
+                        ]}
+                        onPress={() => handleCategoryFilter(cat.id)}
+                    >
+                        <Text
+                            style={[
+                                styles.chipText,
+                                selectedFilter === cat.id && styles.chipTextSelected,
+                            ]}
+                        >
+                            {cat.label}
+                        </Text>
+                    </TouchableOpacity>
+                ))}
+
+                {/* Clear Inline Filter */}
+                {selectedFilter !== "" && (
+                    <TouchableOpacity
+                        onPress={() => handleCategoryFilter("")}
+                        style={[styles.chip, { borderColor: "#ff4444", backgroundColor: "#ffe5e5" }]}
+                    >
+                        <Text style={{ color: "#ff4444", fontWeight: "bold" }}>Clear</Text>
+                    </TouchableOpacity>
+                )}
+            </ScrollView>
+
             {/* ❌ No Results Message */}
             {noItemsFound && (
                 <Text style={{ textAlign: "center", marginTop: 10, color: "gray", fontStyle: "italic" }}>
@@ -109,7 +146,6 @@ const SearchWithFilter = ({ allItems, setFilteredItems }) => {
                             ))}
                         </ScrollView>
 
-                        {/* 🧹 Clear Filter Button */}
                         <TouchableOpacity
                             style={[styles.clearBtn, { marginTop: 10 }]}
                             onPress={() => handleCategoryFilter("")}
@@ -121,6 +157,7 @@ const SearchWithFilter = ({ allItems, setFilteredItems }) => {
             </Modal>
         </View>
     );
+
 };
 
 export default SearchWithFilter;
@@ -166,6 +203,12 @@ const styles = StyleSheet.create({
         flexWrap: "wrap",
         justifyContent: "center",
     },
+    inlineFilterChips: {
+        flexDirection: "row",
+        paddingVertical: 8,
+        paddingHorizontal: 4,
+    },
+
     chip: {
         backgroundColor: "#f0f0f0",
         paddingHorizontal: 12,

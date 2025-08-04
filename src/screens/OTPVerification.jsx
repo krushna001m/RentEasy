@@ -6,10 +6,16 @@ const OTPVerification = ({ route, navigation }) => {
 
     const [modalVisible, setModalVisible] = useState(false);
     const [modalContent, setModalContent] = useState({ title: "", message: "" });
+    const [pendingDeleteKey, setPendingDeleteKey] = useState(null);
 
-    const showModal = (title, message) => {
-        setModalContent({ title, message });
+    const showModal = (title, message, onConfirm = null) => {
+        setModalContent({ title, message, onConfirm });
         setModalVisible(true);
+    };
+
+    const confirmDelete = (itemKey) => {
+        setPendingDeleteKey(itemKey);
+        showModal("Delete History?", "Are you sure you want to delete this item?", handleDeleteConfirmed);
     };
 
     const { generatedOTP, confirmation, method, email, phone } = route.params;
@@ -57,11 +63,12 @@ const OTPVerification = ({ route, navigation }) => {
             <TouchableOpacity style={styles.button} onPress={verifyOTP}>
                 <Text style={styles.buttonText}>VERIFY OTP</Text>
             </TouchableOpacity>
-             <RentEasyModal
+            <RentEasyModal
                 visible={modalVisible}
                 title={modalContent.title}
                 message={modalContent.message}
                 onClose={() => setModalVisible(false)}
+                onConfirm={modalContent.onConfirm}
             />
 
         </View>

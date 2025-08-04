@@ -30,10 +30,16 @@ const AddItem = ({ navigation }) => {
     const [loading, setLoading] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [modalContent, setModalContent] = useState({ title: "", message: "" });
+    const [pendingDeleteKey, setPendingDeleteKey] = useState(null);
 
-    const showModal = (title, message) => {
-        setModalContent({ title, message });
+    const showModal = (title, message, onConfirm = null) => {
+        setModalContent({ title, message, onConfirm });
         setModalVisible(true);
+    };
+
+    const confirmDelete = (itemKey) => {
+        setPendingDeleteKey(itemKey);
+        showModal("Delete History?", "Are you sure you want to delete this item?", handleDeleteConfirmed);
     };
 
 
@@ -619,6 +625,7 @@ const AddItem = ({ navigation }) => {
                 title={modalContent.title}
                 message={modalContent.message}
                 onClose={() => setModalVisible(false)}
+                onConfirm={modalContent.onConfirm}
             />
 
         </View >

@@ -25,10 +25,16 @@ const Settings = ({ navigation }) => {
 
     const [modalVisible, setModalVisible] = useState(false);
     const [modalContent, setModalContent] = useState({ title: "", message: "" });
+    const [pendingDeleteKey, setPendingDeleteKey] = useState(null);
 
-    const showModal = (title, message) => {
-        setModalContent({ title, message });
+    const showModal = (title, message, onConfirm = null) => {
+        setModalContent({ title, message, onConfirm });
         setModalVisible(true);
+    };
+
+    const confirmDelete = (itemKey) => {
+        setPendingDeleteKey(itemKey);
+        showModal("Delete History?", "Are you sure you want to delete this item?", handleDeleteConfirmed);
     };
 
     const [darkMode, setDarkMode] = useState(false);
@@ -38,58 +44,39 @@ const Settings = ({ navigation }) => {
 
     // ✅ Logout Functionality
     const handleLogout = async () => {
-        showModal("Logout", "Are you sure you want to logout?", [
-            { text: "Cancel", style: "cancel" },
-            {
-                text: "Logout",
-                style: "destructive",
-                onPress: async () => {
-                    await AsyncStorage.removeItem("username");
-                    navigation.replace("Login");
-                }
-            }
-        ]);
+        showModal("Logout", "Are you sure you want to logout?", async () => {
+            await AsyncStorage.removeItem("username");
+            navigation.replace("Login");
+        });
     };
+
 
     // ✅ Deactivate Account
     const handleDeactivateAccount = async () => {
-        showModal("Deactivate Account", "This will permanently delete your account. Continue?", [
-            { text: "Cancel", style: "cancel" },
-            {
-                text: "Deactivate",
-                style: "destructive",
-                onPress: async () => {
-                    try {
-                        const username = await AsyncStorage.getItem("username");
-                        if (!username) {
-                            showModal("Error", "No account found.");
-                            return;
-                        }
-                        await axios.delete(`${URL}/users/${username}.json`);
-                        await AsyncStorage.removeItem("username");
-                        showModal("Account Deleted", "Your account has been deactivated.");
-                        navigation.replace("Login");
-                    } catch (err) {
-                        console.error("Error deleting account:", err);
-                        showModal("Error", "Could not deactivate account.");
-                    }
+        showModal("Deactivate Account", "This will permanently delete your account. Continue?", async () => {
+            try {
+                const username = await AsyncStorage.getItem("username");
+                if (!username) {
+                    showModal("Error", "No account found.");
+                    return;
                 }
+                await axios.delete(`${URL}/users/${username}.json`);
+                await AsyncStorage.removeItem("username");
+                showModal("Account Deleted", "Your account has been deactivated.");
+                navigation.replace("Login");
+            } catch (err) {
+                console.error("Error deleting account:", err);
+                showModal("Error", "Could not deactivate account.");
             }
-        ]);
+        });
     };
 
-    // ✅ Clear App Cache
+    //Clear cache
     const handleClearCache = async () => {
-        showModal("Clear Cache", "Are you sure you want to clear app cache?", [
-            { text: "Cancel", style: "cancel" },
-            {
-                text: "Clear",
-                onPress: async () => {
-                    await AsyncStorage.clear();
-                    showModal("Cache Cleared", "App cache has been cleared.");
-                }
-            }
-        ]);
+        showModal("Clear Cache", "Are you sure you want to clear app cache?", async () => {
+            await AsyncStorage.clear();
+            showModal("Cache Cleared", "App cache has been cleared.");
+        });
     };
 
     // ✅ Language Selection
@@ -201,14 +188,13 @@ const Settings = ({ navigation }) => {
                     </View>
                 </View>
             </Modal>
-             <RentEasyModal
+            <RentEasyModal
                 visible={modalVisible}
                 title={modalContent.title}
                 message={modalContent.message}
                 onClose={() => setModalVisible(false)}
+                onConfirm={modalContent.onConfirm}
             />
-
-
         </View>
     );
 };

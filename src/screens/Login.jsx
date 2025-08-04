@@ -18,20 +18,24 @@ import AntDesign from "react-native-vector-icons/AntDesign";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from '../firebaseConfig' // adjust path as needed
+import { auth } from '../firebaseConfig';
 import RentEasyModal from '../components/RentEasyModal';
-
 
 const { width, height } = Dimensions.get("window");
 
 const Login = ({ navigation }) => {
-
   const [modalVisible, setModalVisible] = useState(false);
   const [modalContent, setModalContent] = useState({ title: "", message: "" });
+  const [pendingDeleteKey, setPendingDeleteKey] = useState(null);
 
-  const showModal = (title, message) => {
-    setModalContent({ title, message });
+  const showModal = (title, message, onConfirm = null) => {
+    setModalContent({ title, message, onConfirm });
     setModalVisible(true);
+  };
+
+  const confirmDelete = (itemKey) => {
+    setPendingDeleteKey(itemKey);
+    showModal("Delete History?", "Are you sure you want to delete this item?", handleDeleteConfirmed);
   };
 
   const [formData, setFormData] = useState({
@@ -40,27 +44,28 @@ const Login = ({ navigation }) => {
     showPassword: false,
   });
 
-  // ✅ New: State for errors
   const [errors, setErrors] = useState({ username: "", password: "" });
 
   const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
   const handleInputChange = (name, value) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: "" })); // Clear error while typing
+    setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const togglePasswordVisibility = () => {
     setFormData((prev) => ({ ...prev, showPassword: !prev.showPassword }));
   };
 
-  // ✅ Validation Function
   const validateInputs = () => {
     let valid = true;
     let newErrors = { username: "", password: "" };
 
     if (!formData.username.trim()) {
       newErrors.username = "Username or Email is required";
+      valid = false;
+    } else if (formData.username.includes(" ")) {
+      newErrors.username = "Username should not contain spaces";
       valid = false;
     } else if (
       !/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(formData.username) &&
@@ -88,11 +93,9 @@ const Login = ({ navigation }) => {
     const { username, password } = formData;
 
     try {
-      // ✅ Firebase Auth Login
       const userCredential = await signInWithEmailAndPassword(auth, username, password);
       const firebaseUser = userCredential.user;
 
-      // ✅ Get additional user data from Firebase Realtime DB (optional)
       const response = await axios.get(`${URL}/users.json`);
       const usersData = response.data || {};
 
@@ -109,11 +112,13 @@ const Login = ({ navigation }) => {
       } else {
         showModal("Login Failed", "User data not found in database.");
       }
+
     } catch (error) {
-      console.error("Firebase Login Error:", error.message);
+      console.error("Login Error:", error.message);
       showModal("Login Error", error.message);
     }
   };
+
 
 
   return (
@@ -197,6 +202,7 @@ const Login = ({ navigation }) => {
         title={modalContent.title}
         message={modalContent.message}
         onClose={() => setModalVisible(false)}
+        onConfirm={modalContent.onConfirm}
       />
 
 

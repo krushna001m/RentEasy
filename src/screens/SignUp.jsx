@@ -11,28 +11,32 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   ScrollView,
-  Alert,
 } from "react-native";
 import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 import AntDesign from "react-native-vector-icons/AntDesign";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
-import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from '../firebaseConfig';
+import { createUserWithEmailAndPassword, getAuth } from "firebase/auth";
 import { getDatabase, ref, set } from "firebase/database";
 import RentEasyModal from '../components/RentEasyModal';
+import app from '../firebaseConfig';
+import axios from "axios";
 
 const { width, height } = Dimensions.get("window");
 
 const SignUp = ({ navigation }) => {
-
   const [modalVisible, setModalVisible] = useState(false);
   const [modalContent, setModalContent] = useState({ title: "", message: "" });
+  const [pendingDeleteKey, setPendingDeleteKey] = useState(null);
 
-  const showModal = (title, message) => {
-    setModalContent({ title, message });
+  const showModal = (title, message, onConfirm = null) => {
+    setModalContent({ title, message, onConfirm });
     setModalVisible(true);
+  };
+
+  const confirmDelete = (itemKey) => {
+    setPendingDeleteKey(itemKey);
+    showModal("Delete History?", "Are you sure you want to delete this item?", handleDeleteConfirmed);
   };
 
   const [formData, setFormData] = useState({
@@ -53,14 +57,15 @@ const SignUp = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
-
   const validateInputs = () => {
     let valid = true;
     let newErrors = { username: "", password: "", confirmPassword: "" };
 
     if (!formData.username.trim()) {
       newErrors.username = "Username or Email is required";
+      valid = false;
+    } else if (formData.username.includes(" ")) {
+      newErrors.username = "Username should not contain spaces";
       valid = false;
     } else if (
       !/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(formData.username) &&
@@ -104,72 +109,34 @@ const SignUp = ({ navigation }) => {
     if (isOwner) roles.push("Owner");
     if (isBorrower) roles.push("Borrower");
 
-    const auth = getAuth(app); // initialize auth
+    const auth = getAuth(app);
+    const db = getDatabase(app);
 
     try {
-      const existingUsers = await axios.get(`${URL}/users.json`);
-      const usersData = existingUsers.data || {};
-
-      const userExists = Object.values(usersData).some((user) => {
-        const input = username.toLowerCase().trim();
-        return (
-          user.username?.toLowerCase() === input ||
-          user.email?.toLowerCase() === input
-        );
-      });
-
-      if (userExists) {
-        showModal("Error", "Username or Email already exists.");
-        return;
-      }
-
-      // 🔐 Firebase Auth Sign Up
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        username, // this should be an email format (e.g., "test@gmail.com")
-        password
-      );
-
-      const firebaseUser = userCredential.user;
-
-      const sanitizedUsername = username.replace(/[.#$/[\]]/g, "_");
+      const userCredential = await createUserWithEmailAndPassword(auth, username, password);
+      const { user } = userCredential;
 
       const newUser = {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
+        uid: user.uid,
+        email: user.email,
         username,
-        password,
         roles,
         agreed,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
 
-      // ✅ Save user to Realtime Database
-      const response = await axios.post(`${URL}/users.json`, newUser);
+      await set(ref(db, `users/${user.uid}`), newUser);
 
-      if (response.status === 200) {
-        await AsyncStorage.setItem("username", newUser.username);
-        await AsyncStorage.setItem("loggedInUser", JSON.stringify(newUser));
+      await AsyncStorage.setItem("username", username);
+      await AsyncStorage.setItem("loggedInUser", JSON.stringify(newUser));
 
-        showModal("Success", "Account created successfully!");
-        setFormData({
-          username: "",
-          password: "",
-          confirmPassword: "",
-          isOwner: true,
-          isBorrower: true,
-          agreed: false,
-        });
-        navigation.navigate("Home");
-      } else {
-        showModal("Error", "Something went wrong. Try again.");
-      }
+      showModal("Success", "Account created successfully!");
+      setFormData({ username: "", password: "", confirmPassword: "", isOwner: true, isBorrower: true, agreed: false });
+      navigation.navigate("Home");
     } catch (error) {
-      console.error("SignUp Error:", error.message);
       showModal("Error", error.message);
     }
   };
-
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -330,9 +297,8 @@ const SignUp = ({ navigation }) => {
         title={modalContent.title}
         message={modalContent.message}
         onClose={() => setModalVisible(false)}
+        onConfirm={modalContent.onConfirm}
       />
-
-
     </SafeAreaView>
   );
 };

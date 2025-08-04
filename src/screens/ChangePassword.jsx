@@ -23,10 +23,16 @@ const ChangePassword = ({ navigation }) => {
 
     const [modalVisible, setModalVisible] = useState(false);
     const [modalContent, setModalContent] = useState({ title: "", message: "" });
+    const [pendingDeleteKey, setPendingDeleteKey] = useState(null);
 
-    const showModal = (title, message) => {
-        setModalContent({ title, message });
+    const showModal = (title, message, onConfirm = null) => {
+        setModalContent({ title, message, onConfirm });
         setModalVisible(true);
+    };
+
+    const confirmDelete = (itemKey) => {
+        setPendingDeleteKey(itemKey);
+        showModal("Delete History?", "Are you sure you want to delete this item?", handleDeleteConfirmed);
     };
 
     const handleChangePassword = async () => {
@@ -127,14 +133,13 @@ const ChangePassword = ({ navigation }) => {
                     <Text style={styles.buttonText}>BACK</Text>
                 </View>
             </TouchableOpacity>
-             <RentEasyModal
+            <RentEasyModal
                 visible={modalVisible}
                 title={modalContent.title}
                 message={modalContent.message}
                 onClose={() => setModalVisible(false)}
+                onConfirm={modalContent.onConfirm}
             />
-
-
         </View>
     );
 };

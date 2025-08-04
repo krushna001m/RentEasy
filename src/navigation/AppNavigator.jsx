@@ -21,6 +21,7 @@ import ChatBot from "../screens/ChatBot";
 import Payment from "../screens/Payment";
 import Loader from "../components/Loader";
 import RentEasyModal from "../components/RentEasyModal";
+import RentEasyWelcome from "../components/RentEasyWelcome";
 
 const Stack = createNativeStackNavigator();
 
@@ -47,7 +48,7 @@ const AppNavigator = () => {
 
   if (!initialRoute) {
     return (
-      <Loader/>
+      <RentEasyWelcome/>
     );
   }
 
