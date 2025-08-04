@@ -41,6 +41,7 @@ const Profile = ({ navigation }) => {
     const [loading, setLoading] = useState(false);
 
     const [profile, setProfile] = useState({
+        fullName: "",
         name: "",
         email: "",
         phone: "",
@@ -120,6 +121,7 @@ const Profile = ({ navigation }) => {
             if (userRentals.length > 0) roles.push("Borrower");
 
             const updatedProfile = {
+                fullName: currentUser.fullName || "", // ✅ Fetch Full Name
                 name: currentUser.username,
                 email: currentUser.email || "",
                 phone: currentUser.phone || "",
@@ -164,6 +166,7 @@ const Profile = ({ navigation }) => {
 
             if (userKey) {
                 await axios.patch(`${URL}/users/${userKey}.json`, {
+                    fullName: tempProfile.fullName, // ✅ Save fullName
                     username: tempProfile.name,
                     email: tempProfile.email,
                     phone: tempProfile.phone,
@@ -263,6 +266,17 @@ const Profile = ({ navigation }) => {
                         onChangeText={(text) => handleChange("name", text)}
                     />
                 </View>
+                <View style={styles.inputGroup}>
+                    <FontAwesome name="id-card" size={25} color="#001F54" style={styles.icon} />
+                    <TextInput
+                        style={[styles.inputField, themeStyles.inputField]}
+                        editable={editMode}
+                        placeholder="Full Name"
+                        value={tempProfile.fullName}
+                        onChangeText={(text) => handleChange("fullName", text)}
+                    />
+                </View>
+
                 <View style={styles.inputGroup}>
                     <MaterialIcons name="email" size={25} color="#001F54" style={styles.icon} />
                     <TextInput
