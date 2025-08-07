@@ -179,6 +179,10 @@ const Settings = ({ navigation }) => {
                             <Ionicons name="chatbubbles" size={20} style={styles.rowIcon} />
                             <Text style={styles.rowLabel}>Submit a Complaint / Suggestion</Text>
                         </TouchableOpacity>
+                        <TouchableOpacity style={styles.row} onPress={() => navigation.navigate("About")}>
+                            <Entypo name="info-with-circle" size={20} style={styles.rowIcon} />
+                            <Text style={styles.rowLabel}>About</Text>
+                        </TouchableOpacity>
                         <TouchableOpacity
                             style={[styles.payButton, { marginTop: 20 }]}
                             onPress={() => setHelpModalVisible(false)}

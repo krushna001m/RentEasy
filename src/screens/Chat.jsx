@@ -18,6 +18,8 @@ import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import firestore from "@react-native-firebase/firestore"; // ✅ Firestore
 import RentEasyModal from '../components/RentEasyModal';
+import database from '@react-native-firebase/database';
+
 
 const Chat = ({ navigation, route }) => {
     const { ownerUsername } = route.params || {};
@@ -29,6 +31,7 @@ const Chat = ({ navigation, route }) => {
     const [modalVisible, setModalVisible] = useState(false);
     const [modalContent, setModalContent] = useState({ title: "", message: "" });
     const [pendingDeleteKey, setPendingDeleteKey] = useState(null);
+    
 
     const showModal = (title, message, onConfirm = null) => {
         setModalContent({ title, message, onConfirm });
@@ -59,46 +62,50 @@ const Chat = ({ navigation, route }) => {
         fetchUsername();
     }, []);
 
-    // ✅ Real-time message listener from Firestore
+    // ✅ Real-time message listener from Realtime Database
     useEffect(() => {
         if (!chatRoomId) return;
 
-        const unsubscribe = firestore()
-            .collection("chats")
-            .doc(chatRoomId)
-            .collection("messages")
-            .orderBy("timestamp", "asc")
-            .onSnapshot(snapshot => {
-                const fetchedMessages = snapshot.docs.map(doc => doc.data());
-                setMessages(fetchedMessages);
+        const messagesRef = database().ref(`chats/${chatRoomId}/messages`);
+
+        const onValueChange = messagesRef.on('value', snapshot => {
+            const fetchedMessages = [];
+
+            snapshot.forEach(childSnapshot => {
+                const messageData = childSnapshot.val();
+                fetchedMessages.push({
+                    id: childSnapshot.key, // Unique ID for each message
+                    ...messageData
+                });
             });
 
-        return () => unsubscribe();
+            setMessages(fetchedMessages);
+        });
+
+        // ✅ Unsubscribe on cleanup
+        return () => messagesRef.off('value', onValueChange);
     }, [chatRoomId]);
 
-    // ✅ Send message to Firestore
     const handleSend = async () => {
-        if (!input.trim()) return;
+    if (!input.trim()) return;
 
-        const newMessage = {
-            text: input.trim(),
-            sender: currentUser,
-            timestamp: firestore.FieldValue.serverTimestamp(),
-        };
-
-        try {
-            await firestore()
-                .collection("chats")
-                .doc(chatRoomId)
-                .collection("messages")
-                .add(newMessage);
-
-            setInput("");
-        } catch (error) {
-            console.error("Send Message Error:", error);
-            showModal("Error", "Could not send message.");
-        }
+    const newMessage = {
+        text: input.trim(),
+        sender: currentUser,
+        timestamp: Date.now(), // You can use this for ordering
     };
+
+    try {
+        await database()
+            .ref(`chats/${chatRoomId}/messages`)
+            .push(newMessage);
+
+        setInput("");
+    } catch (error) {
+        console.error("Send Message Error:", error);
+        showModal("Error", "Could not send message.");
+    }
+};
 
     useEffect(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -180,47 +187,7 @@ const Chat = ({ navigation, route }) => {
             </KeyboardAvoidingView>
 
             {/* Bottom Nav */}
-            <View style={styles.bottomNav}>
-                <TouchableOpacity
-                    style={styles.navItem}
-                    onPress={() => navigation.navigate("Home")}
-                >
-                    <Ionicons name="home" size={28} />
-                    <Text style={styles.navLabel}>Home</Text>
-                </TouchableOpacity>
 
-                <TouchableOpacity
-                    style={styles.navItem}
-                    onPress={() => navigation.navigate("BrowseItems")}
-                >
-                    <MaterialIcons name="explore" size={28} />
-                    <Text style={styles.navLabel}>Explore</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.navItem}
-                    onPress={() => navigation.navigate("AddItem")}
-                >
-                    <Entypo name="plus" size={28} />
-                    <Text style={styles.navLabel}>Add</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.navItem}
-                    onPress={() => navigation.navigate("History")}
-                >
-                    <Ionicons name="document-text" size={28} />
-                    <Text style={styles.navLabel}>History</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.navItem}
-                    onPress={() => navigation.navigate("Profile")}
-                >
-                    <Ionicons name="person" size={28} />
-                    <Text style={styles.navLabel}>Profile</Text>
-                </TouchableOpacity>
-            </View>
             <RentEasyModal
                 visible={modalVisible}
                 title={modalContent.title}
@@ -335,7 +302,7 @@ const styles = StyleSheet.create({
                 padding: 5,
                 paddingHorizontal: 10,
                 marginTop: 10,
-                marginBottom: 10,
+                marginBottom: 1,
                 borderWidth: 0.5,
                 borderColor: 'black',
                 backgroundColor: '#eee'

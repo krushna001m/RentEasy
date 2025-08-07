@@ -85,8 +85,8 @@ const AddItem = ({ navigation }) => {
         notAvailable: false,
     });
 
-    const [imageUris, setImageUris] = useState([]); // Replace `imageUri`
-    const [previewVisible, setPreviewVisible] = useState(false); // ✅ NEW
+    const [imageUris, setImageUris] = useState([]); 
+    const [previewVisible, setPreviewVisible] = useState(false);
 
     const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
 
@@ -175,7 +175,7 @@ const AddItem = ({ navigation }) => {
                 price: finalData.pricePerDay,
                 date: finalData.createdAt,
                 status: "Posted",
-                images: uploadedImageUrls[0], // Just show the first image in history (optional)
+                images: uploadedImageUrls[0],
             };
             await axios.post(`${URL}/history/${currentUser.username}.json`, historyData);
 
@@ -620,6 +620,7 @@ const AddItem = ({ navigation }) => {
                     </View>
                 </View>
             </Modal>
+             <Loader visible={loading} />
             <RentEasyModal
                 visible={modalVisible}
                 title={modalContent.title}

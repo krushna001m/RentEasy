@@ -83,6 +83,7 @@ const History = ({ navigation }) => {
         return true;
     };
 
+
     const getLogoBase64 = async () => {
         try {
             if (Platform.OS === 'android') {
@@ -159,10 +160,18 @@ const History = ({ navigation }) => {
             });
 
             if (share) {
-                await Share.open({
-                    url: `file://${file.filePath}`,
-                    type: "application/pdf",
-                });
+                try {
+                    await Share.open({
+                        url: `file://${file.filePath}`,
+                        type: "application/pdf",
+                    });
+                } catch (error) {
+                    if (error?.message !== 'User did not share') {
+                        console.error("Share Error:", error);
+                        showModal("Error", "Could not share the file.");
+                    }
+                }
+
             } else {
                 showModal("Receipt Generated ✅", `Saved to: ${file.filePath}`);
             }
@@ -237,24 +246,24 @@ const History = ({ navigation }) => {
     };
 
     const handleDeleteConfirmed = async () => {
-    try {
-        const username = await AsyncStorage.getItem("username");
-        if (!username || !pendingDeleteKey) return;
+        try {
+            const username = await AsyncStorage.getItem("username");
+            if (!username || !pendingDeleteKey) return;
 
-        await axios.delete(`${URL}/history/${username}/${pendingDeleteKey}.json`);
+            await axios.delete(`${URL}/history/${username}/${pendingDeleteKey}.json`);
 
-        // 🔄 Update local state
-        setHistory(prev => prev.filter(entry => entry.key !== pendingDeleteKey));
+            // 🔄 Update local state
+            setHistory(prev => prev.filter(entry => entry.key !== pendingDeleteKey));
 
-        // ✅ Show success and close modal
-        setPendingDeleteKey(null);
-        setModalVisible(false);  // <- This closes the modal immediately
-        showModal("Deleted ✅", "History item removed.");
-    } catch (error) {
-        console.error("Delete Error:", error);
-        showModal("Error", "Failed to delete the item.");
-    }
-};
+            // ✅ Show success and close modal
+            setPendingDeleteKey(null);
+            setModalVisible(false);  // <- This closes the modal immediately
+            showModal("Deleted ✅", "History item removed.");
+        } catch (error) {
+            console.error("Delete Error:", error);
+            showModal("Error", "Failed to delete the item.");
+        }
+    };
 
 
 
@@ -303,7 +312,7 @@ const History = ({ navigation }) => {
                                 </TouchableOpacity>
 
                                 <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "#E53935" }]} onPress={() => confirmDelete(item.key)}
->
+                                >
                                     <Ionicons name="trash-outline" size={18} color="#fff" />
                                     <Text style={styles.actionBtnText}>Delete</Text>
                                 </TouchableOpacity>

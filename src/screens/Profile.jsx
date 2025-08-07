@@ -245,7 +245,7 @@ const Profile = ({ navigation }) => {
 
 
                 {/* Profile Image */}
-                <TouchableOpacity onPress={pickImage}>
+                <TouchableOpacity >
                     <Image
                         source={tempProfile.image ? { uri: tempProfile.image } : require("../../assets/user-icon.png")}
                         style={styles.profileImage}

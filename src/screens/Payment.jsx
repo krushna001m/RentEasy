@@ -54,38 +54,33 @@ const Payment = ({ navigation, route }) => {
     });
     const [agreed, setAgreed] = useState(false);
 
-    // ✅ NEW STATE: Days, Selected Price Option, Total Amount
     const [days, setDays] = useState(1);
     const [totalAmount, setTotalAmount] = useState(0);
 
-
     useEffect(() => {
-        const perDay = Number(itemInfo?.pricePerDay || 0);
+        if (!itemInfo) return;
+
+        const perDay = Number(itemInfo?.pricePerDay || itemInfo?.price || 0); // Fallback added
         const price3Days = Number(itemInfo?.price3Days || 0);
         const priceWeek = Number(itemInfo?.priceWeek || 0);
         const deposit = Number(itemInfo?.securityDeposit || 0);
 
         let total = 0;
-        let remainingDays = days;
+        let remainingDays = Math.max(1, days); // ensure minimum 1 day
 
-        // Apply week pricing
         if (priceWeek > 0 && remainingDays >= 7) {
             const weeks = Math.floor(remainingDays / 7);
             total += weeks * priceWeek;
             remainingDays -= weeks * 7;
         }
 
-        // Apply 3-day block pricing
         if (price3Days > 0 && remainingDays >= 3) {
             const blocks = Math.floor(remainingDays / 3);
             total += blocks * price3Days;
             remainingDays -= blocks * 3;
         }
 
-        // Remaining days use per-day pricing
         total += remainingDays * perDay;
-
-        // Add security deposit
         total += deposit;
 
         setTotalAmount(total.toFixed(2));
@@ -134,19 +129,31 @@ const Payment = ({ navigation, route }) => {
             await axios.post(`${URL}/history/${username}.json`, historyItem);
 
             // ✅ Increment purchase count for this item
-            const parentKey = itemInfo.parentKey;
-            const itemKey = itemInfo.itemKey;
+            try {
+                const parentKey = itemInfo.parentKey;
+                const itemKey = itemInfo.itemKey;
 
-            if (parentKey && itemKey) {
-                const itemRef = `${URL}/items/${parentKey}/${itemKey}/purchaseCount.json`;
+                if (parentKey && itemKey) {
+                    const itemRef = `${URL}/items/${parentKey}/${itemKey}/purchaseCount.json`;
 
-                // Fetch existing purchaseCount
-                const response = await axios.get(itemRef);
-                const currentCount = response.data || 0;
+                    // Log path
+                    console.log("Updating purchase count at:", itemRef);
 
-                // Update with incremented count
-                await axios.put(itemRef, currentCount + 1);
+                    // Fetch current count
+                    const response = await axios.get(itemRef);
+                    const currentCount = response.data || 0;
+                    console.log("Current count:", currentCount);
+
+                    // Increment and update
+                    await axios.put(itemRef, currentCount + 1);
+                    console.log("Purchase count updated to:", currentCount + 1);
+                } else {
+                    console.warn("Missing parentKey or itemKey");
+                }
+            } catch (error) {
+                console.error("Error updating purchase count:", error);
             }
+
 
             // ✅ Show success message and navigate
             showModal('✅ Payment Successful', `You rented for ${days} day(s). Total: ₹${itemInfo.price}`);
@@ -240,8 +247,9 @@ const Payment = ({ navigation, route }) => {
                     <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
                         <FontAwesome name="money" size={18} color="#001F54" style={{ marginRight: 6 }} />
                         <Text style={[styles.summaryText, { fontWeight: "bold", color: "#001F54" }]}>
-                            TOTAL AMOUNT: {totalAmount} (incl. Security Deposit)
+                            TOTAL AMOUNT: ₹{totalAmount > 0 ? totalAmount : 'Calculating...\n'} (incl. Security Deposit)
                         </Text>
+
                     </View>
 
                     {/* ✅ Chat Button */}
