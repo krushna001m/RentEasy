@@ -4,6 +4,8 @@ import {
     Platform, useColorScheme,
     Alert
 } from 'react-native';
+import { useRoute } from '@react-navigation/native';
+
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Entypo from 'react-native-vector-icons/Entypo';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
@@ -34,6 +36,11 @@ const Profile = ({ navigation }) => {
         setPendingDeleteKey(itemKey);
         showModal("Delete History?", "Are you sure you want to delete this item?", handleDeleteConfirmed);
     };
+
+    const route = useRoute();
+    const activeColor = '#007AFF'; // iOS blue
+    const inactiveColor = '#444';  // gray
+
 
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
@@ -391,8 +398,8 @@ const Profile = ({ navigation }) => {
                     <Text style={styles.navLabel}>History</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.navItem}>
-                    <Ionicons name="person" size={28} />
-                    <Text style={styles.navLabel}>Profile</Text>
+                    <Ionicons name="person" size={28} color={route.name === "Profile" ? activeColor : inactiveColor}/>
+                    <Text style={[styles.navLabel, { color: route.name === "Profile" ? activeColor : inactiveColor }]}>Profile</Text>
                 </TouchableOpacity>
             </View>
             <Loader visible={loading} />

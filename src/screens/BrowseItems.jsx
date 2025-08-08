@@ -8,6 +8,8 @@ import {
     ScrollView,
     Platform
 } from 'react-native';
+import { useRoute } from '@react-navigation/native';
+
 import ProductCard from '../components/ProductCard';
 import Entypo from 'react-native-vector-icons/Entypo';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
@@ -40,6 +42,11 @@ const BrowseItems = ({ navigation }) => {
         setPendingDeleteKey(itemKey);
         showModal("Delete History?", "Are you sure you want to delete this item?", handleDeleteConfirmed);
     };
+
+    const route = useRoute();
+    const activeColor = '#007AFF'; // iOS blue
+    const inactiveColor = '#444';  // gray
+
 
     useEffect(() => {
         const fetchItems = async () => {
@@ -145,8 +152,8 @@ const BrowseItems = ({ navigation }) => {
                     <Text style={styles.navLabel}>Home</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("BrowseItems")}>
-                    <MaterialIcons name="explore" size={28} />
-                    <Text style={styles.navLabel}>Explore</Text>
+                    <MaterialIcons name="explore" size={28} color={route.name === "BrowseItems" ? activeColor : inactiveColor} />
+                    <Text style={[styles.navLabel, { color: route.name === "BrowseItems" ? activeColor : inactiveColor }]}>Explore</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("AddItem")}>
                     <Entypo name="plus" size={28} />

@@ -83,89 +83,76 @@ const ChatBot = ({ navigation }) => {
 
     return (
         <KeyboardAvoidingView
-            style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0} // adjust as needed
         >
-            {/* ✅ UI remains exactly the same */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Image source={require('../../assets/logo.png')} style={styles.logo} />
-                </TouchableOpacity>
+            <View style={styles.container}>
+                {/* Header */}
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => navigation.goBack()}>
+                        <Image source={require('../../assets/logo.png')} style={styles.logo} />
+                    </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => navigation.navigate("Chat")}>
-                    <Entypo name="chat" size={36} />
-                </TouchableOpacity>
-            </View>
+                    <TouchableOpacity onPress={() => navigation.navigate("Chat")}>
+                        <Entypo name="chat" size={36} />
+                    </TouchableOpacity>
+                </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContainer}>
-                <Text style={styles.title}>WELCOME TO RENTEASY</Text>
-                <Text style={styles.subtitle}>RENT IT, USE IT, RETURN IT!</Text>
+                {/* Scrollable Messages */}
+                <ScrollView
+                    contentContainerStyle={styles.scrollContainer}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <Text style={styles.title}>WELCOME TO RENTEASY</Text>
+                    <Text style={styles.subtitle}>RENT IT, USE IT, RETURN IT!</Text>
 
-                <TouchableOpacity style={styles.supBtn}>
-                    <Text style={styles.supText}>Customer Support</Text>
-                    <FontAwesome5 name="robot" size={18} color="#fff" style={{ marginLeft: 6 }} />
-                </TouchableOpacity>
+                    <TouchableOpacity style={styles.supBtn}>
+                        <Text style={styles.supText}>Customer Support</Text>
+                        <FontAwesome5 name="robot" size={18} color="#fff" style={{ marginLeft: 6 }} />
+                    </TouchableOpacity>
 
-                {messages.map((msg, index) => (
-                    <View
-                        key={index}
-                        style={[styles.message, msg.sender === 'user' ? styles.userMsg : styles.botMsg]}
-                    >
-                        <Text style={styles.msgText}>{msg.text}</Text>
-                    </View>
-                ))}
-            </ScrollView>
+                    {messages.map((msg, index) => (
+                        <View
+                            key={index}
+                            style={[
+                                styles.message,
+                                msg.sender === 'user' ? styles.userMsg : styles.botMsg
+                            ]}
+                        >
+                            <Text style={styles.msgText}>{msg.text}</Text>
+                        </View>
+                    ))}
+                </ScrollView>
 
-            <View style={styles.inputBar}>
-                <TextInput
-                    style={styles.input}
-                    value={input}
-                    onChangeText={setInput}
-                    placeholder="Type your message..."
-                    placeholderTextColor="#999"
-                    onSubmitEditing={sendMessage}
-                    returnKeyType="send"
+                {/* Input Bar */}
+                <View style={styles.inputBar}>
+                    <TextInput
+                        style={styles.input}
+                        value={input}
+                        onChangeText={setInput}
+                        placeholder="Type your message..."
+                        placeholderTextColor="#999"
+                        onSubmitEditing={sendMessage}
+                        returnKeyType="send"
+                    />
+                    <TouchableOpacity onPress={sendMessage} disabled={loading}>
+                        <Ionicons name="send" size={28} color="#007bff" />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Modal */}
+                <RentEasyModal
+                    visible={modalVisible}
+                    title={modalContent.title}
+                    message={modalContent.message}
+                    onClose={() => setModalVisible(false)}
+                    onConfirm={modalContent.onConfirm}
                 />
-                <TouchableOpacity onPress={sendMessage} disabled={loading}>
-                    <Ionicons name="send" size={28} color="#007bff" />
-                </TouchableOpacity>
             </View>
-
-            <View style={styles.bottomNav}>
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Home")}>
-                    <Ionicons name="home" size={28} />
-                    <Text style={styles.navLabel}>Home</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("BrowseItems")}>
-                    <MaterialIcons name="explore" size={28} />
-                    <Text style={styles.navLabel}>Explore</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("AddItem")}>
-                    <Entypo name="plus" size={28} />
-                    <Text style={styles.navLabel}>Add</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("History")}>
-                    <Ionicons name="document-text" size={28} />
-                    <Text style={styles.navLabel}>History</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Profile")}>
-                    <Ionicons name="person" size={28} />
-                    <Text style={styles.navLabel}>Profile</Text>
-                </TouchableOpacity>
-            </View>
-            <RentEasyModal
-                visible={modalVisible}
-                title={modalContent.title}
-                message={modalContent.message}
-                onClose={() => setModalVisible(false)}
-                onConfirm={modalContent.onConfirm}
-            />
         </KeyboardAvoidingView>
     );
+
 };
 
 export default ChatBot;
@@ -282,7 +269,7 @@ const styles = StyleSheet.create({
                 backgroundColor: '#eee'
             }
         }),
-        marginBottom: 75,
+        marginBottom: 25,
         borderRadius: 10,
         marginHorizontal: 16,
         shadowColor: '#000',

@@ -16,7 +16,7 @@ import Entypo from "react-native-vector-icons/Entypo";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import firestore from "@react-native-firebase/firestore"; // ✅ Firestore
+import firestore from "@react-native-firebase/firestore";
 import RentEasyModal from '../components/RentEasyModal';
 import database from '@react-native-firebase/database';
 
@@ -31,7 +31,7 @@ const Chat = ({ navigation, route }) => {
     const [modalVisible, setModalVisible] = useState(false);
     const [modalContent, setModalContent] = useState({ title: "", message: "" });
     const [pendingDeleteKey, setPendingDeleteKey] = useState(null);
-    
+
 
     const showModal = (title, message, onConfirm = null) => {
         setModalContent({ title, message, onConfirm });
@@ -87,82 +87,86 @@ const Chat = ({ navigation, route }) => {
     }, [chatRoomId]);
 
     const handleSend = async () => {
-    if (!input.trim()) return;
+        if (!input.trim()) return;
 
-    const newMessage = {
-        text: input.trim(),
-        sender: currentUser,
-        timestamp: Date.now(), // You can use this for ordering
+        const newMessage = {
+            text: input.trim(),
+            sender: currentUser,
+            timestamp: Date.now(), // You can use this for ordering
+        };
+
+        try {
+            await database()
+                .ref(`chats/${chatRoomId}/messages`)
+                .push(newMessage);
+
+            setInput("");
+        } catch (error) {
+            console.error("Send Message Error:", error);
+            showModal("Error", "Could not send message.");
+        }
     };
-
-    try {
-        await database()
-            .ref(`chats/${chatRoomId}/messages`)
-            .push(newMessage);
-
-        setInput("");
-    } catch (error) {
-        console.error("Send Message Error:", error);
-        showModal("Error", "Could not send message.");
-    }
-};
 
     useEffect(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
     }, [messages]);
 
     return (
-        <View style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Image
-                        source={require("../../assets/logo.png")}
-                        style={styles.logo}
-                    />
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0} // Adjust as needed
+        >
+            <View style={styles.container}>
+                {/* Header */}
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => navigation.goBack()}>
+                        <Image
+                            source={require("../../assets/logo.png")}
+                            style={styles.logo}
+                        />
+                    </TouchableOpacity>
+                    <TouchableOpacity>
+                        <Entypo name="chat" size={36} />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Title */}
+                <Text style={styles.title}>WELCOME TO RENTEASY</Text>
+                <Text style={styles.subtitle}>RENT IT, USE IT, RETURN IT!</Text>
+
+                <TouchableOpacity style={styles.chatLabel}>
+                    <Text style={styles.chatText}>
+                        CHAT WITH {ownerUsername ? ownerUsername.toUpperCase() : "OWNER"}
+                    </Text>
+                    <Entypo name="message" size={18} color="#fff" style={{ marginLeft: 4 }} />
                 </TouchableOpacity>
-                <TouchableOpacity>
-                    <Entypo name="chat" size={36} />
-                </TouchableOpacity>
-            </View>
 
-            {/* Title */}
-            <Text style={styles.title}>WELCOME TO RENTEASY</Text>
-            <Text style={styles.subtitle}>RENT IT, USE IT, RETURN IT!</Text>
+                {/* Messages */}
+                <ScrollView
+                    contentContainerStyle={styles.messageContainer}
+                    showsVerticalScrollIndicator={false}
+                    ref={scrollViewRef}
+                >
+                    {messages.map((msg, index) => (
+                        <View
+                            key={index}
+                            style={[
+                                styles.messageBubble,
+                                msg.sender === currentUser ? styles.right : styles.left,
+                            ]}
+                        >
+                            <Text style={styles.messageText}>{msg.text}</Text>
+                            <Text style={styles.senderLabel}>
+                                {msg.sender === currentUser
+                                    ? `${msg.sender} 👉`
+                                    : `👈 ${msg.sender}`}
+                            </Text>
+                        </View>
+                    ))}
+                </ScrollView>
 
-            <TouchableOpacity style={styles.chatLabel}>
-                <Text style={styles.chatText}>
-                    CHAT WITH {ownerUsername ? ownerUsername.toUpperCase() : "OWNER"}
-                </Text>
-                <Entypo name="message" size={18} color="#fff" style={{ marginLeft: 4 }} />
-            </TouchableOpacity>
-
-            {/* Messages */}
-            <ScrollView
-                contentContainerStyle={styles.messageContainer}
-                showsVerticalScrollIndicator={false}
-                ref={scrollViewRef}
-            >
-                {messages.map((msg, index) => (
-                    <View
-                        key={index}
-                        style={[
-                            styles.messageBubble,
-                            msg.sender === currentUser ? styles.right : styles.left,
-                        ]}
-                    >
-                        <Text style={styles.messageText}>{msg.text}</Text>
-                        <Text style={styles.senderLabel}>
-                            {msg.sender === currentUser
-                                ? `${msg.sender} 👉`
-                                : `👈 ${msg.sender}`}
-                        </Text>
-                    </View>
-                ))}
-            </ScrollView>
-
-            {/* Input Area */}
-            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+                {/* Chatbot Icon */}
                 <View>
                     <TouchableOpacity onPress={() => navigation.navigate("ChatBot")}>
                         <Image
@@ -171,6 +175,8 @@ const Chat = ({ navigation, route }) => {
                         />
                     </TouchableOpacity>
                 </View>
+
+                {/* Input Area */}
                 <View style={styles.inputBar}>
                     <TextInput
                         style={styles.input}
@@ -180,24 +186,23 @@ const Chat = ({ navigation, route }) => {
                         placeholderTextColor="#999"
                         onSubmitEditing={handleSend}
                     />
-                    <TouchableOpacity onPress={handleSend} >
+                    <TouchableOpacity onPress={handleSend}>
                         <Ionicons name="send" size={28} color="#007bff" />
                     </TouchableOpacity>
                 </View>
-            </KeyboardAvoidingView>
 
-            {/* Bottom Nav */}
-
-            <RentEasyModal
-                visible={modalVisible}
-                title={modalContent.title}
-                message={modalContent.message}
-                onClose={() => setModalVisible(false)}
-                onConfirm={modalContent.onConfirm}
-            />
-
-        </View>
+                {/* Modal */}
+                <RentEasyModal
+                    visible={modalVisible}
+                    title={modalContent.title}
+                    message={modalContent.message}
+                    onClose={() => setModalVisible(false)}
+                    onConfirm={modalContent.onConfirm}
+                />
+            </View>
+        </KeyboardAvoidingView>
     );
+
 };
 
 export default Chat;
@@ -288,7 +293,7 @@ const styles = StyleSheet.create({
         width: 80,
         resizeMode: "contain",
         borderRadius: 16,
-        marginLeft: 325,
+        marginLeft: 305,
     },
     inputBar: {
         flexDirection: 'row',
@@ -317,7 +322,7 @@ const styles = StyleSheet.create({
                 backgroundColor: '#eee'
             }
         }),
-        marginBottom: 75,
+        marginBottom: 25,
         borderRadius: 10,
         marginHorizontal: 16,
         shadowColor: '#000',

@@ -10,6 +10,8 @@ import {
     Alert,
     PermissionsAndroid,
 } from 'react-native';
+import { useRoute } from '@react-navigation/native';
+
 import Entypo from 'react-native-vector-icons/Entypo';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -42,6 +44,10 @@ const History = ({ navigation }) => {
         setPendingDeleteKey(itemKey);
         showModal("Delete History?", "Are you sure you want to delete this item?", handleDeleteConfirmed);
     };
+
+    const route = useRoute();
+    const activeColor = '#007AFF'; // iOS blue
+    const inactiveColor = '#444';  // gray
 
 
     useEffect(() => {
@@ -338,8 +344,8 @@ const History = ({ navigation }) => {
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("History")}>
-                    <Ionicons name="document-text" size={28} />
-                    <Text style={styles.navLabel}>History</Text>
+                    <Ionicons name="document-text" size={28} color={route.name === "History" ? activeColor : inactiveColor}/>
+                    <Text style={[styles.navLabel, { color: route.name === "History" ? activeColor : inactiveColor }]}>History</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Profile")}>

@@ -11,6 +11,7 @@ import {
     Alert,
     Modal
 } from 'react-native';
+import { useRoute } from '@react-navigation/native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -41,6 +42,10 @@ const AddItem = ({ navigation }) => {
         setPendingDeleteKey(itemKey);
         showModal("Delete History?", "Are you sure you want to delete this item?", handleDeleteConfirmed);
     };
+
+    const route = useRoute();
+    const activeColor = '#007AFF'; // iOS blue
+    const inactiveColor = '#444';  // gray
 
 
     const categories = [
@@ -85,7 +90,7 @@ const AddItem = ({ navigation }) => {
         notAvailable: false,
     });
 
-    const [imageUris, setImageUris] = useState([]); 
+    const [imageUris, setImageUris] = useState([]);
     const [previewVisible, setPreviewVisible] = useState(false);
 
     const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com";
@@ -94,7 +99,7 @@ const AddItem = ({ navigation }) => {
         const options = {
             mediaType: 'photo',
             quality: 1,
-            selectionLimit: 5 - imageUris.length, // Allow only remaining slots
+            selectionLimit: 5 - imageUris?.length, // Allow only remaining slots
         };
 
         launchImageLibrary(options, async (response) => {
@@ -102,12 +107,12 @@ const AddItem = ({ navigation }) => {
 
             const selectedAssets = response.assets || [];
 
-            if (selectedAssets.length + imageUris.length > 5) {
+            if (selectedAssets.length + imageUris?.length > 5) {
                 showModal("Limit Reached", "You can upload a maximum of 5 images.");
                 return;
             }
 
-            const newUris = selectedAssets.map(asset => asset.uri);
+            const newUris = selectedAssets?.map(asset => asset.uri);
             setImageUris(prev => [...prev, ...newUris]);
         });
     };
@@ -116,7 +121,7 @@ const AddItem = ({ navigation }) => {
 
     const handleSubmit = async () => {
 
-        if (!itemData.title || !itemData.pricePerDay || !itemData.location || imageUris.length === 0) {
+        if (!itemData.title || !itemData.pricePerDay || !itemData.location || imageUris?.length === 0) {
             showModal("Error", "Please fill Title, Price, Location and upload at least 1 image.");
             return;
         }
@@ -222,7 +227,7 @@ const AddItem = ({ navigation }) => {
             email: "",
             customTerms: "",
         });
-        setImageUris(null);
+        setImageUris([]);
         setAvailability({ request: false, booking: false, notAvailable: false });
         setTerms({ idProof: true, handleWithCare: true, lateCharges: true });
     };
@@ -527,8 +532,8 @@ const AddItem = ({ navigation }) => {
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("AddItem")}>
-                    <Entypo name="plus" size={28} />
-                    <Text style={styles.navLabel}>Add</Text>
+                    <Entypo name="plus" size={28} color={route.name === "AddItem" ? activeColor : inactiveColor} />
+                    <Text style={[styles.navLabel, { color: route.name === "AddItem" ? activeColor : inactiveColor }]}>Add</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("History")}>
@@ -620,7 +625,7 @@ const AddItem = ({ navigation }) => {
                     </View>
                 </View>
             </Modal>
-             <Loader visible={loading} />
+            <Loader visible={loading} />
             <RentEasyModal
                 visible={modalVisible}
                 title={modalContent.title}
@@ -790,7 +795,7 @@ const styles = StyleSheet.create({
     footerButtons: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: 5,
+        marginTop: 2,
         alignSelf: 'center',
     },
     secondaryBtn: {

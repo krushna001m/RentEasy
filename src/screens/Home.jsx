@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, Platform, Modal } from 'react-native';
+import { useRoute } from '@react-navigation/native';
 
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Entypo from 'react-native-vector-icons/Entypo';
@@ -36,6 +37,11 @@ const Home = ({ navigation }) => {
         setPendingDeleteKey(itemKey);
         showModal("Delete History?", "Are you sure you want to delete this item?", handleDeleteConfirmed);
     };
+
+    const route = useRoute();
+    const activeColor = '#007AFF'; // iOS blue
+    const inactiveColor = '#444';  // gray
+
 
     useEffect(() => {
         const fetchTrendingItems = async () => {
@@ -149,8 +155,8 @@ const Home = ({ navigation }) => {
             {/*  Fixed Bottom Navigation */}
             <View style={styles.bottomNav}>
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Home")}>
-                    <Ionicons name="home" size={28} />
-                    <Text style={styles.navLabel}>Home</Text>
+                    <Ionicons name="home" size={28} color={route.name === "Home" ? activeColor : inactiveColor} />
+                    <Text style={[styles.navLabel, { color: route.name === "Home" ? activeColor : inactiveColor }]}>Home</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("BrowseItems")}>
