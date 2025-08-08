@@ -8,61 +8,80 @@ import {
     ScrollView,
     Image,
     Platform,
-    KeyboardAvoidingView,
-    Alert,
+    KeyboardAvoidingView
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import Entypo from "react-native-vector-icons/Entypo";
-import FontAwesome from "react-native-vector-icons/FontAwesome";
-import MaterialIcons from "react-native-vector-icons/MaterialIcons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import firestore from "@react-native-firebase/firestore";
 import RentEasyModal from '../components/RentEasyModal';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import database from '@react-native-firebase/database';
-
+import auth from '@react-native-firebase/auth';
 
 const Chat = ({ navigation, route }) => {
     const { ownerUsername } = route.params || {};
-    const [currentUser, setCurrentUser] = useState("");
+    const { receiverUsername } = route.params || {};
+    const [currentUser, setCurrentUser] = useState(null); // { uid, username }
+    const [receiver, setReceiver] = useState(null);       // { uid, username }
+
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const scrollViewRef = useRef();
-
     const [modalVisible, setModalVisible] = useState(false);
     const [modalContent, setModalContent] = useState({ title: "", message: "" });
-    const [pendingDeleteKey, setPendingDeleteKey] = useState(null);
-
 
     const showModal = (title, message, onConfirm = null) => {
         setModalContent({ title, message, onConfirm });
         setModalVisible(true);
     };
 
-    const confirmDelete = (itemKey) => {
-        setPendingDeleteKey(itemKey);
-        showModal("Delete History?", "Are you sure you want to delete this item?", handleDeleteConfirmed);
-    };
+    const chatRoomId = currentUser && ownerUsername
+        ? [currentUser, ownerUsername].sort().join("__")
+        : null;
 
-    const chatRoomId =
-        currentUser && ownerUsername
-            ? [currentUser, ownerUsername].sort().join("__")
-            : "";
-
-    // ✅ Get username
     useEffect(() => {
-        const fetchUsername = async () => {
-            const username = await AsyncStorage.getItem("username");
-            if (!username) {
-                showModal("Error", "Please login first!");
-                navigation.navigate("Login");
-                return;
+        const initializeChat = async () => {
+            try {
+                const currentUserUID = auth().currentUser?.uid;
+
+                if (!currentUserUID) {
+                    showModal("Error", "Please log in first!");
+                    navigation.navigate("Login");
+                    return;
+                }
+
+                // Get current username (optional, fallback to AsyncStorage)
+                const currentUserSnap = await database().ref(`users/${currentUserUID}`).once('value');
+                const currentUsername = currentUserSnap.val()?.username || await AsyncStorage.getItem("username");
+
+                if (!currentUsername) {
+                    showModal("Error", "Could not retrieve current user data.");
+                    return;
+                }
+
+                // Get receiver UID from their username
+                const receiverSnap = await database().ref(`usernames/${receiverUsername}`).once('value');
+                const receiverUID = receiverSnap.val();
+
+                if (!receiverUID) {
+                    showModal("Error", "User not found.");
+                    return;
+                }
+
+                // Set user states
+                setCurrentUser({ uid: currentUserUID, username: currentUsername });
+                setReceiver({ uid: receiverUID, username: receiverUsername });
+
+                // Set chat room ID
+                const roomId = [currentUserUID, receiverUID].sort().join("__");
+                setChatRoomId(roomId);
+            } catch (error) {
+                showModal("Error", "Error initializing chat.");
             }
-            setCurrentUser(username);
         };
-        fetchUsername();
+
+        initializeChat();
     }, []);
 
-    // ✅ Real-time message listener from Realtime Database
     useEffect(() => {
         if (!chatRoomId) return;
 
@@ -70,29 +89,29 @@ const Chat = ({ navigation, route }) => {
 
         const onValueChange = messagesRef.on('value', snapshot => {
             const fetchedMessages = [];
-
-            snapshot.forEach(childSnapshot => {
-                const messageData = childSnapshot.val();
+            snapshot.forEach(child => {
                 fetchedMessages.push({
-                    id: childSnapshot.key, // Unique ID for each message
-                    ...messageData
+                    id: child.key,
+                    ...child.val(),
                 });
             });
 
+            fetchedMessages.sort((a, b) => a.timestamp - b.timestamp);
             setMessages(fetchedMessages);
         });
 
-        // ✅ Unsubscribe on cleanup
         return () => messagesRef.off('value', onValueChange);
     }, [chatRoomId]);
 
+
     const handleSend = async () => {
-        if (!input.trim()) return;
+        if (!input.trim() || !chatRoomId || !currentUser) return;
 
         const newMessage = {
             text: input.trim(),
-            sender: currentUser,
-            timestamp: Date.now(), // You can use this for ordering
+            sender: currentUser.username, // Keep showing username
+            senderUID: currentUser.uid,   // Optionally store UID too
+            timestamp: Date.now(),
         };
 
         try {
@@ -102,10 +121,10 @@ const Chat = ({ navigation, route }) => {
 
             setInput("");
         } catch (error) {
-            console.error("Send Message Error:", error);
-            showModal("Error", "Could not send message.");
+            showModal("Error", "Failed to send message.");
         }
     };
+
 
     useEffect(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -115,7 +134,7 @@ const Chat = ({ navigation, route }) => {
         <KeyboardAvoidingView
             style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0} // Adjust as needed
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
         >
             <View style={styles.container}>
                 {/* Header */}
@@ -126,19 +145,19 @@ const Chat = ({ navigation, route }) => {
                             style={styles.logo}
                         />
                     </TouchableOpacity>
-                    <TouchableOpacity>
-                        <Entypo name="chat" size={36} />
-                    </TouchableOpacity>
+                    <Entypo name="chat" size={36} />
                 </View>
 
                 {/* Title */}
                 <Text style={styles.title}>WELCOME TO RENTEASY</Text>
                 <Text style={styles.subtitle}>RENT IT, USE IT, RETURN IT!</Text>
 
+                {/* Chat Label */}
                 <TouchableOpacity style={styles.chatLabel}>
                     <Text style={styles.chatText}>
-                        CHAT WITH {ownerUsername ? ownerUsername.toUpperCase() : "OWNER"}
+                        CHAT WITH {receiver?.username?.toUpperCase() || "USER"}
                     </Text>
+
                     <Entypo name="message" size={18} color="#fff" style={{ marginLeft: 4 }} />
                 </TouchableOpacity>
 
@@ -150,7 +169,7 @@ const Chat = ({ navigation, route }) => {
                 >
                     {messages.map((msg, index) => (
                         <View
-                            key={index}
+                            key={msg.id || index}
                             style={[
                                 styles.messageBubble,
                                 msg.sender === currentUser ? styles.right : styles.left,
@@ -166,15 +185,16 @@ const Chat = ({ navigation, route }) => {
                     ))}
                 </ScrollView>
 
-                {/* Chatbot Icon */}
-                <View>
-                    <TouchableOpacity onPress={() => navigation.navigate("ChatBot")}>
-                        <Image
-                            source={require("../../assets/ChatBot.png")}
-                            style={styles.ChatBot}
-                        />
-                    </TouchableOpacity>
-                </View>
+                {/* ChatBot Button */}
+                <TouchableOpacity
+                    style={styles.chatbotButton}
+                    onPress={() => navigation.navigate("ChatBot")}
+                >
+                    <Image
+                        source={require("../../assets/ChatBot.png")}
+                        style={styles.chatbotImage}
+                    />
+                </TouchableOpacity>
 
                 {/* Input Area */}
                 <View style={styles.inputBar}>
@@ -182,7 +202,7 @@ const Chat = ({ navigation, route }) => {
                         style={styles.input}
                         value={input}
                         onChangeText={setInput}
-                        placeholder="TYPE HERE............"
+                        placeholder="Type your message..."
                         placeholderTextColor="#999"
                         onSubmitEditing={handleSend}
                     />
@@ -202,7 +222,6 @@ const Chat = ({ navigation, route }) => {
             </View>
         </KeyboardAvoidingView>
     );
-
 };
 
 export default Chat;
@@ -212,9 +231,7 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#E6F0FA",
         paddingTop: 30,
-        ...Platform.select({
-            ios: { flex: 1, marginTop: 10 },
-        }),
+        ...Platform.select({ ios: { marginTop: 10 } }),
     },
     header: {
         flexDirection: "row",
@@ -233,13 +250,12 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         textAlign: "center",
         marginTop: 10,
-        marginBottom: 6,
         color: "#1E1E1E",
     },
     subtitle: {
         fontSize: 16,
         textAlign: "center",
-        marginBottom: 16,
+        marginBottom: 10,
         color: "#3a3a3a",
         fontStyle: "italic",
     },
@@ -252,7 +268,6 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
         borderRadius: 20,
         marginBottom: 10,
-        marginTop: 15,
     },
     chatText: {
         color: "#fff",
@@ -264,12 +279,10 @@ const styles = StyleSheet.create({
         paddingBottom: 100,
     },
     messageBubble: {
-        backgroundColor: "#fff",
         padding: 10,
         borderRadius: 12,
         marginVertical: 6,
         maxWidth: "75%",
-        alignSelf: "flex-start",
     },
     left: {
         alignSelf: "flex-start",
@@ -284,102 +297,38 @@ const styles = StyleSheet.create({
     },
     senderLabel: {
         fontSize: 11,
-        fontWeight: "500",
-        marginTop: 2,
-        color: "#444",
-    },
-    ChatBot: {
-        height: 80,
-        width: 80,
-        resizeMode: "contain",
-        borderRadius: 16,
-        marginLeft: 305,
+        marginTop: 4,
+        color: "#555",
     },
     inputBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderTopWidth: 1,
-        borderColor: '#ccc',
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#fff",
         padding: 10,
-        backgroundColor: '#fff',
-        ...Platform.select({
-            android: {
-                padding: 5,
-                paddingHorizontal: 10,
-                marginTop: 10,
-                marginBottom: 1,
-                borderWidth: 0.5,
-                borderColor: 'black',
-                backgroundColor: '#eee'
-            },
-            ios: {
-                padding: 10,
-                paddingHorizontal: 15,
-                marginTop: 10,
-                marginBottom: 10,
-                borderWidth: 0.5,
-                borderColor: 'black',
-                backgroundColor: '#eee'
-            }
-        }),
-        marginBottom: 25,
+        borderTopWidth: 1,
+        borderColor: "#ccc",
         borderRadius: 10,
-        marginHorizontal: 16,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
+        margin: 16,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
         shadowRadius: 3.84,
         elevation: 5,
-        zIndex: 1,
-        marginTop: 10,
-        height: 50
-
     },
     input: {
         flex: 1,
         fontSize: 16,
-        paddingHorizontal: 10
+        paddingHorizontal: 10,
     },
-    bottomNav: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        backgroundColor: '#eee',
-        paddingVertical: 12,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        position: 'absolute',
-        bottom: 0,
-        width: '100%',
-        height: 65,
-        marginBottom: 7,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: -2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        elevation: 5,
-        zIndex: 1,
-        paddingHorizontal: 16,
-        borderTopWidth: 2,
-        borderTopColor: '#ccc',
-        marginTop: 10,
-        borderRadius: 10,
+    chatbotButton: {
+        position: "absolute",
+        bottom: 90,
+        right: 20,
     },
-    navItem: {
-        alignItems: 'center',
-        marginTop: 5
-    },
-    navLabel: {
-        fontSize: 12,
-        color: 'black',
-        fontWeight: '400',
-        marginTop: 4,
-        marginBottom: 10,
+    chatbotImage: {
+        height: 60,
+        width: 60,
+        borderRadius: 30,
+        resizeMode: "contain",
     },
 });

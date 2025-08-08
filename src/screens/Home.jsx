@@ -85,7 +85,7 @@ const Home = ({ navigation }) => {
             {/*  Fixed Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.navigate("Home")}><Image source={require('../../assets/logo.png')} style={styles.logo} /></TouchableOpacity>
-                <TouchableOpacity onPress={() => navigation.navigate("Chat")}><Entypo name="chat" size={36} /></TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate("ChatList")}><Entypo name="chat" size={36} /></TouchableOpacity>
             </View>
 
             {/*  Scrollable Content */}

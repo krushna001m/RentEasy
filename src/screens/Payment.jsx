@@ -16,6 +16,8 @@ import Entypo from 'react-native-vector-icons/Entypo';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import axios from "axios";
+import { db } from '../firebase/firebaseConfig';
+import { ref, get } from 'firebase/database';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import RentEasyModal from '../components/RentEasyModal';
 
@@ -252,20 +254,45 @@ const Payment = ({ navigation, route }) => {
 
                     </View>
 
-                    {/* ✅ Chat Button */}
                     {itemInfo.owner && (
                         <TouchableOpacity
                             style={styles.chatButton}
-                            onPress={() =>
-                                navigation.navigate("Chat", {
-                                    ownerUsername: itemInfo.owner,
-                                })
-                            }
+                            onPress={async () => {
+                                try {
+                                    // 1. Get receiver's username from Firebase using UID
+                                    const ownerRef = ref(db, `users/${itemInfo.owner}`);
+                                    const snapshot = await get(ownerRef);
+                                    if (!snapshot.exists()) {
+                                        Alert.alert('Error', 'Owner information not found.');
+                                        return;
+                                    }
+
+                                    const receiverUsername = snapshot.val().username;
+
+                                    // 2. Get current user's username from AsyncStorage
+                                    const senderUsername = await AsyncStorage.getItem('username');
+
+                                    if (!senderUsername || !receiverUsername) {
+                                        Alert.alert('Error', 'Unable to fetch usernames.');
+                                        return;
+                                    }
+
+                                    // 3. Navigate to Chat screen
+                                    navigation.navigate("Chat", {
+                                        receiverUsername: receiverUsername,
+                                    });
+
+                                } catch (error) {
+                                    console.error('Chat Button Error:', error);
+                                    Alert.alert('Error', 'Failed to start chat.');
+                                }
+                            }}
                         >
                             <Entypo name="chat" size={18} color="#fff" style={{ marginRight: 6 }} />
-                            <Text style={styles.chatButtonText}>Chat with {itemInfo.owner}</Text>
+                            <Text style={styles.chatButtonText}>Chat with Owner</Text>
                         </TouchableOpacity>
                     )}
+
                 </View>
 
 
