@@ -120,6 +120,7 @@ const SignUp = ({ navigation }) => {
         uid: user.uid,
         email: user.email,
         username,
+        password,
         roles,
         agreed,
         createdAt: new Date().toISOString(),

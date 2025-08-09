@@ -83,7 +83,7 @@ const BrowseItems = ({ navigation }) => {
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Image source={require('../../assets/logo.png')} style={styles.logo} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => navigation.navigate("Chat")}>
+                <TouchableOpacity onPress={() => navigation.navigate("ChatList")}>
                     <Entypo name="chat" size={36} />
                 </TouchableOpacity>
             </View>

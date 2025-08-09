@@ -88,36 +88,58 @@ const Login = ({ navigation }) => {
   };
 
   const handleLogin = async () => {
-    if (!validateInputs()) return;
+  if (!validateInputs()) return;
 
-    const { username, password } = formData;
+  const { username, password } = formData;
 
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, username, password);
-      const firebaseUser = userCredential.user;
+  try {
+    let emailToLogin = username;
 
+    // ✅ If not an email, treat as username and find matching email
+    if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(username)) {
       const response = await axios.get(`${URL}/users.json`);
       const usersData = response.data || {};
 
       const matchedUser = Object.values(usersData).find(
-        (user) => user.email?.toLowerCase() === firebaseUser.email?.toLowerCase()
+        (user) => user.username?.toLowerCase() === username.toLowerCase()
       );
 
-      if (matchedUser) {
-        await AsyncStorage.setItem("username", matchedUser.username);
-        await AsyncStorage.setItem("loggedInUser", JSON.stringify(matchedUser));
-
-        showModal("Success", `Welcome back, ${matchedUser.username}!`);
-        navigation.navigate("Home");
-      } else {
-        showModal("Login Failed", "User data not found in database.");
+      if (!matchedUser) {
+        showModal("Login Failed", "Username not found.");
+        return;
       }
 
-    } catch (error) {
-      console.error("Login Error:", error.message);
-      showModal("Login Error", error.message);
+      emailToLogin = matchedUser.email;
     }
-  };
+
+    // ✅ Sign in with email and password
+    const userCredential = await signInWithEmailAndPassword(auth, emailToLogin, password);
+    const firebaseUser = userCredential.user;
+
+    // ✅ Fetch user data from DB
+    const response = await axios.get(`${URL}/users.json`);
+    const usersData = response.data || {};
+
+    const matchedUser = Object.values(usersData).find(
+      (user) => user.email?.toLowerCase() === firebaseUser.email?.toLowerCase()
+    );
+
+    if (matchedUser) {
+      await AsyncStorage.setItem("username", matchedUser.username);
+      await AsyncStorage.setItem("loggedInUser", JSON.stringify(matchedUser));
+
+      showModal("Success", `Welcome back, ${matchedUser.username}!`);
+      navigation.navigate("Home");
+    } else {
+      showModal("Login Failed", "User data not found in database.");
+    }
+
+  } catch (error) {
+    console.error("Login Error:", error.message);
+    showModal("Login Error", error.message);
+  }
+};
+
 
 
 

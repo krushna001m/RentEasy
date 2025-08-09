@@ -13,15 +13,16 @@ import {
 import Ionicons from "react-native-vector-icons/Ionicons";
 import Entypo from "react-native-vector-icons/Entypo";
 import RentEasyModal from '../components/RentEasyModal';
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import database from '@react-native-firebase/database';
-import auth from '@react-native-firebase/auth';
+import { getDatabase, ref, onValue, push, get } from 'firebase/database';
+import { getAuth } from "firebase/auth";
 
 const Chat = ({ navigation, route }) => {
-    const { ownerUsername } = route.params || {};
-    const { receiverUsername } = route.params || {};
+    const { receiverUid, receiverUsername } = route.params || {};
+    const db = getDatabase();
+    const auth = getAuth();
+
     const [currentUser, setCurrentUser] = useState(null); // { uid, username }
-    const [receiver, setReceiver] = useState(null);       // { uid, username }
+    const [receiver, setReceiver] = useState({ uid: receiverUid, username: receiverUsername });
 
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
@@ -34,46 +35,45 @@ const Chat = ({ navigation, route }) => {
         setModalVisible(true);
     };
 
-    const chatRoomId = currentUser && ownerUsername
-        ? [currentUser, ownerUsername].sort().join("__")
-        : null;
+    const chatRoomId =
+        currentUser?.uid && receiver?.uid
+            ? [currentUser.uid, receiver.uid].sort().join("__")
+            : null;
 
+    // Fetch current user + receiver info
     useEffect(() => {
         const initializeChat = async () => {
             try {
-                const currentUserUID = auth().currentUser?.uid;
-
+                const currentUserUID = auth.currentUser?.uid;
                 if (!currentUserUID) {
                     showModal("Error", "Please log in first!");
                     navigation.navigate("Login");
                     return;
                 }
 
-                // Get current username (optional, fallback to AsyncStorage)
-                const currentUserSnap = await database().ref(`users/${currentUserUID}`).once('value');
-                const currentUsername = currentUserSnap.val()?.username || await AsyncStorage.getItem("username");
-
-                if (!currentUsername) {
-                    showModal("Error", "Could not retrieve current user data.");
+                // Fetch current user data
+                const currentUserSnap = await get(ref(db, `users/${currentUserUID}`));
+                if (!currentUserSnap.exists()) {
+                    showModal("Error", "Current user not found.");
                     return;
                 }
+                const currentUserData = currentUserSnap.val();
 
-                // Get receiver UID from their username
-                const receiverSnap = await database().ref(`usernames/${receiverUsername}`).once('value');
-                const receiverUID = receiverSnap.val();
+                setCurrentUser({
+                    uid: currentUserUID,
+                    username: currentUserData.username || "Unknown",
+                });
 
-                if (!receiverUID) {
-                    showModal("Error", "User not found.");
-                    return;
+                // If receiver username missing, fetch from DB
+                if (!receiver.username && receiver.uid) {
+                    const receiverSnap = await get(ref(db, `users/${receiver.uid}`));
+                    if (receiverSnap.exists()) {
+                        setReceiver((prev) => ({
+                            ...prev,
+                            username: receiverSnap.val()?.username || "Unknown",
+                        }));
+                    }
                 }
-
-                // Set user states
-                setCurrentUser({ uid: currentUserUID, username: currentUsername });
-                setReceiver({ uid: receiverUID, username: receiverUsername });
-
-                // Set chat room ID
-                const roomId = [currentUserUID, receiverUID].sort().join("__");
-                setChatRoomId(roomId);
             } catch (error) {
                 showModal("Error", "Error initializing chat.");
             }
@@ -82,14 +82,14 @@ const Chat = ({ navigation, route }) => {
         initializeChat();
     }, []);
 
+    // Fetch messages in real-time
     useEffect(() => {
         if (!chatRoomId) return;
+        const messagesRef = ref(db, `chats/${chatRoomId}/messages`);
 
-        const messagesRef = database().ref(`chats/${chatRoomId}/messages`);
-
-        const onValueChange = messagesRef.on('value', snapshot => {
+        const unsubscribe = onValue(messagesRef, (snapshot) => {
             const fetchedMessages = [];
-            snapshot.forEach(child => {
+            snapshot.forEach((child) => {
                 fetchedMessages.push({
                     id: child.key,
                     ...child.val(),
@@ -100,32 +100,29 @@ const Chat = ({ navigation, route }) => {
             setMessages(fetchedMessages);
         });
 
-        return () => messagesRef.off('value', onValueChange);
+        return () => unsubscribe();
     }, [chatRoomId]);
 
-
+    // Send message
     const handleSend = async () => {
         if (!input.trim() || !chatRoomId || !currentUser) return;
 
         const newMessage = {
             text: input.trim(),
-            sender: currentUser.username, // Keep showing username
-            senderUID: currentUser.uid,   // Optionally store UID too
+            sender: currentUser.username,
+            senderUID: currentUser.uid,
             timestamp: Date.now(),
         };
 
         try {
-            await database()
-                .ref(`chats/${chatRoomId}/messages`)
-                .push(newMessage);
-
+            await push(ref(db, `chats/${chatRoomId}/messages`), newMessage);
             setInput("");
         } catch (error) {
             showModal("Error", "Failed to send message.");
         }
     };
 
-
+    // Auto-scroll
     useEffect(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
     }, [messages]);
@@ -145,21 +142,11 @@ const Chat = ({ navigation, route }) => {
                             style={styles.logo}
                         />
                     </TouchableOpacity>
-                    <Entypo name="chat" size={36} />
-                </View>
-
-                {/* Title */}
-                <Text style={styles.title}>WELCOME TO RENTEASY</Text>
-                <Text style={styles.subtitle}>RENT IT, USE IT, RETURN IT!</Text>
-
-                {/* Chat Label */}
-                <TouchableOpacity style={styles.chatLabel}>
-                    <Text style={styles.chatText}>
-                        CHAT WITH {receiver?.username?.toUpperCase() || "USER"}
+                    <Text style={styles.headerTitle}>
+                        {receiver?.username || "User"}
                     </Text>
-
-                    <Entypo name="message" size={18} color="#fff" style={{ marginLeft: 4 }} />
-                </TouchableOpacity>
+                   
+                </View>
 
                 {/* Messages */}
                 <ScrollView
@@ -167,34 +154,25 @@ const Chat = ({ navigation, route }) => {
                     showsVerticalScrollIndicator={false}
                     ref={scrollViewRef}
                 >
-                    {messages.map((msg, index) => (
+                    {messages.map((msg) => (
                         <View
-                            key={msg.id || index}
+                            key={msg.id}
                             style={[
                                 styles.messageBubble,
-                                msg.sender === currentUser ? styles.right : styles.left,
+                                msg.senderUID === currentUser?.uid
+                                    ? styles.right
+                                    : styles.left,
                             ]}
                         >
                             <Text style={styles.messageText}>{msg.text}</Text>
                             <Text style={styles.senderLabel}>
-                                {msg.sender === currentUser
-                                    ? `${msg.sender} 👉`
-                                    : `👈 ${msg.sender}`}
+                                {msg.senderUID === currentUser?.uid
+                                    ? "You"
+                                    : msg.sender}
                             </Text>
                         </View>
                     ))}
                 </ScrollView>
-
-                {/* ChatBot Button */}
-                <TouchableOpacity
-                    style={styles.chatbotButton}
-                    onPress={() => navigation.navigate("ChatBot")}
-                >
-                    <Image
-                        source={require("../../assets/ChatBot.png")}
-                        style={styles.chatbotImage}
-                    />
-                </TouchableOpacity>
 
                 {/* Input Area */}
                 <View style={styles.inputBar}>
@@ -230,53 +208,35 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#E6F0FA",
-        paddingTop: 30,
-        ...Platform.select({ ios: { marginTop: 10 } }),
     },
     header: {
         flexDirection: "row",
-        justifyContent: "space-between",
         alignItems: "center",
         paddingHorizontal: 16,
+        paddingTop: 40,
+        paddingBottom: 10,
+        backgroundColor: "#fff",
+        borderBottomWidth: 1,
+        borderBottomColor: "#ddd",
     },
     logo: {
-        width: 70,
-        height: 70,
-        resizeMode: "contain",
-        borderRadius: 35,
-    },
-    title: {
-        fontSize: 25,
-        fontWeight: "bold",
-        textAlign: "center",
-        marginTop: 10,
-        color: "#1E1E1E",
-    },
-    subtitle: {
-        fontSize: 16,
-        textAlign: "center",
-        marginBottom: 10,
-        color: "#3a3a3a",
-        fontStyle: "italic",
-    },
-    chatLabel: {
-        alignSelf: "center",
-        backgroundColor: "#001F54",
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 14,
-        paddingVertical: 6,
+        width: 40,
+        height: 40,
         borderRadius: 20,
-        marginBottom: 10,
+        marginRight: 10,
     },
-    chatText: {
-        color: "#fff",
-        fontSize: 17,
+    headerTitle: {
+        flex: 1,
+        fontSize: 18,
         fontWeight: "bold",
+        color: "#333",
+        alignSelf:"center",
+        alignItems:'center',
+        marginLeft:10
     },
     messageContainer: {
-        paddingHorizontal: 16,
-        paddingBottom: 100,
+        padding: 16,
+        paddingBottom: 80,
     },
     messageBubble: {
         padding: 10,
@@ -307,28 +267,10 @@ const styles = StyleSheet.create({
         padding: 10,
         borderTopWidth: 1,
         borderColor: "#ccc",
-        borderRadius: 10,
-        margin: 16,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        elevation: 5,
     },
     input: {
         flex: 1,
         fontSize: 16,
         paddingHorizontal: 10,
-    },
-    chatbotButton: {
-        position: "absolute",
-        bottom: 90,
-        right: 20,
-    },
-    chatbotImage: {
-        height: 60,
-        width: 60,
-        borderRadius: 30,
-        resizeMode: "contain",
     },
 });

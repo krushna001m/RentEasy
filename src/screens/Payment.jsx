@@ -16,8 +16,8 @@ import Entypo from 'react-native-vector-icons/Entypo';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import axios from "axios";
-import { db } from '../firebase/firebaseConfig';
-import { ref, get } from 'firebase/database';
+import { database } from '../firebaseConfig'
+import { ref, get, getDatabase } from 'firebase/database';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import RentEasyModal from '../components/RentEasyModal';
 
@@ -177,7 +177,7 @@ const Payment = ({ navigation, route }) => {
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Image source={require('../../assets/logo.png')} style={styles.logo} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => navigation.navigate("Chat")}>
+                <TouchableOpacity onPress={() => navigation.navigate("ChatList")}>
                     <Entypo name="chat" size={36} />
                 </TouchableOpacity>
             </View>
@@ -259,27 +259,34 @@ const Payment = ({ navigation, route }) => {
                             style={styles.chatButton}
                             onPress={async () => {
                                 try {
-                                    // 1. Get receiver's username from Firebase using UID
+                                    const db = getDatabase();
                                     const ownerRef = ref(db, `users/${itemInfo.owner}`);
                                     const snapshot = await get(ownerRef);
+
                                     if (!snapshot.exists()) {
                                         Alert.alert('Error', 'Owner information not found.');
                                         return;
                                     }
 
-                                    const receiverUsername = snapshot.val().username;
+                                    const receiverData = snapshot.val();
+                                    const receiverUsername = receiverData.username;
+                                    const receiverUID = itemInfo.owner;
 
-                                    // 2. Get current user's username from AsyncStorage
                                     const senderUsername = await AsyncStorage.getItem('username');
+                                    const senderDataStr = await AsyncStorage.getItem('loggedInUser');
+                                    const senderData = senderDataStr ? JSON.parse(senderDataStr) : null;
+                                    const senderUID = senderData?.uid || null;
 
-                                    if (!senderUsername || !receiverUsername) {
-                                        Alert.alert('Error', 'Unable to fetch usernames.');
+                                    if (!senderUsername || !receiverUsername || !senderUID) {
+                                        Alert.alert('Error', 'Unable to fetch chat participants.');
                                         return;
                                     }
 
-                                    // 3. Navigate to Chat screen
                                     navigation.navigate("Chat", {
-                                        receiverUsername: receiverUsername,
+                                        receiverUsername,
+                                        receiverUID,
+                                        senderUsername,
+                                        senderUID,
                                     });
 
                                 } catch (error) {
