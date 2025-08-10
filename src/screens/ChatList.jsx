@@ -9,8 +9,7 @@ import {
     ActivityIndicator,
     Alert
 } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { getDatabase, ref, onValue } from 'firebase/database';
+import { getDatabase, ref, onValue, get } from 'firebase/database';
 import { getAuth } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -22,8 +21,35 @@ const ChatList = ({ navigation }) => {
     const auth = getAuth();
     const db = getDatabase();
 
+    // ✅ Example static users
+    const staticUsers = [
+        {
+            chatId: 'static1',
+            userId: 'demo_user_1',
+            username: 'John Doe',
+            profileImage: null,
+            lastMessage: 'Hey there! Just a demo chat.',
+            lastMessageTime: Date.now() - 1000 * 60 * 5
+        },
+        {
+            chatId: 'static2',
+            userId: 'demo_user_2',
+            username: 'Jane Smith',
+            profileImage: null,
+            lastMessage: 'The book is ready for pickup.',
+            lastMessageTime: Date.now() - 1000 * 60 * 60
+        },
+        {
+            chatId: 'static3',
+            userId: 'demo_user_3',
+            username: 'Mark Johnson',
+            profileImage: null,
+            lastMessage: 'Can we meet tomorrow?',
+            lastMessageTime: Date.now() - 1000 * 60 * 15
+        }
+    ];
+
     useEffect(() => {
-        // Get UID from AsyncStorage or Firebase Auth
         const fetchUid = async () => {
             try {
                 const storedUser = await AsyncStorage.getItem('loggedInUser');
@@ -54,52 +80,46 @@ const ChatList = ({ navigation }) => {
             const data = snapshot.val();
             const loadedChats = [];
 
-            if (!data) {
-                setChatList([]);
-                setLoading(false);
-                return;
-            }
+            if (data) {
+                const userPromises = [];
 
-            const userPromises = [];
+                for (const chatKey in data) {
+                    const chat = data[chatKey];
+                    if (chat?.users && chat.messages) {
+                        const isUserInChat = Object.values(chat.users).includes(currentUid);
+                        if (isUserInChat) {
+                            const otherUserId = Object.values(chat.users).find((id) => id !== currentUid);
 
-            for (const chatKey in data) {
-                const chat = data[chatKey];
-                if (chat?.users && chat.messages) {
-                    const isUserInChat = Object.values(chat.users).includes(currentUid);
-                    if (isUserInChat) {
-                        const otherUserId = Object.values(chat.users).find((id) => id !== currentUid);
-                        const messagesArray = Object.values(chat.messages || {});
-                        const lastMsg = messagesArray[messagesArray.length - 1] || {};
-                        const lastMsgTime = lastMsg?.timestamp || null;
+                            const userRef = ref(db, `users/${otherUserId}`);
+                            const messagesArray = Object.values(chat.messages || {});
+                            const lastMsg = messagesArray[messagesArray.length - 1] || {};
+                            const lastMsgTime = lastMsg?.timestamp || null;
 
-                        const userRef = ref(db, `users/${otherUserId}`);
-                        const userPromise = new Promise((resolve) => {
-                            onValue(
-                                userRef,
-                                (userSnap) => {
-                                    const userData = userSnap.val() || {};
-                                    loadedChats.push({
-                                        chatId: chatKey,
-                                        userId: otherUserId,
-                                        username: userData.username || 'Unknown',
-                                        profileImage: userData.profileImage || null,
-                                        lastMessage: lastMsg?.text || 'No messages yet',
-                                        lastMessageTime: lastMsgTime,
-                                    });
-                                    resolve();
-                                },
-                                { onlyOnce: true }
-                            );
-                        });
+                            const userPromise = get(userRef).then((userSnap) => {
+                                const userData = userSnap.val() || {};
+                                loadedChats.push({
+                                    chatId: chatKey,
+                                    userId: otherUserId,
+                                    username: userData.username || 'Unknown',
+                                    profileImage: userData.profileImage || null,
+                                    lastMessage: lastMsg?.text || 'No messages yet',
+                                    lastMessageTime: lastMsgTime,
+                                });
+                            });
 
-                        userPromises.push(userPromise);
+                            userPromises.push(userPromise);
+                        }
                     }
                 }
+
+                await Promise.all(userPromises);
             }
 
-            await Promise.all(userPromises);
-            loadedChats.sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0));
-            setChatList(loadedChats);
+            // ✅ Merge Firebase chats with static users
+            const mergedChats = [...loadedChats, ...staticUsers];
+            mergedChats.sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0));
+
+            setChatList(mergedChats);
             setLoading(false);
         });
 
@@ -145,7 +165,6 @@ const ChatList = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            {/* Header */}
             <View style={styles.header}>
                 <Image
                     source={require('../../assets/logo.png')}
@@ -155,7 +174,6 @@ const ChatList = ({ navigation }) => {
                 <Text style={styles.headerTitle}>Chats</Text>
             </View>
 
-            {/* Chat List */}
             {loading ? (
                 <ActivityIndicator size="large" color="#000" style={{ marginTop: 20 }} />
             ) : chatList.length > 0 ? (
@@ -170,7 +188,6 @@ const ChatList = ({ navigation }) => {
                 </View>
             )}
 
-            {/* ChatBot Floating Button */}
             <TouchableOpacity
                 style={styles.chatbotContainer}
                 onPress={() => navigation.navigate('ChatBot')}

@@ -1,119 +1,110 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
     View,
     Text,
     StyleSheet,
     TextInput,
-    TouchableOpacity,
-    Image,
-    Alert,
+    TouchableOpacity
 } from "react-native";
-import emailjs from "@emailjs/browser";
 import AntDesign from "react-native-vector-icons/AntDesign";
-
-import auth from '@react-native-firebase/auth';
-import RentEasyModal from '../components/RentEasyModal';
-
+import auth from "@react-native-firebase/auth";
+import RentEasyModal from "../components/RentEasyModal";
 
 const ForgotPassword = ({ navigation }) => {
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
-    const [generatedOTP, setGeneratedOTP] = useState("");
-    const [method, setMethod] = useState(""); // "email" or "sms"
-
     const [modalVisible, setModalVisible] = useState(false);
     const [modalContent, setModalContent] = useState({ title: "", message: "" });
-    const [pendingDeleteKey, setPendingDeleteKey] = useState(null);
 
-    const showModal = (title, message, onConfirm = null) => {
-        setModalContent({ title, message, onConfirm });
+    const showModal = (title, message) => {
+        setModalContent({ title, message });
         setModalVisible(true);
     };
 
-    const confirmDelete = (itemKey) => {
-        setPendingDeleteKey(itemKey);
-        showModal("Delete History?", "Are you sure you want to delete this item?", handleDeleteConfirmed);
-    };
-
-    const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
-
-    const sendEmailOTP = async () => {
-        if (!email.trim()) {
-            showModal("Error", "Enter your registered email.");
-            return;
-        }
-
-        if (!/^\S+@\S+\.\S+$/.test(email)) {
-            showModal("Error", "Please enter a valid email address.");
-            return;
-        }
-
-        const otp = generateOTP();
-        setGeneratedOTP(otp);
-
-        try {
-            await emailjs.send(
-                "service_oajvkpf",
-                "template_gbu3eoi",
-                { to_email: email, otp_code: otp },
-                "PTi9Iuo1Yj94r00Ha"
-            );
-
-            await AsyncStorage.setItem("recoveryEmail", email); // optional
-            setMethod("email");
-
-            showModal("Success", `OTP sent to ${maskEmail(email)}`);
-            navigation.navigate("OTPVerification", { generatedOTP: otp, method: "email" });
-
-        } catch (error) {
-            showModal("Error", "Failed to send OTP via Email.");
-            console.log("Email OTP error:", error);
-        }
-    };
-
+    // Mask email for privacy in success messages
     const maskEmail = (email) => {
         const [name, domain] = email.split("@");
         return `${name[0]}***@${domain}`;
     };
 
-    const sendSMSOTP = async () => {
-        if (!phone.trim()) {
-            showModal("Error", "Enter your registered phone number.");
+    // Send password reset email
+    const sendEmailReset = async () => {
+        if (!email.trim()) {
+            showModal("Error", "Please enter your registered email.");
             return;
         }
-
+        if (!/^\S+@\S+\.\S+$/.test(email)) {
+            showModal("Error", "Please enter a valid email address.");
+            return;
+        }
         try {
-            const confirmation = await auth().signInWithPhoneNumber(phone);
-            showModal("Success", `OTP sent to ${phone}`);
-            navigation.navigate("OTPVerification", { confirmation, method: "sms" });
-
+            await auth().sendPasswordResetEmail(email);
+            showModal("Success", `Password reset link sent to ${maskEmail(email)}`);
+            setEmail("");
         } catch (error) {
-            console.log("SMS OTP Error:", error.message);
-            showModal("Error", "Failed to send OTP via SMS.");
+            console.log("Email reset error:", error);
+            let msg = "Failed to send password reset email.";
+            if (error.code === "auth/user-not-found") {
+                msg = "No account found with that email.";
+            }
+            showModal("Error", msg);
         }
     };
 
+    // Send OTP to phone number
+    const sendSMSOTP = async () => {
+        if (!phone.trim()) {
+            showModal("Error", "Please enter your registered phone number.");
+            return;
+        }
+        if (!/^\+\d{10,15}$/.test(phone)) {
+            showModal("Error", "Phone number must be in international format (e.g. +1234567890).");
+            return;
+        }
+        try {
+            const confirmation = await auth().signInWithPhoneNumber(phone);
+            showModal("Success", `OTP sent to ${phone}`);
+            setPhone("");
+            // Navigate to OTP verification screen
+            navigation.navigate("OTPVerification", {
+                confirmation,
+                method: "sms",
+                phone
+            });
+        } catch (error) {
+            console.log("SMS OTP Error:", error);
+            let msg = "Failed to send OTP via SMS.";
+            if (error.code === "auth/too-many-requests") {
+                msg = "Too many requests. Please try again later.";
+            }
+            if (error.code === "auth/invalid-phone-number") {
+                msg = "Invalid phone number format.";
+            }
+            showModal("Error", msg);
+        }
+    };
 
     return (
         <View style={styles.container}>
-
             <Text style={styles.title}>FORGOT PASSWORD</Text>
-            <Text style={styles.subtitle}>Reset your password via OTP</Text>
+            <Text style={styles.subtitle}>Reset your password via Firebase</Text>
 
-            {/* Email Input */}
+            {/* Email Reset */}
             <TextInput
                 style={styles.input}
                 placeholder="Enter your Email"
                 value={email}
                 onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
             />
-            <TouchableOpacity style={styles.button} onPress={sendEmailOTP}>
-                <Text style={styles.buttonText}>Send OTP via Email</Text>
+            <TouchableOpacity style={styles.button} onPress={sendEmailReset}>
+                <Text style={styles.buttonText}>Send Reset Link via Email</Text>
             </TouchableOpacity>
 
             <Text style={styles.orText}>────────── OR ──────────</Text>
 
-            {/* Phone Input */}
+            {/* Phone OTP */}
             <TextInput
                 style={styles.input}
                 placeholder="Enter your Phone (+91...)"
@@ -121,25 +112,36 @@ const ForgotPassword = ({ navigation }) => {
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
             />
-            <TouchableOpacity style={[styles.button, { backgroundColor: "#34A853" }]} onPress={sendSMSOTP}>
+            <TouchableOpacity
+                style={[styles.button, { backgroundColor: "#34A853" }]}
+                onPress={sendSMSOTP}
+            >
                 <Text style={styles.buttonText}>Send OTP via SMS</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            {/* Back */}
+            <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+            >
                 <View style={styles.buttonContent}>
-                    <AntDesign name="arrowleft" size={20} color="white" style={styles.buttonIcon} />
+                    <AntDesign
+                        name="arrowleft"
+                        size={20}
+                        color="white"
+                        style={styles.buttonIcon}
+                    />
                     <Text style={styles.buttonText}>BACK</Text>
                 </View>
             </TouchableOpacity>
+
+            {/* Modal */}
             <RentEasyModal
                 visible={modalVisible}
                 title={modalContent.title}
                 message={modalContent.message}
                 onClose={() => setModalVisible(false)}
-                onConfirm={modalContent.onConfirm}
             />
-
-
         </View>
     );
 };
@@ -153,12 +155,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         backgroundColor: "#E6F0FA",
         padding: 20,
-    },
-    logo: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        marginBottom: 20,
     },
     title: {
         fontSize: 28,
@@ -208,11 +204,6 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-    },
-    buttonText: {
-        color: "white",
-        fontSize: 17,
-        fontWeight: "bold",
     },
     buttonIcon: {
         marginRight: 10,

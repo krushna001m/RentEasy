@@ -1,24 +1,17 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from "react-native";
 import axios from "axios";
 import RentEasyModal from '../components/RentEasyModal';
 
-const URL = "https://your-firebase-db-url"; // Replace with your Firebase or API URL
+const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com"; // Your Firebase Realtime DB users path
 
 const ResetPassword = ({ route, navigation }) => {
-
     const [modalVisible, setModalVisible] = useState(false);
     const [modalContent, setModalContent] = useState({ title: "", message: "" });
-    const [pendingDeleteKey, setPendingDeleteKey] = useState(null);
 
     const showModal = (title, message, onConfirm = null) => {
         setModalContent({ title, message, onConfirm });
         setModalVisible(true);
-    };
-
-    const confirmDelete = (itemKey) => {
-        setPendingDeleteKey(itemKey);
-        showModal("Delete History?", "Are you sure you want to delete this item?", handleDeleteConfirmed);
     };
 
     const { method, email, phone } = route.params;
@@ -36,17 +29,38 @@ const ResetPassword = ({ route, navigation }) => {
         }
 
         try {
-            // Update Password in your backend or Firebase Database
-            await axios.patch(`${URL}/users.json`, {
-                ...(method === "email" ? { email } : { phone }),
+            // Step 1: Fetch all users
+            const res = await axios.get(URL);
+            const users = res.data;
+
+            // Step 2: Find matching user
+            let foundUID = null;
+            for (let uid in users) {
+                if (
+                    (method === "email" && users[uid].email === email) ||
+                    (method === "sms" && users[uid].phone === phone)
+                ) {
+                    foundUID = uid;
+                    break;
+                }
+            }
+
+            if (!foundUID) {
+                showModal("Error", "User not found");
+                return;
+            }
+
+            // Step 3: Update password for found UID
+            await axios.patch(`${URL}/users/${foundUID}.json`, {
                 password: newPassword,
             });
 
-            showModal("Success", "Password Reset Successfully");
-            navigation.navigate("Login");
+            showModal("Success", "Password reset successfully", () => {
+                navigation.navigate("Login");
+            });
         } catch (error) {
             showModal("Error", "Failed to update password");
-            console.log(error);
+            console.error(error);
         }
     };
 
@@ -74,6 +88,7 @@ const ResetPassword = ({ route, navigation }) => {
             <TouchableOpacity style={styles.button} onPress={handlePasswordReset}>
                 <Text style={styles.buttonText}>RESET PASSWORD</Text>
             </TouchableOpacity>
+
             <RentEasyModal
                 visible={modalVisible}
                 title={modalContent.title}

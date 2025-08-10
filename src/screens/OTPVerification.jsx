@@ -1,24 +1,25 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
-import RentEasyModal from '../components/RentEasyModal';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from "react-native";
+import RentEasyModal from "../components/RentEasyModal";
 
 const OTPVerification = ({ route, navigation }) => {
-
     const [modalVisible, setModalVisible] = useState(false);
     const [modalContent, setModalContent] = useState({ title: "", message: "" });
-    const [pendingDeleteKey, setPendingDeleteKey] = useState(null);
 
     const showModal = (title, message, onConfirm = null) => {
         setModalContent({ title, message, onConfirm });
         setModalVisible(true);
     };
 
-    const confirmDelete = (itemKey) => {
-        setPendingDeleteKey(itemKey);
-        showModal("Delete History?", "Are you sure you want to delete this item?", handleDeleteConfirmed);
-    };
+    // Extract values from route params safely
+    const {
+        generatedOTP = "",
+        confirmation = null,
+        method = "",
+        email = "",
+        phone = ""
+    } = route.params || {};
 
-    const { generatedOTP, confirmation, method, email, phone } = route.params;
     const [otp, setOtp] = useState("");
 
     const verifyOTP = async () => {
@@ -28,21 +29,31 @@ const OTPVerification = ({ route, navigation }) => {
         }
 
         if (method === "email") {
-            if (otp === generatedOTP) {
-                showModal("Success", "OTP Verified Successfully");
-                navigation.navigate("ResetPassword", { method, email });
+            if (otp.trim() === generatedOTP) {
+                showModal("Success", "OTP Verified Successfully", () => {
+                    navigation.navigate("ResetPassword", { method, email });
+                });
             } else {
                 showModal("Error", "Invalid OTP");
             }
         } else if (method === "sms") {
             try {
-                await confirmation.confirm(otp);
-                showModal("Success", "OTP Verified Successfully");
-                navigation.navigate("ResetPassword", { method, phone });
+                await confirmation.confirm(otp.trim());
+                showModal("Success", "OTP Verified Successfully", () => {
+                    navigation.navigate("ResetPassword", { method, phone });
+                });
             } catch (error) {
+                console.log("SMS OTP verification error:", error);
                 showModal("Error", "Invalid OTP");
-                console.log(error);
             }
+        }
+    };
+
+    const resendOTP = () => {
+        if (method === "email") {
+            showModal("Info", `Resend OTP feature for email not implemented yet`);
+        } else if (method === "sms") {
+            showModal("Info", `Resend OTP feature for SMS not implemented yet`);
         }
     };
 
@@ -50,7 +61,9 @@ const OTPVerification = ({ route, navigation }) => {
         <View style={styles.container}>
             <Image source={require("../../assets/logo.png")} style={styles.logo} />
             <Text style={styles.title}>OTP VERIFICATION</Text>
-            <Text style={styles.subtitle}>Enter the OTP sent to your {method === "email" ? "Email" : "Phone"}</Text>
+            <Text style={styles.subtitle}>
+                Enter the OTP sent to your {method === "email" ? email : phone}
+            </Text>
 
             <TextInput
                 style={styles.input}
@@ -58,11 +71,17 @@ const OTPVerification = ({ route, navigation }) => {
                 keyboardType="number-pad"
                 value={otp}
                 onChangeText={setOtp}
+                maxLength={6}
             />
 
             <TouchableOpacity style={styles.button} onPress={verifyOTP}>
                 <Text style={styles.buttonText}>VERIFY OTP</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity style={styles.resendButton} onPress={resendOTP}>
+                <Text style={styles.resendText}>Resend OTP</Text>
+            </TouchableOpacity>
+
             <RentEasyModal
                 visible={modalVisible}
                 title={modalContent.title}
@@ -70,7 +89,6 @@ const OTPVerification = ({ route, navigation }) => {
                 onClose={() => setModalVisible(false)}
                 onConfirm={modalContent.onConfirm}
             />
-
         </View>
     );
 };
@@ -100,6 +118,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: "#555",
         marginBottom: 20,
+        textAlign: "center",
     },
     input: {
         width: "80%",
@@ -125,5 +144,13 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 16,
         fontWeight: "bold",
+    },
+    resendButton: {
+        marginTop: 15,
+    },
+    resendText: {
+        color: "#0461cc",
+        fontSize: 15,
+        fontWeight: "600",
     },
 });

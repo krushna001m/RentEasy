@@ -8,12 +8,12 @@ import {
     ScrollView,
     Image,
     Platform,
-    KeyboardAvoidingView
+    KeyboardAvoidingView,
+    Alert
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import Entypo from "react-native-vector-icons/Entypo";
 import RentEasyModal from '../components/RentEasyModal';
-import { getDatabase, ref, onValue, push, get } from 'firebase/database';
+import { getDatabase, ref, onValue, push, get, set, serverTimestamp, update } from 'firebase/database';
 import { getAuth } from "firebase/auth";
 
 const Chat = ({ navigation, route }) => {
@@ -21,9 +21,8 @@ const Chat = ({ navigation, route }) => {
     const db = getDatabase();
     const auth = getAuth();
 
-    const [currentUser, setCurrentUser] = useState(null); // { uid, username }
+    const [currentUser, setCurrentUser] = useState(null);
     const [receiver, setReceiver] = useState({ uid: receiverUid, username: receiverUsername });
-
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const scrollViewRef = useRef();
@@ -40,7 +39,7 @@ const Chat = ({ navigation, route }) => {
             ? [currentUser.uid, receiver.uid].sort().join("__")
             : null;
 
-    // Fetch current user + receiver info
+    /** Fetch current user & receiver info, ensure chat room exists **/
     useEffect(() => {
         const initializeChat = async () => {
             try {
@@ -51,30 +50,47 @@ const Chat = ({ navigation, route }) => {
                     return;
                 }
 
-                // Fetch current user data
+                // Current user
                 const currentUserSnap = await get(ref(db, `users/${currentUserUID}`));
                 if (!currentUserSnap.exists()) {
                     showModal("Error", "Current user not found.");
                     return;
                 }
                 const currentUserData = currentUserSnap.val();
-
                 setCurrentUser({
                     uid: currentUserUID,
                     username: currentUserData.username || "Unknown",
                 });
 
-                // If receiver username missing, fetch from DB
+                // Receiver
                 if (!receiver.username && receiver.uid) {
                     const receiverSnap = await get(ref(db, `users/${receiver.uid}`));
                     if (receiverSnap.exists()) {
-                        setReceiver((prev) => ({
-                            ...prev,
+                        setReceiver({
+                            uid: receiver.uid,
                             username: receiverSnap.val()?.username || "Unknown",
-                        }));
+                        });
+                    }
+                }
+
+                // Create chat room if missing
+                if (currentUserUID && receiverUid) {
+                    const chatRef = ref(db, `chats/${[currentUserUID, receiverUid].sort().join("__")}`);
+                    const chatSnap = await get(chatRef);
+                    if (!chatSnap.exists()) {
+                        await set(chatRef, {
+                            createdAt: serverTimestamp(),
+                            participants: {
+                                [currentUserUID]: currentUserData.username,
+                                [receiverUid]: receiverUsername || "Unknown",
+                            },
+                            lastMessage: "",
+                            lastTimestamp: null
+                        });
                     }
                 }
             } catch (error) {
+                console.error("Chat init error:", error);
                 showModal("Error", "Error initializing chat.");
             }
         };
@@ -82,7 +98,7 @@ const Chat = ({ navigation, route }) => {
         initializeChat();
     }, []);
 
-    // Fetch messages in real-time
+    /** Real-time messages listener **/
     useEffect(() => {
         if (!chatRoomId) return;
         const messagesRef = ref(db, `chats/${chatRoomId}/messages`);
@@ -103,7 +119,7 @@ const Chat = ({ navigation, route }) => {
         return () => unsubscribe();
     }, [chatRoomId]);
 
-    // Send message
+    /** Send a message **/
     const handleSend = async () => {
         if (!input.trim() || !chatRoomId || !currentUser) return;
 
@@ -115,14 +131,23 @@ const Chat = ({ navigation, route }) => {
         };
 
         try {
+            // Push to /messages
             await push(ref(db, `chats/${chatRoomId}/messages`), newMessage);
+
+            // Update last message metadata
+            await update(ref(db, `chats/${chatRoomId}`), {
+                lastMessage: newMessage.text,
+                lastTimestamp: newMessage.timestamp
+            });
+
             setInput("");
         } catch (error) {
+            console.error("Send message error:", error);
             showModal("Error", "Failed to send message.");
         }
     };
 
-    // Auto-scroll
+    /** Auto-scroll to latest message **/
     useEffect(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
     }, [messages]);
@@ -145,7 +170,6 @@ const Chat = ({ navigation, route }) => {
                     <Text style={styles.headerTitle}>
                         {receiver?.username || "User"}
                     </Text>
-                   
                 </View>
 
                 {/* Messages */}
@@ -166,15 +190,13 @@ const Chat = ({ navigation, route }) => {
                         >
                             <Text style={styles.messageText}>{msg.text}</Text>
                             <Text style={styles.senderLabel}>
-                                {msg.senderUID === currentUser?.uid
-                                    ? "You"
-                                    : msg.sender}
+                                {msg.senderUID === currentUser?.uid ? "You" : msg.sender}
                             </Text>
                         </View>
                     ))}
                 </ScrollView>
 
-                {/* Input Area */}
+                {/* Input */}
                 <View style={styles.inputBar}>
                     <TextInput
                         style={styles.input}
@@ -205,10 +227,7 @@ const Chat = ({ navigation, route }) => {
 export default Chat;
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: "#E6F0FA",
-    },
+    container: { flex: 1, backgroundColor: "#E6F0FA" },
     header: {
         flexDirection: "row",
         alignItems: "center",
@@ -219,47 +238,26 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: "#ddd",
     },
-    logo: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        marginRight: 10,
-    },
+    logo: { width: 40, height: 40, borderRadius: 20, marginRight: 10 },
     headerTitle: {
         flex: 1,
         fontSize: 18,
         fontWeight: "bold",
         color: "#333",
-        alignSelf:"center",
-        alignItems:'center',
-        marginLeft:10
+        alignSelf: "center",
+        marginLeft: 10
     },
-    messageContainer: {
-        padding: 16,
-        paddingBottom: 80,
-    },
+    messageContainer: { padding: 16, paddingBottom: 80 },
     messageBubble: {
         padding: 10,
         borderRadius: 12,
         marginVertical: 6,
         maxWidth: "75%",
     },
-    left: {
-        alignSelf: "flex-start",
-        backgroundColor: "#f0f0f0",
-    },
-    right: {
-        alignSelf: "flex-end",
-        backgroundColor: "#d4e9ff",
-    },
-    messageText: {
-        fontSize: 15,
-    },
-    senderLabel: {
-        fontSize: 11,
-        marginTop: 4,
-        color: "#555",
-    },
+    left: { alignSelf: "flex-start", backgroundColor: "#f0f0f0" },
+    right: { alignSelf: "flex-end", backgroundColor: "#d4e9ff" },
+    messageText: { fontSize: 15 },
+    senderLabel: { fontSize: 11, marginTop: 4, color: "#555" },
     inputBar: {
         flexDirection: "row",
         alignItems: "center",
@@ -268,9 +266,5 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderColor: "#ccc",
     },
-    input: {
-        flex: 1,
-        fontSize: 16,
-        paddingHorizontal: 10,
-    },
+    input: { flex: 1, fontSize: 16, paddingHorizontal: 10 },
 });

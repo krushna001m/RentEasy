@@ -17,6 +17,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import axios from "axios";
 import { database } from '../firebaseConfig'
+import { query, orderByChild, equalTo } from 'firebase/database';
 import { ref, get, getDatabase } from 'firebase/database';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import RentEasyModal from '../components/RentEasyModal';
@@ -58,6 +59,9 @@ const Payment = ({ navigation, route }) => {
 
     const [days, setDays] = useState(1);
     const [totalAmount, setTotalAmount] = useState(0);
+
+    const chatRoomId = [senderUid, ownerUid].sort().join('__');
+
 
     useEffect(() => {
         if (!itemInfo) return;
@@ -254,39 +258,37 @@ const Payment = ({ navigation, route }) => {
 
                     </View>
 
-                    {itemInfo.owner && (
+                    {itemInfo?.owner && (
                         <TouchableOpacity
                             style={styles.chatButton}
                             onPress={async () => {
                                 try {
                                     const db = getDatabase();
-                                    const ownerRef = ref(db, `users/${itemInfo.owner}`);
-                                    const snapshot = await get(ownerRef);
+                                    const ownerUid = itemInfo.owner; // Already UID
 
-                                    if (!snapshot.exists()) {
+                                    // 1. Fetch owner details
+                                    const ownerSnap = await get(ref(db, `users/${ownerUid}`));
+                                    if (!ownerSnap.exists()) {
                                         Alert.alert('Error', 'Owner information not found.');
                                         return;
                                     }
+                                    const ownerData = ownerSnap.val();
 
-                                    const receiverData = snapshot.val();
-                                    const receiverUsername = receiverData.username;
-                                    const receiverUID = itemInfo.owner;
-
+                                    // 2. Get current logged-in user details
+                                    const senderUid = await AsyncStorage.getItem('uid'); // store uid in AsyncStorage at login
                                     const senderUsername = await AsyncStorage.getItem('username');
-                                    const senderDataStr = await AsyncStorage.getItem('loggedInUser');
-                                    const senderData = senderDataStr ? JSON.parse(senderDataStr) : null;
-                                    const senderUID = senderData?.uid || null;
 
-                                    if (!senderUsername || !receiverUsername || !senderUID) {
-                                        Alert.alert('Error', 'Unable to fetch chat participants.');
+                                    if (!senderUid || !senderUsername) {
+                                        Alert.alert('Error', 'Unable to fetch your account info.');
                                         return;
                                     }
 
-                                    navigation.navigate("Chat", {
-                                        receiverUsername,
-                                        receiverUID,
-                                        senderUsername,
-                                        senderUID,
+                                    // 3. Navigate to Chat screen
+                                    navigation.navigate('Chat', {
+                                        receiverUid: ownerUid,
+                                        receiverUsername: ownerData.username,
+                                        senderUid: senderUid,
+                                        senderUsername: senderUsername,
                                     });
 
                                 } catch (error) {

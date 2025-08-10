@@ -19,6 +19,8 @@ if linkage != nil
 end
 
 target 'RentEasy' do
+  pod 'lottie-ios', '4.5.0'
+
   config = use_native_modules!
 
   use_react_native!(
