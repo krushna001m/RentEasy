@@ -107,7 +107,7 @@ const About = () => {
 
         <TouchableOpacity style={styles.row} onPress={handleLocationPress}>
           <Ionicons name="location-sharp" size={20} color="#FF5722" />
-          <Text style={styles.linkText}>RentEasy HQ, Mumbai</Text>
+          <Text style={styles.linkText}>RentEasy HQ, Nashik</Text>
         </TouchableOpacity>
       </View>
 

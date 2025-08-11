@@ -80,38 +80,38 @@ const Payment = ({ navigation, route }) => {
     }, [itemInfo]);
 
     const cleanNumber = (value) => {
-  const num = parseFloat(String(value).replace(/[^0-9.]/g, "")); 
-  return isNaN(num) ? 0 : num;
-};
+        const num = parseFloat(String(value).replace(/[^0-9.]/g, ""));
+        return isNaN(num) ? 0 : num;
+    };
 
-useEffect(() => {
-    if (!itemInfo) return;
+    useEffect(() => {
+        if (!itemInfo) return;
 
-    const perDay = cleanNumber(itemInfo?.pricePerDay || itemInfo?.price);
-    const price3Days = cleanNumber(itemInfo?.price3Days);
-    const priceWeek = cleanNumber(itemInfo?.priceWeek);
-    const deposit = cleanNumber(itemInfo?.securityDeposit);
+        const perDay = cleanNumber(itemInfo?.pricePerDay || itemInfo?.price);
+        const price3Days = cleanNumber(itemInfo?.price3Days);
+        const priceWeek = cleanNumber(itemInfo?.priceWeek);
+        const deposit = cleanNumber(itemInfo?.securityDeposit);
 
-    let total = 0;
-    let remainingDays = Math.max(1, days);
+        let total = 0;
+        let remainingDays = Math.max(1, days);
 
-    if (priceWeek > 0 && remainingDays >= 7) {
-        const weeks = Math.floor(remainingDays / 7);
-        total += weeks * priceWeek;
-        remainingDays -= weeks * 7;
-    }
+        if (priceWeek > 0 && remainingDays >= 7) {
+            const weeks = Math.floor(remainingDays / 7);
+            total += weeks * priceWeek;
+            remainingDays -= weeks * 7;
+        }
 
-    if (price3Days > 0 && remainingDays >= 3) {
-        const blocks = Math.floor(remainingDays / 3);
-        total += blocks * price3Days;
-        remainingDays -= blocks * 3;
-    }
+        if (price3Days > 0 && remainingDays >= 3) {
+            const blocks = Math.floor(remainingDays / 3);
+            total += blocks * price3Days;
+            remainingDays -= blocks * 3;
+        }
 
-    total += remainingDays * perDay;
-    total += deposit;
+        total += remainingDays * perDay;
+        total += deposit;
 
-    setTotalAmount(total.toFixed(2));
-}, [days, itemInfo]);
+        setTotalAmount(total.toFixed(2));
+    }, [days, itemInfo]);
 
     const handlePayNow = async () => {
         if (!agreed) {
@@ -128,8 +128,8 @@ useEffect(() => {
             // Prepare safe history object
             const historyItem = {
                 itemTitle: itemInfo?.title || "Unknown Item",
-                owner:itemInfo.owner||"Unknown Owner",
-                price:itemInfo.pricePerDay,
+                owner: itemInfo.owner || "Unknown Owner",
+                price: itemInfo.pricePerDay,
                 date: new Date().toISOString(),
                 days: days || 0,
                 totalAmount: totalAmount || "0",
@@ -222,7 +222,10 @@ useEffect(() => {
                     {/* Item */}
                     <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
                         <Ionicons name="cube-outline" size={16} color="#333" style={{ marginRight: 6 }} />
-                        <Text style={styles.summaryText}>ITEM: {title}</Text>
+                        <Text style={styles.summaryText}>
+                            ITEM: {itemInfo?.title || 'No Title'}
+                        </Text>
+
                     </View>
 
                     {/* Owner */}

@@ -166,19 +166,7 @@ const Settings = ({ navigation }) => {
             <Modal visible={helpModalVisible} animationType="slide" transparent={true}>
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Help & Support</Text>
-                        <TouchableOpacity style={styles.row}>
-                            <Ionicons name="book" size={20} style={styles.rowIcon} />
-                            <Text style={styles.rowLabel}>FAQs</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.row}>
-                            <Ionicons name="call" size={20} style={styles.rowIcon} />
-                            <Text style={styles.rowLabel}>Contact Support</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.row}>
-                            <Ionicons name="chatbubbles" size={20} style={styles.rowIcon} />
-                            <Text style={styles.rowLabel}>Submit a Complaint / Suggestion</Text>
-                        </TouchableOpacity>
+                        <Image source={require("../../assets/logo.png")} style={styles.modallogo} />
                         <TouchableOpacity style={styles.row} onPress={() => navigation.navigate("About")}>
                             <Entypo name="info-with-circle" size={20} style={styles.rowIcon} />
                             <Text style={styles.rowLabel}>About</Text>
@@ -330,5 +318,11 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontWeight: "bold",
         fontSize: 16,
-    }
+    },
+    modallogo:{
+        width:100,
+        height:100,
+        alignSelf:'center',
+
+    },
 });
