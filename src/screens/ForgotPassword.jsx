@@ -4,11 +4,16 @@ import {
     Text,
     StyleSheet,
     TextInput,
-    TouchableOpacity
+    TouchableOpacity,
+    Image,
+    Platform,
+  Dimensions,
 } from "react-native";
 import AntDesign from "react-native-vector-icons/AntDesign";
 import auth from "@react-native-firebase/auth";
 import RentEasyModal from "../components/RentEasyModal";
+
+const { width, height } = Dimensions.get("window");
 
 const ForgotPassword = ({ navigation }) => {
     const [email, setEmail] = useState("");
@@ -51,41 +56,65 @@ const ForgotPassword = ({ navigation }) => {
         }
     };
 
-    // Send OTP to phone number
-    const sendSMSOTP = async () => {
-        if (!phone.trim()) {
-            showModal("Error", "Please enter your registered phone number.");
-            return;
+   // Send OTP to phone number
+const sendSMSOTP = async () => {
+    if (!phone.trim()) {
+        showModal("Error", "Please enter your registered phone number.");
+        return;
+    }
+
+    let formattedPhone = phone.trim();
+
+    // Auto-add +91 if no country code is provided
+    if (!formattedPhone.startsWith("+")) {
+        formattedPhone = "+91" + formattedPhone.replace(/^0+/, ""); // Remove leading 0
+    }
+
+    // Validate in E.164 format (e.g., +919876543210)
+    if (!/^\+\d{10,15}$/.test(formattedPhone)) {
+        showModal("Error", "Phone number must be in international format (e.g. +1234567890).");
+        return;
+    }
+
+    try {
+        const confirmation = await auth().signInWithPhoneNumber(formattedPhone);
+        showModal("Success", `OTP sent to ${formattedPhone}`);
+        setPhone("");
+
+        // Navigate to OTP verification screen
+        navigation.navigate("OTPVerification", {
+            confirmation,
+            method: "sms",
+            phone: formattedPhone
+        });
+    } catch (error) {
+        console.log("SMS OTP Error:", error);
+        let msg = "Failed to send OTP via SMS.";
+        if (error.code === "auth/too-many-requests") {
+            msg = "Too many requests. Please try again later.";
         }
-        if (!/^\+\d{10,15}$/.test(phone)) {
-            showModal("Error", "Phone number must be in international format (e.g. +1234567890).");
-            return;
+        if (error.code === "auth/invalid-phone-number") {
+            msg = "Invalid phone number format.";
         }
-        try {
-            const confirmation = await auth().signInWithPhoneNumber(phone);
-            showModal("Success", `OTP sent to ${phone}`);
-            setPhone("");
-            // Navigate to OTP verification screen
-            navigation.navigate("OTPVerification", {
-                confirmation,
-                method: "sms",
-                phone
-            });
-        } catch (error) {
-            console.log("SMS OTP Error:", error);
-            let msg = "Failed to send OTP via SMS.";
-            if (error.code === "auth/too-many-requests") {
-                msg = "Too many requests. Please try again later.";
-            }
-            if (error.code === "auth/invalid-phone-number") {
-                msg = "Invalid phone number format.";
-            }
-            showModal("Error", msg);
-        }
-    };
+        showModal("Error", msg);
+    }
+};
+
+
+    const sendOTPToCurrentUser = async () => {
+    try {
+        const phoneProvider = new auth.PhoneAuthProvider();
+        const verificationId = await phoneProvider.verifyPhoneNumber(phone);
+        console.log("OTP sent with verificationId:", verificationId);
+        navigation.navigate("OTPVerification", { verificationId });
+    } catch (error) {
+        console.log("OTP send error:", error);
+    }
+};
 
     return (
         <View style={styles.container}>
+            <Image source={require("../../assets/logo.png")} style={styles.logo} />
             <Text style={styles.title}>FORGOT PASSWORD</Text>
             <Text style={styles.subtitle}>Reset your password via Firebase</Text>
 
@@ -102,22 +131,7 @@ const ForgotPassword = ({ navigation }) => {
                 <Text style={styles.buttonText}>Send Reset Link via Email</Text>
             </TouchableOpacity>
 
-            <Text style={styles.orText}>────────── OR ──────────</Text>
-
-            {/* Phone OTP */}
-            <TextInput
-                style={styles.input}
-                placeholder="Enter your Phone (+91...)"
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-            />
-            <TouchableOpacity
-                style={[styles.button, { backgroundColor: "#34A853" }]}
-                onPress={sendSMSOTP}
-            >
-                <Text style={styles.buttonText}>Send OTP via SMS</Text>
-            </TouchableOpacity>
+           
 
             {/* Back */}
             <TouchableOpacity
@@ -156,6 +170,27 @@ const styles = StyleSheet.create({
         backgroundColor: "#E6F0FA",
         padding: 20,
     },
+    logo: {
+        width: width * 0.25,
+        height: width * 0.25,
+        resizeMode: "contain",
+        marginBottom: 20,
+        borderRadius: 50,
+        backgroundColor: "#fff",
+        borderWidth: 2,
+        borderColor: "#e0e0e0",
+        ...Platform.select({
+          ios: {
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 5,
+          },
+          android: {
+            elevation: 10,
+          },
+        }),
+      },
     title: {
         fontSize: 28,
         fontWeight: "bold",
