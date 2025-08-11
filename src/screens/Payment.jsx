@@ -41,6 +41,8 @@ const Payment = ({ navigation, route }) => {
     };
 
     const { itemInfo, title, parentKey, itemKey } = route.params;
+    const [price, setPrice] = useState(); // undefined
+
     const [paymentMethod, setPaymentMethod] = useState('card');
     const [cardDetails, setCardDetails] = useState({
         number: '',
@@ -60,116 +62,128 @@ const Payment = ({ navigation, route }) => {
     const [days, setDays] = useState(1);
     const [totalAmount, setTotalAmount] = useState(0);
 
-    const chatRoomId = [senderUid, ownerUid].sort().join('__');
+    const [chatRoomId, setChatRoomId] = useState(null);
+    const ownerUid = itemInfo?.owner;  // could be undefined
 
 
     useEffect(() => {
-        if (!itemInfo) return;
+        const loadChatIds = async () => {
+            if (itemInfo?.owner) {
+                const ownerUid = itemInfo.owner;
+                const senderUid = await AsyncStorage.getItem('uid');
+                if (ownerUid && senderUid) {
+                    setChatRoomId([senderUid, ownerUid].sort().join('__'));
+                }
+            }
+        };
+        loadChatIds();
+    }, [itemInfo]);
 
-        const perDay = Number(itemInfo?.pricePerDay || itemInfo?.price || 0); // Fallback added
-        const price3Days = Number(itemInfo?.price3Days || 0);
-        const priceWeek = Number(itemInfo?.priceWeek || 0);
-        const deposit = Number(itemInfo?.securityDeposit || 0);
+    const cleanNumber = (value) => {
+  const num = parseFloat(String(value).replace(/[^0-9.]/g, "")); 
+  return isNaN(num) ? 0 : num;
+};
 
-        let total = 0;
-        let remainingDays = Math.max(1, days); // ensure minimum 1 day
+useEffect(() => {
+    if (!itemInfo) return;
 
-        if (priceWeek > 0 && remainingDays >= 7) {
-            const weeks = Math.floor(remainingDays / 7);
-            total += weeks * priceWeek;
-            remainingDays -= weeks * 7;
-        }
+    const perDay = cleanNumber(itemInfo?.pricePerDay || itemInfo?.price);
+    const price3Days = cleanNumber(itemInfo?.price3Days);
+    const priceWeek = cleanNumber(itemInfo?.priceWeek);
+    const deposit = cleanNumber(itemInfo?.securityDeposit);
 
-        if (price3Days > 0 && remainingDays >= 3) {
-            const blocks = Math.floor(remainingDays / 3);
-            total += blocks * price3Days;
-            remainingDays -= blocks * 3;
-        }
+    let total = 0;
+    let remainingDays = Math.max(1, days);
 
-        total += remainingDays * perDay;
-        total += deposit;
+    if (priceWeek > 0 && remainingDays >= 7) {
+        const weeks = Math.floor(remainingDays / 7);
+        total += weeks * priceWeek;
+        remainingDays -= weeks * 7;
+    }
 
-        setTotalAmount(total.toFixed(2));
-    }, [days, itemInfo]);
+    if (price3Days > 0 && remainingDays >= 3) {
+        const blocks = Math.floor(remainingDays / 3);
+        total += blocks * price3Days;
+        remainingDays -= blocks * 3;
+    }
 
+    total += remainingDays * perDay;
+    total += deposit;
+
+    setTotalAmount(total.toFixed(2));
+}, [days, itemInfo]);
 
     const handlePayNow = async () => {
         if (!agreed) {
-            showModal('⚠️ Agreement Required', 'Please agree to the rental policy.');
-            return;
-        }
-
-        if (paymentMethod === 'card') {
-            const { number, expiry, cvv, name } = cardDetails;
-            if (!number || !expiry || !cvv || !name) {
-                showModal('⚠️ Missing Info', 'Please fill all card details.');
-                return;
-            }
-        }
-
-        if (paymentMethod === 'upi' && !upiId) {
-            showModal('⚠️ Missing UPI', 'Please enter your UPI ID.');
+            Alert.alert("Agreement Required", "Please agree to the rental policy before proceeding.");
             return;
         }
 
         try {
-            const username = await AsyncStorage.getItem("username");
-            if (!username) {
-                showModal("Login Required", "Please login first!");
-                return;
-            }
+            // Get and sanitize username
+            let username = await AsyncStorage.getItem("username");
+            if (!username) throw new Error("User not logged in");
+            username = username.replace(/[.#$[\]]/g, "_");
 
+            // Prepare safe history object
             const historyItem = {
-                title,
-                ...itemInfo,
-                days,
-                totalAmount: parseFloat(totalAmount),
-                paymentMethod,
-                upiId,
-                netBankingDetails,
+                itemTitle: itemInfo?.title || "Unknown Item",
+                owner:itemInfo.owner||"Unknown Owner",
+                price:itemInfo.pricePerDay,
                 date: new Date().toISOString(),
+                days: days || 0,
+                totalAmount: totalAmount || "0",
+                paymentMethod: paymentMethod || "N/A",
                 status: "Completed",
             };
 
-            // ✅ Save transaction to user's history
-            await axios.post(`${URL}/history/${username}.json`, historyItem);
+            console.log("📤 POST to:", `${URL}/history/${username}.json`);
+            console.log("📦 Data:", JSON.stringify(historyItem));
 
-            // ✅ Increment purchase count for this item
-            try {
-                const parentKey = itemInfo.parentKey;
-                const itemKey = itemInfo.itemKey;
+            // Save history to Firebase
+            await axios.post(`${URL}/history/${username}.json`, historyItem, {
+                headers: { "Content-Type": "application/json" }
+            });
 
-                if (parentKey && itemKey) {
-                    const itemRef = `${URL}/items/${parentKey}/${itemKey}/purchaseCount.json`;
+            console.log("✅ History saved successfully");
 
-                    // Log path
-                    console.log("Updating purchase count at:", itemRef);
+            // Update purchase count
+            if (itemInfo?.parentKey && itemInfo?.itemKey) {
+                const path = `${URL}/items/${itemInfo.parentKey.replace(/[.#$[\]]/g, "_")}/${itemInfo.itemKey.replace(/[.#$[\]]/g, "_")}/purchaseCount.json`;
+                console.log("🔍 PUT path:", path);
 
-                    // Fetch current count
-                    const response = await axios.get(itemRef);
-                    const currentCount = response.data || 0;
-                    console.log("Current count:", currentCount);
+                try {
+                    const res = await axios.get(path);
+                    console.log("📥 Current count response:", res.data);
 
-                    // Increment and update
-                    await axios.put(itemRef, currentCount + 1);
-                    console.log("Purchase count updated to:", currentCount + 1);
-                } else {
-                    console.warn("Missing parentKey or itemKey");
+                    const currentCount = typeof res.data === "number" ? res.data : 0;
+                    const newCount = currentCount + 1;
+
+                    console.log("📤 New count to PUT:", newCount);
+
+                    await axios.put(path, newCount, {
+                        headers: { "Content-Type": "application/json" }
+                    });
+
+                    console.log("✅ Purchase count updated successfully");
+                } catch (putError) {
+                    console.error("❌ PUT error:", putError.response?.data || putError.message);
                 }
-            } catch (error) {
-                console.error("Error updating purchase count:", error);
+            } else {
+                console.warn("⚠️ Skipping purchase count update: missing keys", itemInfo?.parentKey, itemInfo?.itemKey);
             }
 
+            // Show success modal
+            showModal("✅ Payment Successful", `You rented for ${days} day(s). Total: ₹${totalAmount}`);
 
-            // ✅ Show success message and navigate
-            showModal('✅ Payment Successful', `You rented for ${days} day(s). Total: ₹${itemInfo.price}`);
+            // Redirect after short delay
             setTimeout(() => {
                 navigation.navigate("History");
             }, 1500);
 
         } catch (error) {
-            console.error("Error saving history or updating count:", error);
-            showModal("Error", "Could not complete payment. Please try again.");
+            console.error("❌ Payment error:", error.response?.data || error.message);
+            Alert.alert("Error", error.response?.data?.error || "Something went wrong while processing payment.");
         }
     };
 

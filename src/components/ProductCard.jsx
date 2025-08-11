@@ -209,11 +209,13 @@ const ProductCard = ({ image, title, info, navigation, itemKey, parentKey }) => 
                 style={styles.bookBtn}
                 onPress={() =>
                     navigation.navigate("Payment", {
-                        itemInfo: info,
-                        title,
-                        itemKey,
-                        parentKey
-                    })
+    itemInfo: {
+        ...info,
+        title,
+        itemKey,
+        parentKey
+    }
+})
                 }
             >
           <Ionicons name="calendar" size={18} color="#fff" />

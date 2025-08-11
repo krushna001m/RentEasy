@@ -54,18 +54,27 @@ const History = ({ navigation }) => {
         const fetchHistory = async () => {
             try {
                 setLoading(true);
-                const username = await AsyncStorage.getItem("username");
-                if (!username) return;
 
+                // Get and sanitize username
+                let username = await AsyncStorage.getItem("username");
+                if (!username) return;
+                username = username.replace(/[.#$[\]]/g, "_");
+
+                // Fetch user's history
                 const response = await axios.get(`${URL}/history/${username}.json`);
                 const data = response.data || {};
-                const historyArray = Object.entries(data).reverse().map(([key, value]) => ({
-                    key,
-                    ...value,
-                }));
+
+                // Convert object to array and sort by date (newest first)
+                const historyArray = Object.entries(data)
+                    .map(([key, value]) => ({
+                        key, // Firebase push ID
+                        ...value,
+                    }))
+                    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
                 setHistory(historyArray);
             } catch (error) {
-                console.error("Error fetching history:", error);
+                console.error("❌ Error fetching history:", error.response?.data || error.message);
             } finally {
                 setLoading(false);
             }
@@ -74,8 +83,10 @@ const History = ({ navigation }) => {
         fetchHistory();
     }, []);
 
+    const sanitizeUsername = (username) => username.replace(/[.#$[\]]/g, "_");
+
     const requestStoragePermission = async () => {
-        if (Platform.OS === "android") {
+        if (Platform.OS === "android" && Platform.Version < 30) {
             const granted = await PermissionsAndroid.request(
                 PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
                 {
@@ -86,27 +97,34 @@ const History = ({ navigation }) => {
             );
             return granted === PermissionsAndroid.RESULTS.GRANTED;
         }
-        return true;
+        return true; // Android 11+ or iOS
+    };
+
+    const getSaveDirectory = () => {
+        if (Platform.OS === "android") {
+            return RNFS.DownloadDirectoryPath; // Works for Android 10 and below
+        } else {
+            return RNFS.DocumentDirectoryPath; // iOS safe path
+        }
     };
 
 
     const getLogoBase64 = async () => {
         try {
-            if (Platform.OS === 'android') {
-                const base64 = await RNFS.readFileAssets('logo.png', 'base64');
+            if (Platform.OS === "android") {
+                const base64 = await RNFS.readFileAssets("logo.png", "base64");
                 return `data:image/png;base64,${base64}`;
             } else {
-                const base64 = await RNFS.readFile(`${RNFS.MainBundlePath}/logo.png`, 'base64');
+                const base64 = await RNFS.readFile(`${RNFS.MainBundlePath}/logo.png`, "base64");
                 return `data:image/png;base64,${base64}`;
             }
-        } catch (error) {
-            console.error('Logo Load Error:', error);
-            return '';
+        } catch {
+            return ""; // Skip logo if missing
         }
     };
 
+
     const generateReceipt = async (item, share = false) => {
-        const logoBase64 = await getLogoBase64();
         try {
             setLoading(true);
             const hasPermission = await requestStoragePermission();
@@ -114,6 +132,8 @@ const History = ({ navigation }) => {
                 showModal("Permission Denied", "Cannot save receipt without storage permission.");
                 return;
             }
+
+            const logoBase64 = await getLogoBase64();
 
             const htmlContent = `
   <div style="
@@ -138,9 +158,9 @@ const History = ({ navigation }) => {
 
     <div style="margin-bottom: 20px;">
       <h2 style="color: #4CAF50; font-size: 20px; margin-bottom: 10px;">📦 Item Details</h2>
-      <p style="font-size: 18px;"><strong>Title:</strong> ${item.title}</p>
+      <p style="font-size: 18px;"><strong>Title:</strong> ${item.itemTitle}</p>
       <p style="font-size: 18px;"><strong>Owner:</strong> ${item.owner || "N/A"}</p>
-      <p style="font-size: 18px;"><strong>Price:</strong> ₹${item.price || "N/A"}</p>
+      <p style="font-size: 18px;"><strong>Price:</strong> ₹${item.totalAmount || "N/A"}</p>
       <p style="font-size: 18px;"><strong>Status:</strong> ${item.status}</p>
       <p style="font-size: 18px;"><strong>Date:</strong> ${new Date(item.date).toLocaleDateString()}</p>
     </div>
@@ -161,25 +181,19 @@ const History = ({ navigation }) => {
 
             const file = await RNHTMLtoPDF.convert({
                 html: htmlContent,
-                fileName: `RentEasy_Receipt_${item.title.replace(/\s/g, "_")}`,
-                directory: Platform.OS === "android" ? "Downloads" : "Documents",
+                fileName: `RentEasy_Receipt_${item.itemTitle.replace(/\s/g, "_")}`,
+                directory: getSaveDirectory(),
             });
 
-            if (share) {
-                try {
-                    await Share.open({
-                        url: `file://${file.filePath}`,
-                        type: "application/pdf",
-                    });
-                } catch (error) {
-                    if (error?.message !== 'User did not share') {
-                        console.error("Share Error:", error);
-                        showModal("Error", "Could not share the file.");
-                    }
-                }
+            const filePath = Platform.OS === "android" ? `file://${file.filePath}` : file.filePath;
 
+            if (share) {
+                await Share.open({
+                    url: filePath,
+                    type: "application/pdf",
+                });
             } else {
-                showModal("Receipt Generated ✅", `Saved to: ${file.filePath}`);
+                showModal("Receipt Generated ✅", `Saved to: ${filePath}`);
             }
         } catch (error) {
             console.error("PDF Error:", error);
@@ -189,9 +203,11 @@ const History = ({ navigation }) => {
         }
     };
 
+
     const viewReceipt = async (item) => {
         try {
             setLoading(true);
+            const logoBase64 = await getLogoBase64();
             const htmlContent = `
   <div style="
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -215,9 +231,9 @@ const History = ({ navigation }) => {
 
     <div style="margin-bottom: 20px;">
       <h2 style="color: #4CAF50; font-size: 20px; margin-bottom: 10px;">📦 Item Details</h2>
-      <p style="font-size: 18px;"><strong>Title:</strong> ${item.title}</p>
+      <p style="font-size: 18px;"><strong>Title:</strong> ${item.itemTitle}</p>
       <p style="font-size: 18px;"><strong>Owner:</strong> ${item.owner || "N/A"}</p>
-      <p style="font-size: 18px;"><strong>Price:</strong> ₹${item.price || "N/A"}</p>
+      <p style="font-size: 18px;"><strong>Price:</strong> ₹${item.totalAmount || "N/A"}</p>
       <p style="font-size: 18px;"><strong>Status:</strong> ${item.status}</p>
       <p style="font-size: 18px;"><strong>Date:</strong> ${new Date(item.date).toLocaleDateString()}</p>
     </div>
@@ -238,11 +254,12 @@ const History = ({ navigation }) => {
 
             const file = await RNHTMLtoPDF.convert({
                 html: htmlContent,
-                fileName: `Preview_Receipt_${item.title.replace(/\s/g, "_")}`,
-                directory: Platform.OS === "android" ? "Downloads" : "Documents",
+                fileName: `Preview_Receipt_${item.itemTitle.replace(/\s/g, "_")}`,
+                directory: getSaveDirectory(),
             });
 
-            await FileViewer.open(file.filePath);
+            const filePath = Platform.OS === "android" ? `file://${file.filePath}` : file.filePath;
+            await FileViewer.open(filePath);
         } catch (error) {
             console.error("Preview Error:", error);
             showModal("Error", "Could not open receipt.");
@@ -253,24 +270,28 @@ const History = ({ navigation }) => {
 
     const handleDeleteConfirmed = async () => {
         try {
-            const username = await AsyncStorage.getItem("username");
+            let username = await AsyncStorage.getItem("username");
             if (!username || !pendingDeleteKey) return;
 
+            username = sanitizeUsername(username);
+
+            // 1. Delete from Firebase
             await axios.delete(`${URL}/history/${username}/${pendingDeleteKey}.json`);
 
-            // 🔄 Update local state
-            setHistory(prev => prev.filter(entry => entry.key !== pendingDeleteKey));
+            // 2. Remove from local state
+            setHistory((prev) => prev.filter((entry) => entry.key !== pendingDeleteKey));
 
-            // ✅ Show success and close modal
+            // 3. Reset pending delete and close modal
             setPendingDeleteKey(null);
-            setModalVisible(false);  // <- This closes the modal immediately
-            showModal("Deleted ✅", "History item removed.");
+            setModalVisible(false);
+
+            // 4. Optional: Use Alert for confirmation
+            showModal("Deleted ✅", "History item removed successfully.");
         } catch (error) {
             console.error("Delete Error:", error);
             showModal("Error", "Failed to delete the item.");
         }
     };
-
 
 
     return (
@@ -295,9 +316,9 @@ const History = ({ navigation }) => {
                 ) : (
                     history.map((item, index) => (
                         <View key={item.key} style={styles.summaryCard}>
-                            <View style={styles.row}><Ionicons name="cube-outline" size={16} color="#333" /><Text style={styles.summaryText}>ITEM: {item.title}</Text></View>
+                            <View style={styles.row}><Ionicons name="cube-outline" size={16} color="#333" /><Text style={styles.summaryText}>ITEM: {item.itemTitle}</Text></View>
                             {item.owner && <View style={styles.row}><Ionicons name="person-outline" size={16} color="#333" /><Text style={styles.summaryText}>OWNER: {item.owner}</Text></View>}
-                            {item.price && <View style={styles.row}><FontAwesome name="money" size={16} color="#333" /><Text style={styles.summaryText}>PRICE: ₹{item.price}</Text></View>}
+                            {item.price && <View style={styles.row}><FontAwesome name="money" size={16} color="#333" /><Text style={styles.summaryText}>PRICE: ₹{item.totalAmount}</Text></View>}
                             {item.date && <View style={styles.row}><Ionicons name="calendar-outline" size={16} color="#333" /><Text style={styles.summaryText}>DATE: {new Date(item.date).toLocaleDateString()}</Text></View>}
                             <View style={styles.row}><Ionicons name={item.status === "Completed" ? "checkmark-circle-outline" : "time-outline"} size={16} color={item.status === "Completed" ? "#4CAF50" : "#FF9800"} /><Text style={styles.summaryText}>STATUS: {item.status}</Text></View>
 
@@ -344,7 +365,7 @@ const History = ({ navigation }) => {
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("History")}>
-                    <Ionicons name="document-text" size={28} color={route.name === "History" ? activeColor : inactiveColor}/>
+                    <Ionicons name="document-text" size={28} color={route.name === "History" ? activeColor : inactiveColor} />
                     <Text style={[styles.navLabel, { color: route.name === "History" ? activeColor : inactiveColor }]}>History</Text>
                 </TouchableOpacity>
 

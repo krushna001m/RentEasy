@@ -26,7 +26,7 @@ const ChatList = ({ navigation }) => {
         {
             chatId: 'static1',
             userId: 'demo_user_1',
-            username: 'John Doe',
+            username: 'Krushna Mengal',
             profileImage: null,
             lastMessage: 'Hey there! Just a demo chat.',
             lastMessageTime: Date.now() - 1000 * 60 * 5
@@ -34,7 +34,7 @@ const ChatList = ({ navigation }) => {
         {
             chatId: 'static2',
             userId: 'demo_user_2',
-            username: 'Jane Smith',
+            username: 'Shreya Aagiwale',
             profileImage: null,
             lastMessage: 'The book is ready for pickup.',
             lastMessageTime: Date.now() - 1000 * 60 * 60
@@ -42,7 +42,7 @@ const ChatList = ({ navigation }) => {
         {
             chatId: 'static3',
             userId: 'demo_user_3',
-            username: 'Mark Johnson',
+            username: 'Bhumika Ighe',
             profileImage: null,
             lastMessage: 'Can we meet tomorrow?',
             lastMessageTime: Date.now() - 1000 * 60 * 15

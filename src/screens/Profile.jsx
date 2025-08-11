@@ -76,7 +76,7 @@ const Profile = ({ navigation }) => {
                 .filter(([key, item]) => item.owner === username)
                 .map(([key, item]) => ({
                     id: key,
-                    title: item.title,
+                    title: item.itemTitle,
                     price: item.pricePerDay || item.price || "N/A",
                     image: item.image,
                     status: item.availability?.notAvailable ? "Not Available" : "Available",
@@ -90,26 +90,33 @@ const Profile = ({ navigation }) => {
     };
 
 
-    // ✅ Fetch User Rentals (Borrower Role)
-    const fetchUserRentals = async (username) => {
-        try {
-            setLoading(true);
-            const response = await axios.get(`${URL}/history/${username}.json`);
-            const history = response.data || {};
-            return Object.entries(history).map(([key, rental]) => ({
-                id: key,
-                itemName: rental.title || "Unknown",
-                price: rental.pricePerDay || rental.price || "N/A",
-                status: rental.status || "Completed",
-                date: rental.date ? new Date(rental.date).toLocaleDateString() : "N/A",
-            }));
-        } catch (error) {
-            console.error("Error fetching rentals:", error);
-            return [];
-        } finally {
-            setLoading(false);
-        }
-    };
+
+    // ✅ Fetch rentals for the logged-in user
+const fetchUserRentals = async () => {
+  try {
+    let username = await AsyncStorage.getItem("username");
+    if (!username) throw new Error("User not logged in");
+    username = username.replace(/[.#$[\]]/g, "_");
+
+    const { data } = await axios.get(`${URL}/history/${username}.json`);
+    const history = data || {};
+
+    return Object.entries(history).map(([id, rental]) => ({
+      id,
+      title: rental?.itemTitle || "Unknown Item",
+      price: rental?.totalAmount ?? "N/A",
+      image: rental?.image || null,
+      status: rental?.status || "Completed",
+      date: rental?.date
+        ? new Date(rental.date).toLocaleDateString()
+        : "N/A",
+    }));
+  } catch (error) {
+    console.error("Error fetching rentals:", error.response?.data || error.message);
+    return [];
+  }
+};
+
 
     const fetchUserProfile = async () => {
         try {
@@ -302,60 +309,6 @@ const Profile = ({ navigation }) => {
                         onChangeText={(text) => handleChange("phone", text)}
                     />
                 </View>
-
-                {/* ✅ Dynamic Listings in Card */}
-                {profile.roles.includes("Owner") && (
-                    <View style={styles.card}>
-                        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
-                            <Entypo
-                                name="shop"
-                                size={23}
-                                color={themeStyles.text.color || "#000"}
-                                style={{ marginRight: 6 }}
-                            />
-                            <Text style={[styles.sectionText, themeStyles.text]}>MY LISTINGS</Text>
-                        </View>
-
-                        {profile.listings.length > 0 ? (
-                            profile.listings.map((item, idx) => (
-                                <View key={idx} style={styles.cardItem}>
-                                    <Text style={[styles.listText, themeStyles.text]}>
-                                        • {item.title} - {item.price} ({item.status})
-                                    </Text>
-                                </View>
-                            ))
-                        ) : (
-                            <Text style={[styles.listText, themeStyles.text]}>• No listings yet</Text>
-                        )}
-                    </View>
-                )}
-
-                {/* ✅ Dynamic Rentals in Card */}
-                {profile.roles.includes("Borrower") && (
-                    <View style={styles.card}>
-                        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
-                            <Entypo
-                                name="shopping-cart"
-                                size={23}
-                                color={themeStyles.text.color || "#000"}
-                                style={{ marginRight: 6 }}
-                            />
-                            <Text style={[styles.sectionText, themeStyles.text]}>MY RENTALS</Text>
-                        </View>
-
-                        {profile.rentals.length > 0 ? (
-                            profile.rentals.map((item, idx) => (
-                                <View key={idx} style={styles.cardItem}>
-                                    <Text style={[styles.listText, themeStyles.text]}>
-                                        • {item.itemName} - {item.price} ({item.status})
-                                    </Text>
-                                </View>
-                            ))
-                        ) : (
-                            <Text style={[styles.listText, themeStyles.text]}>• No rentals yet</Text>
-                        )}
-                    </View>
-                )}
 
 
             </ScrollView>
