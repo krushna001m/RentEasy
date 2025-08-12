@@ -9,6 +9,7 @@ import {
     Alert,
     Image,
     Platform,
+    Linking
 } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -115,7 +116,7 @@ const Payment = ({ navigation, route }) => {
 
     const handlePayNow = async () => {
         if (!agreed) {
-            Alert.alert("Agreement Required", "Please agree to the rental policy before proceeding.");
+            showModal("Agreement Required", "Please agree to the rental policy before proceeding.");
             return;
         }
 
@@ -183,7 +184,7 @@ const Payment = ({ navigation, route }) => {
 
         } catch (error) {
             console.error("❌ Payment error:", error.response?.data || error.message);
-            Alert.alert("Error", error.response?.data?.error || "Something went wrong while processing payment.");
+            showModal("Error", error.response?.data?.error || "Something went wrong while processing payment.");
         }
     };
 
@@ -275,42 +276,46 @@ const Payment = ({ navigation, route }) => {
 
                     </View>
 
-                    {itemInfo?.owner && (
+
+
+                    // Chat Button 
+                    {itemInfo?.parentKey && itemInfo?.itemKey && (
                         <TouchableOpacity
                             style={styles.chatButton}
                             onPress={async () => {
                                 try {
                                     const db = getDatabase();
-                                    const ownerUid = itemInfo.owner; // Already UID
+                                    const itemRef = ref(db, `items/${itemInfo.parentKey}/${itemInfo.itemKey}`);
+                                    const snapshot = await get(itemRef);
 
-                                    // 1. Fetch owner details
-                                    const ownerSnap = await get(ref(db, `users/${ownerUid}`));
-                                    if (!ownerSnap.exists()) {
-                                        Alert.alert('Error', 'Owner information not found.');
-                                        return;
-                                    }
-                                    const ownerData = ownerSnap.val();
-
-                                    // 2. Get current logged-in user details
-                                    const senderUid = await AsyncStorage.getItem('uid'); // store uid in AsyncStorage at login
-                                    const senderUsername = await AsyncStorage.getItem('username');
-
-                                    if (!senderUid || !senderUsername) {
-                                        Alert.alert('Error', 'Unable to fetch your account info.');
+                                    if (!snapshot.exists()) {
+                                        showModal('Error', 'Item not found.');
                                         return;
                                     }
 
-                                    // 3. Navigate to Chat screen
-                                    navigation.navigate('Chat', {
-                                        receiverUid: ownerUid,
-                                        receiverUsername: ownerData.username,
-                                        senderUid: senderUid,
-                                        senderUsername: senderUsername,
-                                    });
+                                    const data = snapshot.val();
+                                    const ownerPhone = data?.ownerPhone;
+                                    const title = data?.title || 'your item';
+                                    const price = data?.pricePerDay ? `${data.pricePerDay} per day` : '';
+                                    const location = data?.location || '';
 
+                                    if (!ownerPhone) {
+                                        showModal('Error', 'Owner phone number not available.');
+                                        return;
+                                    }
+
+                                    // Build SMS message
+                                    const message = `Hello, I am interested in "${title}" (${price}) located at ${location}. Is it still available?`;
+
+                                    // Clean phone and encode message
+                                    const cleanedPhone = String(ownerPhone).replace(/\s+/g, '');
+                                    const encodedMessage = encodeURIComponent(message);
+
+                                    // Open SMS app
+                                    Linking.openURL(`sms:${cleanedPhone}?body=${encodedMessage}`);
                                 } catch (error) {
                                     console.error('Chat Button Error:', error);
-                                    Alert.alert('Error', 'Failed to start chat.');
+                                    showModal('Error', 'Failed to start SMS chat.');
                                 }
                             }}
                         >

@@ -206,18 +206,20 @@ const ProductCard = ({ image, title, info, navigation, itemKey, parentKey }) => 
         )}
 
         <TouchableOpacity
-                style={styles.bookBtn}
-                onPress={() =>
-                    navigation.navigate("Payment", {
-    itemInfo: {
-        ...info,
-        title,
-        itemKey,
-        parentKey
-    }
-})
-                }
-            >
+          style={styles.bookBtn}
+          onPress={() =>
+            navigation.navigate("Payment", {
+              itemInfo: {
+                ...info,
+                title,
+                itemKey,
+                parentKey,
+                ownerPhone: info.ownerPhone // ✅ pass phone here
+
+              }
+            })
+          }
+        >
           <Ionicons name="calendar" size={18} color="#fff" />
           <Text style={styles.bookText}>BOOK NOW</Text>
         </TouchableOpacity>
