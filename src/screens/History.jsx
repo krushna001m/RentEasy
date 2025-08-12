@@ -270,9 +270,11 @@ const History = ({ navigation }) => {
 
     const handleDeleteConfirmed = async () => {
         try {
-            let username = await AsyncStorage.getItem("username");
-            if (!username || !pendingDeleteKey) return;
+            if (!pendingDeleteKey) return;
 
+            // Get and sanitize username
+            let username = await AsyncStorage.getItem("username");
+            if (!username) throw new Error("User not logged in");
             username = sanitizeUsername(username);
 
             // 1. Delete from Firebase
@@ -285,11 +287,11 @@ const History = ({ navigation }) => {
             setPendingDeleteKey(null);
             setModalVisible(false);
 
-            // 4. Optional: Use Alert for confirmation
-            showModal("Deleted ✅", "History item removed successfully.");
+            // 4. Show confirmation
+            showModal("Removed ✅", "History item deleted successfully.");
         } catch (error) {
-            console.error("Delete Error:", error);
-            showModal("Error", "Failed to delete the item.");
+            console.error("Delete Error:", error.response?.data || error.message);
+            showModal("Error", "Failed to delete the item from history.");
         }
     };
 
