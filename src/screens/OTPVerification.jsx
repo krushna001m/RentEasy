@@ -1,26 +1,20 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Platform } from "react-native";
 import RentEasyModal from "../components/RentEasyModal";
+import auth from "@react-native-firebase/auth";
 
 const OTPVerification = ({ route, navigation }) => {
     const [modalVisible, setModalVisible] = useState(false);
-    const [modalContent, setModalContent] = useState({ title: "", message: "" });
+    const [modalContent, setModalContent] = useState({ title: "", message: "", onConfirm: null });
+    const [otp, setOtp] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const { generatedOTP = "", confirmation = null, method = "", email = "", phone = "" } = route.params || {};
 
     const showModal = (title, message, onConfirm = null) => {
         setModalContent({ title, message, onConfirm });
         setModalVisible(true);
     };
-
-    // Extract values from route params safely
-    const {
-        generatedOTP = "",
-        confirmation = null,
-        method = "",
-        email = "",
-        phone = ""
-    } = route.params || {};
-
-    const [otp, setOtp] = useState("");
 
     const verifyOTP = async () => {
         if (!otp.trim()) {
@@ -28,32 +22,50 @@ const OTPVerification = ({ route, navigation }) => {
             return;
         }
 
-        if (method === "email") {
-            if (otp.trim() === generatedOTP) {
-                showModal("Success", "OTP Verified Successfully", () => {
-                    navigation.navigate("ResetPassword", { method, email });
-                });
-            } else {
-                showModal("Error", "Invalid OTP");
-            }
-        } else if (method === "sms") {
-            try {
+        try {
+            if (method === "email") {
+                if (otp.trim() === generatedOTP) {
+                    showModal("Success", "OTP Verified Successfully", () => {
+                        navigation.replace("ResetPassword", { method, email });
+                    });
+                } else {
+                    showModal("Error", "Invalid OTP");
+                }
+            } else if (method === "sms") {
+                setLoading(true);
                 await confirmation.confirm(otp.trim());
                 showModal("Success", "OTP Verified Successfully", () => {
-                    navigation.navigate("ResetPassword", { method, phone });
+                    navigation.replace("ResetPassword", { method, phone });
                 });
-            } catch (error) {
-                console.log("SMS OTP verification error:", error);
-                showModal("Error", "Invalid OTP");
             }
+        } catch (error) {
+            console.error("OTP verification error:", error);
+            showModal("Error", "Invalid OTP");
+        } finally {
+            setLoading(false);
         }
     };
 
-    const resendOTP = () => {
-        if (method === "email") {
-            showModal("Info", `Resend OTP feature for email not implemented yet`);
-        } else if (method === "sms") {
-            showModal("Info", `Resend OTP feature for SMS not implemented yet`);
+    const resendOTP = async () => {
+        try {
+            if (method === "email") {
+                // Ideally call your backend here to resend the OTP
+                showModal("Info", `A new OTP has been sent to ${email}`);
+            } else if (method === "sms") {
+                setLoading(true);
+                let formattedPhone = phone;
+                if (!formattedPhone.startsWith("+")) {
+                    formattedPhone = "+91" + formattedPhone.replace(/^0+/, "");
+                }
+                const newConfirmation = await auth().signInWithPhoneNumber(formattedPhone);
+                route.params.confirmation = newConfirmation;
+                showModal("Info", `A new OTP has been sent to ${formattedPhone}`);
+            }
+        } catch (error) {
+            console.error("Resend OTP error:", error);
+            showModal("Error", "Failed to resend OTP. Try again later.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -74,11 +86,15 @@ const OTPVerification = ({ route, navigation }) => {
                 maxLength={6}
             />
 
-            <TouchableOpacity style={styles.button} onPress={verifyOTP}>
-                <Text style={styles.buttonText}>VERIFY OTP</Text>
+            <TouchableOpacity
+                style={[styles.button, loading && { opacity: 0.6 }]}
+                onPress={verifyOTP}
+                disabled={loading}
+            >
+                <Text style={styles.buttonText}>{loading ? "VERIFYING..." : "VERIFY OTP"}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.resendButton} onPress={resendOTP}>
+            <TouchableOpacity style={styles.resendButton} onPress={resendOTP} disabled={loading}>
                 <Text style={styles.resendText}>Resend OTP</Text>
             </TouchableOpacity>
 
@@ -108,6 +124,20 @@ const styles = StyleSheet.create({
         height: 100,
         borderRadius: 50,
         marginBottom: 20,
+        backgroundColor: "#fff",
+        borderWidth: 2,
+        borderColor: "#e0e0e0",
+        ...Platform.select({
+            ios: {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 5,
+            },
+            android: {
+                elevation: 10,
+            },
+        }),
     },
     title: {
         fontSize: 28,

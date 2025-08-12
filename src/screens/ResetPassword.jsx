@@ -1,22 +1,23 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from "react-native";
+import auth from "@react-native-firebase/auth";
 import axios from "axios";
-import RentEasyModal from '../components/RentEasyModal';
+import RentEasyModal from "../components/RentEasyModal";
 
-const URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com"; // Your Firebase Realtime DB users path
+const DB_URL = "https://renteasy-bbce5-default-rtdb.firebaseio.com/users";
 
 const ResetPassword = ({ route, navigation }) => {
     const [modalVisible, setModalVisible] = useState(false);
     const [modalContent, setModalContent] = useState({ title: "", message: "" });
 
+    const { method, email, phone } = route.params || {};
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+
     const showModal = (title, message, onConfirm = null) => {
         setModalContent({ title, message, onConfirm });
         setModalVisible(true);
     };
-
-    const { method, email, phone } = route.params;
-    const [newPassword, setNewPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
 
     const handlePasswordReset = async () => {
         if (!newPassword || !confirmPassword) {
@@ -29,38 +30,44 @@ const ResetPassword = ({ route, navigation }) => {
         }
 
         try {
-            // Step 1: Fetch all users
-            const res = await axios.get(URL);
-            const users = res.data;
-
-            // Step 2: Find matching user
-            let foundUID = null;
-            for (let uid in users) {
-                if (
-                    (method === "email" && users[uid].email === email) ||
-                    (method === "sms" && users[uid].phone === phone)
-                ) {
-                    foundUID = uid;
-                    break;
-                }
-            }
-
-            if (!foundUID) {
-                showModal("Error", "User not found");
+            if (method === "email") {
+                // 📧 Firebase Auth email reset link
+                await auth().sendPasswordResetEmail(email);
+                showModal("Success", "Password reset email sent!", () => navigation.navigate("Login"));
                 return;
             }
 
-            // Step 3: Update password for found UID
-            await axios.patch(`${URL}/users/${foundUID}.json`, {
-                password: newPassword,
-            });
+            if (method === "sms") {
+                // 🔍 Find user in Realtime DB
+                const res = await axios.get(`${DB_URL}.json`);
+                const users = res.data || {};
+                let foundUID = null;
 
-            showModal("Success", "Password reset successfully", () => {
-                navigation.navigate("Login");
-            });
+                for (let uid in users) {
+                    const user = users[uid] || {};
+                    if (user.phone === phone) {
+                        foundUID = uid;
+                        break;
+                    }
+                }
+
+                if (!foundUID) {
+                    showModal("Error", "User not found");
+                    return;
+                }
+
+                // 🔄 Update password in DB (phone users are not handled by Firebase Auth)
+                await axios.patch(`${DB_URL}/${foundUID}.json`, {
+                    password: newPassword,
+                });
+
+                showModal("Success", "Password reset successfully!", () => {
+                    navigation.navigate("Login");
+                });
+            }
         } catch (error) {
-            showModal("Error", "Failed to update password");
-            console.error(error);
+            console.error("Password reset error:", error);
+            showModal("Error", "Failed to reset password");
         }
     };
 
@@ -68,25 +75,35 @@ const ResetPassword = ({ route, navigation }) => {
         <View style={styles.container}>
             <Image source={require("../../assets/logo.png")} style={styles.logo} />
             <Text style={styles.title}>RESET PASSWORD</Text>
-            <Text style={styles.subtitle}>Enter your new password</Text>
-
-            <TextInput
-                style={styles.input}
-                placeholder="Enter New Password"
-                secureTextEntry
-                value={newPassword}
-                onChangeText={setNewPassword}
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Confirm New Password"
-                secureTextEntry
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-            />
+            {method === "email" && (
+                <Text style={styles.subtitle}>
+                    We will send a reset link to your email address.
+                </Text>
+            )}
+            {method === "sms" && (
+                <>
+                    <Text style={styles.subtitle}>Enter your new password</Text>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Enter New Password"
+                        secureTextEntry
+                        value={newPassword}
+                        onChangeText={setNewPassword}
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Confirm New Password"
+                        secureTextEntry
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                    />
+                </>
+            )}
 
             <TouchableOpacity style={styles.button} onPress={handlePasswordReset}>
-                <Text style={styles.buttonText}>RESET PASSWORD</Text>
+                <Text style={styles.buttonText}>
+                    {method === "email" ? "SEND RESET LINK" : "RESET PASSWORD"}
+                </Text>
             </TouchableOpacity>
 
             <RentEasyModal
@@ -120,11 +137,13 @@ const styles = StyleSheet.create({
         fontSize: 28,
         fontWeight: "bold",
         color: "black",
+        marginBottom: 10,
     },
     subtitle: {
         fontSize: 16,
         color: "#555",
         marginBottom: 20,
+        textAlign: "center",
     },
     input: {
         width: "80%",

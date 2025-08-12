@@ -7,13 +7,13 @@ import {
     TouchableOpacity,
     Image,
     Platform,
-  Dimensions,
+    Dimensions,
 } from "react-native";
 import AntDesign from "react-native-vector-icons/AntDesign";
 import auth from "@react-native-firebase/auth";
 import RentEasyModal from "../components/RentEasyModal";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 const ForgotPassword = ({ navigation }) => {
     const [email, setEmail] = useState("");
@@ -26,37 +26,39 @@ const ForgotPassword = ({ navigation }) => {
         setModalVisible(true);
     };
 
-    // Mask email for privacy in success messages
+    // Mask email for privacy
     const maskEmail = (email) => {
         const [name, domain] = email.split("@");
         return `${name[0]}***@${domain}`;
     };
 
-    // Send password reset email
-    const sendEmailReset = async () => {
-        if (!email.trim()) {
-            showModal("Error", "Please enter your registered email.");
-            return;
-        }
-        if (!/^\S+@\S+\.\S+$/.test(email)) {
-            showModal("Error", "Please enter a valid email address.");
-            return;
-        }
-        try {
-            await auth().sendPasswordResetEmail(email);
-            showModal("Success", `Password reset link sent to ${maskEmail(email)}`);
-            setEmail("");
-        } catch (error) {
-            console.log("Email reset error:", error);
-            let msg = "Failed to send password reset email.";
-            if (error.code === "auth/user-not-found") {
-                msg = "No account found with that email.";
-            }
-            showModal("Error", msg);
-        }
-    };
+/** EMAIL RESET LINK **/
+const sendEmailReset = async () => {
+    if (!email.trim()) {
+        showModal("Error", "Please enter your registered email.");
+        return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+        showModal("Error", "Please enter a valid email address.");
+        return;
+    }
 
-   // Send OTP to phone number
+    try {
+        await auth().sendPasswordResetEmail(email);
+        showModal("Success", `Password reset link sent to ${maskEmail(email)}`);
+    } catch (error) {
+        console.log("Email reset error:", error);
+        let msg = "Failed to send password reset email.";
+        if (error.code === "auth/user-not-found") {
+            msg = "No account found with this email.";
+        }
+        showModal("Error", msg);
+    }
+};
+
+
+
+    /** SMS OTP RESET **/
 const sendSMSOTP = async () => {
     if (!phone.trim()) {
         showModal("Error", "Please enter your registered phone number.");
@@ -64,13 +66,10 @@ const sendSMSOTP = async () => {
     }
 
     let formattedPhone = phone.trim();
-
-    // Auto-add +91 if no country code is provided
     if (!formattedPhone.startsWith("+")) {
-        formattedPhone = "+91" + formattedPhone.replace(/^0+/, ""); // Remove leading 0
+        formattedPhone = "+91" + formattedPhone.replace(/^0+/, "");
     }
 
-    // Validate in E.164 format (e.g., +919876543210)
     if (!/^\+\d{10,15}$/.test(formattedPhone)) {
         showModal("Error", "Phone number must be in international format (e.g. +1234567890).");
         return;
@@ -78,10 +77,6 @@ const sendSMSOTP = async () => {
 
     try {
         const confirmation = await auth().signInWithPhoneNumber(formattedPhone);
-        showModal("Success", `OTP sent to ${formattedPhone}`);
-        setPhone("");
-
-        // Navigate to OTP verification screen
         navigation.navigate("OTPVerification", {
             confirmation,
             method: "sms",
@@ -100,23 +95,11 @@ const sendSMSOTP = async () => {
     }
 };
 
-
-    const sendOTPToCurrentUser = async () => {
-    try {
-        const phoneProvider = new auth.PhoneAuthProvider();
-        const verificationId = await phoneProvider.verifyPhoneNumber(phone);
-        console.log("OTP sent with verificationId:", verificationId);
-        navigation.navigate("OTPVerification", { verificationId });
-    } catch (error) {
-        console.log("OTP send error:", error);
-    }
-};
-
     return (
         <View style={styles.container}>
             <Image source={require("../../assets/logo.png")} style={styles.logo} />
             <Text style={styles.title}>FORGOT PASSWORD</Text>
-            <Text style={styles.subtitle}>Reset your password via Firebase</Text>
+            <Text style={styles.subtitle}>Reset via Email or SMS</Text>
 
             {/* Email Reset */}
             <TextInput
@@ -131,9 +114,21 @@ const sendSMSOTP = async () => {
                 <Text style={styles.buttonText}>Send Reset Link via Email</Text>
             </TouchableOpacity>
 
-           
+            <Text style={styles.orText}>OR</Text>
 
-            {/* Back */}
+            {/* Phone OTP Reset */}
+            <TextInput
+                style={styles.input}
+                placeholder="Enter your Phone Number"
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+            />
+            <TouchableOpacity style={styles.button} onPress={sendSMSOTP}>
+                <Text style={styles.buttonText}>Send OTP via SMS</Text>
+            </TouchableOpacity>
+
+            {/* Back Button */}
             <TouchableOpacity
                 style={styles.backButton}
                 onPress={() => navigation.goBack()}
@@ -180,17 +175,17 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: "#e0e0e0",
         ...Platform.select({
-          ios: {
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 5,
-          },
-          android: {
-            elevation: 10,
-          },
+            ios: {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 5,
+            },
+            android: {
+                elevation: 10,
+            },
         }),
-      },
+    },
     title: {
         fontSize: 28,
         fontWeight: "bold",

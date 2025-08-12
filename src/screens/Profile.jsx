@@ -276,6 +276,7 @@ const fetchUserRentals = async () => {
                     <TextInput
                         style={[styles.inputField, themeStyles.inputField]}
                         editable={editMode}
+                        placeholder='Username or Email'
                         value={tempProfile.name}
                         onChangeText={(text) => handleChange("name", text)}
                     />
@@ -296,6 +297,7 @@ const fetchUserRentals = async () => {
                     <TextInput
                         style={[styles.inputField, themeStyles.inputField]}
                         editable={editMode}
+                        placeholder="Email"
                         value={tempProfile.email}
                         onChangeText={(text) => handleChange("email", text)}
                     />
@@ -305,6 +307,7 @@ const fetchUserRentals = async () => {
                     <TextInput
                         style={[styles.inputField, themeStyles.inputField]}
                         editable={editMode}
+                        placeholder="Phone Number"
                         value={tempProfile.phone}
                         onChangeText={(text) => handleChange("phone", text)}
                     />
