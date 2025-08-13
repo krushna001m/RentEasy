@@ -120,94 +120,109 @@ const AddItem = ({ navigation }) => {
 
 
     const handleSubmit = async () => {
+    // 🔹 Helper: sanitize keys for Firebase
+    const sanitizeKey = (key) => key?.replace(/[.#$[\]]/g, "_");
 
-        if (!itemData.title || !itemData.pricePerDay || !itemData.location || imageUris?.length === 0) {
-            showModal("Error", "Please fill Title, Price, Location and upload at least 1 image.");
+    // 🔹 Helper: remove undefined/null from objects
+    const cleanData = (obj) =>
+        JSON.parse(JSON.stringify(obj, (key, value) => (value === undefined || value === null ? "" : value)));
+
+    if (!itemData.title || !itemData.pricePerDay || !itemData.location || imageUris?.length === 0) {
+        showModal("Error", "Please fill Title, Price, Location and upload at least 1 image.");
+        return;
+    }
+
+    try {
+        setLoading(true);
+
+        // 1️⃣ Get logged-in user
+        const loggedInUserData = await AsyncStorage.getItem("loggedInUser");
+        if (!loggedInUserData) {
+            showModal("Error", "User not logged in!");
+            return;
+        }
+        const currentUser = JSON.parse(loggedInUserData);
+
+        // 2️⃣ Get dynamic userId
+        const usersRes = await axios.get(`${URL}/users.json`);
+        const users = usersRes.data || {};
+        const userEntry = Object.entries(users).find(([_, user]) => user.username === currentUser.username);
+        if (!userEntry) {
+            showModal("Error", "User record not found in database!");
+            return;
+        }
+        const [userId] = userEntry;
+        const safeUserId = sanitizeKey(userId);
+
+        // 3️⃣ Upload images
+        const uploadedImageUrls = [];
+        for (let uri of imageUris) {
+            try {
+                const url = await uploadImageToFirebase(uri);
+                if (url) uploadedImageUrls.push(url);
+                else console.warn(`Image upload failed: ${uri}`);
+            } catch (err) {
+                console.warn(`Image upload error: ${uri}`, err);
+            }
+        }
+
+        if (uploadedImageUrls.length === 0) {
+            showModal("Error", "Failed to upload any image.");
             return;
         }
 
-        try {
-            setLoading(true);
+        // 4️⃣ Prepare cleaned item data
+        const finalData = cleanData({
+            ...itemData,
+            images: uploadedImageUrls,
+            createdAt: new Date().toISOString(),
+            terms,
+            availability,
+            categories: selectedCategory || "others",
+            owner: currentUser.username,
+            ownerEmail: currentUser.email,
+            ownerPhone: currentUser.phone,
+            purchaseCount: 0
+        });
 
-            const loggedInUserData = await AsyncStorage.getItem("loggedInUser");
-            if (!loggedInUserData) {
-                showModal("Error", "User not logged in!");
-                return;
-            }
+        // 5️⃣ Save to Firebase (POST lets Firebase auto-generate the item key)
+        const itemRes = await axios.post(`${URL}/items/${safeUserId}.json`, finalData);
+        console.log("Item created:", itemRes.data);
 
-            const currentUser = JSON.parse(loggedInUserData);
-            const userId = "-OWW6H-fnjJwLOpeZ1zZ"; // Replace this with dynamic user ID if needed
+        // 6️⃣ Add to history (sanitize username in path)
+        const safeUsername = sanitizeKey(currentUser.username);
+        const historyData = cleanData({
+            title: finalData.title,
+            categories: finalData.categories,
+            owner: finalData.owner,
+            price: finalData.pricePerDay,
+            date: finalData.createdAt,
+            status: "Posted",
+            images: uploadedImageUrls[0]
+        });
+        await axios.post(`${URL}/history/${safeUsername}.json`, historyData);
 
-            // 🔼 Upload multiple images to Firebase Storage
-            const uploadedImageUrls = [];
-            for (let uri of imageUris) {
-                const url = await uploadImageToFirebase(uri);
-                if (url) uploadedImageUrls.push(url);
-            }
+        // 7️⃣ Update user roles
+        const updatedRoles = Array.from(new Set([...(users[userId].roles || []), "Owner"]));
+        await axios.patch(`${URL}/users/${safeUserId}.json`, { roles: updatedRoles });
 
-            if (uploadedImageUrls.length === 0) {
-                showModal("Error", "Failed to upload any image.");
-                return;
-            }
+        // Update AsyncStorage
+        const updatedUser = { ...currentUser, roles: updatedRoles };
+        await AsyncStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
 
-            // 🔁 Generate item key
-            const response = await axios.get(`${URL}/items/${userId}.json`);
-            const existingItems = response.data || {};
-            const nextItemKey = `item${Object.keys(existingItems).length + 1}`;
+        // ✅ Success
+        showModal("Success", "Item has been added successfully!");
+        handleReset();
+        navigation.navigate("History");
 
-            // 📤 Prepare item data
-            const finalData = {
-                ...itemData,
-                images: uploadedImageUrls, // 📌 Store all image URLs in an array
-                createdAt: new Date().toISOString(),
-                terms,
-                availability,
-                categories: selectedCategory || "others",
-                owner: currentUser.username,
-                ownerEmail: currentUser.email,
-                ownerPhone: currentUser.phone,
-                purchaseCount: 0, // ✅ Initialize count to 0
-            };
+    } catch (error) {
+        console.error("Error storing data:", error?.response?.data || error.message);
+        showModal("Error", "Failed to store data in Realtime Database.");
+    } finally {
+        setLoading(false);
+    }
+};
 
-            // ✅ Upload to Firebase Realtime DB
-            await axios.put(`${URL}/items/${userId}/${nextItemKey}.json`, finalData);
-
-            // 📥 History log
-            const historyData = {
-                title: finalData.title,
-                categories: finalData.categories,
-                owner: finalData.owner,
-                price: finalData.pricePerDay,
-                date: finalData.createdAt,
-                status: "Posted",
-                images: uploadedImageUrls[0],
-            };
-            await axios.post(`${URL}/history/${currentUser.username}.json`, historyData);
-
-            // 👤 Update user roles
-            const res = await axios.get(`${URL}/users.json`);
-            const users = res.data || {};
-            const userKey = Object.keys(users).find(
-                key => users[key].username === currentUser.username
-            );
-            if (userKey) {
-                const updatedRoles = Array.from(new Set([...(users[userKey].roles || []), "Owner"]));
-                await axios.patch(`${URL}/users/${userKey}.json`, { roles: updatedRoles });
-
-                const updatedUser = { ...currentUser, roles: updatedRoles };
-                await AsyncStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
-            }
-
-            showModal("Success", "Item has been added successfully!");
-            handleReset();
-            navigation.navigate("History");
-        } catch (error) {
-            console.error("Error storing data:", error);
-            showModal("Error", "Failed to store data in Realtime Database.");
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleReset = () => {
         setItemData({

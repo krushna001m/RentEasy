@@ -318,9 +318,9 @@ const History = ({ navigation }) => {
                 ) : (
                     history.map((item, index) => (
                         <View key={item.key} style={styles.summaryCard}>
-                            <View style={styles.row}><Ionicons name="cube-outline" size={16} color="#333" /><Text style={styles.summaryText}>ITEM: {item.itemTitle}</Text></View>
+                            <View style={styles.row}><Ionicons name="cube-outline" size={16} color="#333" /><Text style={styles.summaryText}>ITEM: {item.title}</Text></View>
                             {item.owner && <View style={styles.row}><Ionicons name="person-outline" size={16} color="#333" /><Text style={styles.summaryText}>OWNER: {item.owner}</Text></View>}
-                            {item.price && <View style={styles.row}><FontAwesome name="money" size={16} color="#333" /><Text style={styles.summaryText}>PRICE: ₹{item.totalAmount}</Text></View>}
+                            {item.price && <View style={styles.row}><FontAwesome name="money" size={16} color="#333" /><Text style={styles.summaryText}>PRICE: ₹{item.price}</Text></View>}
                             {item.date && <View style={styles.row}><Ionicons name="calendar-outline" size={16} color="#333" /><Text style={styles.summaryText}>DATE: {new Date(item.date).toLocaleDateString()}</Text></View>}
                             <View style={styles.row}><Ionicons name={item.status === "Completed" ? "checkmark-circle-outline" : "time-outline"} size={16} color={item.status === "Completed" ? "#4CAF50" : "#FF9800"} /><Text style={styles.summaryText}>STATUS: {item.status}</Text></View>
 

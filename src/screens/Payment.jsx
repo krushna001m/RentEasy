@@ -128,7 +128,7 @@ const Payment = ({ navigation, route }) => {
 
             // Prepare safe history object
             const historyItem = {
-                itemTitle: itemInfo?.title || "Unknown Item",
+                title: itemInfo?.title || "Unknown Item",
                 owner: itemInfo.owner || "Unknown Owner",
                 price: itemInfo.pricePerDay,
                 date: new Date().toISOString(),
