@@ -58,6 +58,7 @@ const Payment = ({ navigation, route }) => {
         account: '',
         ifsc: ''
     });
+
     const [agreed, setAgreed] = useState(false);
 
     const [days, setDays] = useState(1);
@@ -278,7 +279,7 @@ const Payment = ({ navigation, route }) => {
 
 
 
-                    // Chat Button 
+                    //Chat Button
                     {itemInfo?.parentKey && itemInfo?.itemKey && (
                         <TouchableOpacity
                             style={styles.chatButton}
@@ -468,6 +469,35 @@ const Payment = ({ navigation, route }) => {
                         />
                     </>
                 )}
+
+                {/* ✅ Cash on Delivery Option */}
+                <TouchableOpacity onPress={() => setPaymentMethod('cod')} style={styles.radio}>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <FontAwesome
+                            name={paymentMethod === 'cod' ? 'dot-circle-o' : 'circle-o'}
+                            size={18}
+                            color={paymentMethod === 'cod' ? '#001F54' : '#666'}
+                            style={{ marginRight: 6 }}
+                        />
+                        <FontAwesome
+                            name="money"
+                            size={18}
+                            color="#333"
+                            style={{ marginRight: 6 }}
+                        />
+                        <Text style={{ fontWeight: paymentMethod === 'cod' ? 'bold' : 'normal' }}>
+                            CASH ON DELIVERY
+                        </Text>
+                    </View>
+                </TouchableOpacity>
+
+                {/* Optionally show an info text or instructions when COD is selected */}
+                {paymentMethod === 'cod' && (
+                    <Text style={{ marginTop: 8, fontStyle: 'italic', color: '#555',marginLeft: 30 }}>
+                        Please keep the exact amount ready. Payment will be collected at delivery.
+                    </Text>
+                )}
+
 
 
                 {/* ✅ Secure Note */}

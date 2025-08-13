@@ -135,6 +135,13 @@ const History = ({ navigation }) => {
 
             const logoBase64 = await getLogoBase64();
 
+            // Ensure correct property names with fallback
+        const title = item.title || item.itemTitle || "Untitled";
+        const owner = item.owner || "N/A";
+        const price = item.price || item.totalAmount || "N/A";
+        const status = item.status || "N/A";
+        const date = item.date ? new Date(item.date).toLocaleDateString() : "N/A";
+
             const htmlContent = `
   <div style="
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -158,11 +165,11 @@ const History = ({ navigation }) => {
 
     <div style="margin-bottom: 20px;">
       <h2 style="color: #4CAF50; font-size: 20px; margin-bottom: 10px;">📦 Item Details</h2>
-      <p style="font-size: 18px;"><strong>Title:</strong> ${item.itemTitle}</p>
-      <p style="font-size: 18px;"><strong>Owner:</strong> ${item.owner || "N/A"}</p>
-      <p style="font-size: 18px;"><strong>Price:</strong> ₹${item.totalAmount || "N/A"}</p>
-      <p style="font-size: 18px;"><strong>Status:</strong> ${item.status}</p>
-      <p style="font-size: 18px;"><strong>Date:</strong> ${new Date(item.date).toLocaleDateString()}</p>
+      <p style="font-size: 18px;"><strong>Title:</strong> ${title}</p>
+      <p style="font-size: 18px;"><strong>Owner:</strong> ${owner}</p>
+      <p style="font-size: 18px;"><strong>Price:</strong> ₹${price}</p>
+      <p style="font-size: 18px;"><strong>Status:</strong> ${status}</p>
+      <p style="font-size: 18px;"><strong>Date:</strong> ${date}</p>
     </div>
 
     <div style="
@@ -208,6 +215,14 @@ const History = ({ navigation }) => {
         try {
             setLoading(true);
             const logoBase64 = await getLogoBase64();
+
+            // Ensure correct property names with fallback
+        const title = item.title || item.itemTitle || "Untitled";
+        const owner = item.owner || "N/A";
+        const price = item.price || item.totalAmount || "N/A";
+        const status = item.status || "N/A";
+        const date = item.date ? new Date(item.date).toLocaleDateString() : "N/A";
+
             const htmlContent = `
   <div style="
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -231,11 +246,11 @@ const History = ({ navigation }) => {
 
     <div style="margin-bottom: 20px;">
       <h2 style="color: #4CAF50; font-size: 20px; margin-bottom: 10px;">📦 Item Details</h2>
-      <p style="font-size: 18px;"><strong>Title:</strong> ${item.itemTitle}</p>
-      <p style="font-size: 18px;"><strong>Owner:</strong> ${item.owner || "N/A"}</p>
-      <p style="font-size: 18px;"><strong>Price:</strong> ₹${item.totalAmount || "N/A"}</p>
-      <p style="font-size: 18px;"><strong>Status:</strong> ${item.status}</p>
-      <p style="font-size: 18px;"><strong>Date:</strong> ${new Date(item.date).toLocaleDateString()}</p>
+      <p style="font-size: 18px;"><strong>Title:</strong> ${title}</p>
+      <p style="font-size: 18px;"><strong>Owner:</strong> ${owner}</p>
+      <p style="font-size: 18px;"><strong>Price:</strong> ₹${price}</p>
+      <p style="font-size: 18px;"><strong>Status:</strong> ${status}</p>
+      <p style="font-size: 18px;"><strong>Date:</strong> ${date}</p>
     </div>
 
     <div style="
@@ -254,7 +269,7 @@ const History = ({ navigation }) => {
 
             const file = await RNHTMLtoPDF.convert({
                 html: htmlContent,
-                fileName: `Preview_Receipt_${item.itemTitle.replace(/\s/g, "_")}`,
+                fileName: `Preview_Receipt_${item.title.replace(/\s/g, "_")}`,
                 directory: getSaveDirectory(),
             });
 
