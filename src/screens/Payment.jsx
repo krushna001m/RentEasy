@@ -262,7 +262,7 @@ const Payment = ({ navigation, route }) => {
 
                         <TouchableOpacity
                             onPress={() => setDays(days + 1)}
-                            style={{ backgroundColor: "#001F54", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 }}
+                            style={{ backgroundColor: "#001F54", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4, marginLeft:6 }}
                         >
                             <Text style={{ color: "#fff", fontSize: 18 }}>+</Text>
                         </TouchableOpacity>
